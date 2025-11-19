@@ -1,49 +1,9 @@
 #pragma once
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-#include <shellapi.h> // For CommandLineToArgvW
+#include <CommonHeaders.h>
 
-#include <algorithm>
+#include <map>
 #include <cassert>
 #include <chrono>
-#include <exception>
-#include <map>
-
-// The min/max macros conflict with like-named member functions.
-// Only use std::min and std::max defined in <algorithm>.
-#ifdef min
-#undef min
-#endif
-
-#ifdef max
-#undef max
-#endif
-
-// In order to define a function called CreateWindow, the Windows macro needs to
-// be undefined.
-#ifdef CreateWindow
-#undef CreateWindow
-#endif
-
-// Windows Runtime Library. Needed for Microsoft::WRL::ComPtr<> template class.
-#include <wrl.h>
-using namespace Microsoft::WRL;
-
-// D3D12 headers
-#include <d3d12.h>
-#include <d3dx12.h>
-#include <dxgi1_6.h>
-#include <d3dcompiler.h>
-#include <DirectXMath.h>
-
-// Helper function
-static inline void ThrowIfFailed(HRESULT hr)
-{
-	if (FAILED(hr))
-	{
-		throw std::exception();
-	}
-}
 
 // The number of swap chain back buffers.
 constexpr uint8_t NUM_OF_FRAMES = 2;
@@ -54,17 +14,21 @@ class Application
 {
 public:
 
-	static Application& GetInstance(HINSTANCE p_hInst, const std::wstring& p_windowTitle, int p_width, int p_height, bool p_isVSync = false)
-	{
-		static Application m_app = Application(p_hInst, p_windowTitle, p_width, p_height, p_isVSync);
-		return m_app;
-	}
+	static Application& GetInstance(HINSTANCE p_hInst, const std::wstring& p_windowTitle, int p_width, int p_height, bool p_isVSync = false);
+
+	static Application& GetInstance();
 
 	// will distribute via hwndMapper
 	// to get Application address
 	static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 	void Run();
+
+	// Get functions
+	ComPtr<ID3D12Device2> GetDevice()
+	{
+		return m_Device;
+	}
 
 private:
 	HINSTANCE m_hInst;

@@ -2,6 +2,7 @@
 #include <cassert>
 
 std::map<HWND, Application*> hwndMapper;
+static Application* app_singleton = nullptr;
 
 Application::Application(HINSTANCE p_hInst, const std::wstring& p_windowTitle, int p_width, int p_height, bool p_isVSync)
 {
@@ -628,4 +629,16 @@ void Application::_setFullscreen(bool fullscreen)
 			::ShowWindow(m_hwnd, SW_NORMAL);
 		}
 	}
+}
+
+Application& Application::GetInstance(HINSTANCE p_hInst, const std::wstring& p_windowTitle, int p_width, int p_height, bool p_isVSync)
+{
+	static Application m_app = Application(p_hInst, p_windowTitle, p_width, p_height, p_isVSync);
+	app_singleton = &m_app;
+	return m_app;
+}
+
+Application& Application::GetInstance()
+{
+	return *app_singleton;
 }
