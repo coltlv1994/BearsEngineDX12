@@ -39,7 +39,32 @@ const void* Shader::GetPsByteCode()
 	return m_pixelShaderBlob.Get();
 }
 
-void Shader::CreateRootSigniture()
+bool Shader::PopulateRootConstants(std::vector<size_t>& p_constantSize, D3D12_SHADER_VISIBILITY p_enumVisibility)
+{
+	m_numOfConstants[p_enumVisibility] = p_constantSize;
+}
+
+void Shader::SetRootConstants()
+{
+	size_t totalConstants = 0;
+	for (auto kvp : m_numOfConstants)
+	{
+		totalConstants += kvp.second.size();
+	}
+
+	CD3DX12_ROOT_PARAMETER1* rootParameters_p = new CD3DX12_ROOT_PARAMETER1[totalConstants];
+	size_t nextIndex = 0;
+
+	for (auto& kvp : m_numOfConstants)
+	{
+		for (auto& constantsSize : kvp.second)
+		{
+			rootParameters_p[nextIndex].InitAsConstants(constantsSize, 0, 0, kvp.first);
+		}
+	}
+}
+
+void Shader::Create()
 {
 	// generate root signiture
 	Application& app = Application::GetInstance();
@@ -60,7 +85,7 @@ void Shader::CreateRootSigniture()
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
 
-	// A single 32-bit constant root parameter that is used by the vertex shader.
+	// Define projection/view/transition matrix for vertex shader
 	CD3DX12_ROOT_PARAMETER1 rootParameters[1] = { };
 	rootParameters[0].InitAsConstants(sizeof(XMMATRIX) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
 
@@ -75,4 +100,25 @@ void Shader::CreateRootSigniture()
 	// Create the root signature.
 	ThrowIfFailed(device->CreateRootSignature(0, rootSignatureBlob->GetBufferPointer(),
 		rootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)));
+
+	// Create pipeline state
+	D3D12_RT_FORMAT_ARRAY rtvFormats = {};
+	rtvFormats.NumRenderTargets = 1;
+	rtvFormats.RTFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+	PipelineStateStream pipelineStateStream = {};
+
+	pipelineStateStream.pRootSignature = m_rootSignature.Get();
+	pipelineStateStream.InputLayout = { m_inputLayout_p, (UINT)m_inputLayoutCount };
+	pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	pipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(m_vertexShaderBlob.Get());
+	pipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(m_pixelShaderBlob.Get());
+	pipelineStateStream.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+	pipelineStateStream.RTVFormats = rtvFormats;
+
+	D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
+		sizeof(PipelineStateStream), &pipelineStateStream
+	};
+
+	ThrowIfFailed(device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_pipelineState)));
 }

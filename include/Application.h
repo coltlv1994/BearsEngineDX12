@@ -30,6 +30,41 @@ public:
 		return m_Device;
 	}
 
+	ComPtr<ID3D12CommandAllocator> GetCommandAllocator()
+	{
+		return m_CommandAllocators[m_CurrentBackBufferIndex];
+	}
+
+	UINT GetCurrentBackBufferIndex()
+	{
+		return m_CurrentBackBufferIndex;
+	}
+
+	ComPtr<ID3D12Resource> GetCurrentBackBuffer()
+	{
+		return m_BackBuffers[m_CurrentBackBufferIndex];
+	}
+
+	ComPtr<ID3D12DescriptorHeap> GetRTVDescriptorHeap()
+	{
+		return m_RTVDescriptorHeap;
+	}
+
+	UINT GetRTVDescriptorSize()
+	{
+		return m_RTVDescriptorSize;
+	}
+
+	ComPtr<ID3D12DescriptorHeap> GetDSVDescriptorHeap()
+	{
+		return m_DSVHeap;
+	}
+
+	//UINT GetRTVDescriptorSize()
+	//{
+	//	return m_RTVDescriptorSize;
+	//}
+
 private:
 	HINSTANCE m_hInst;
 	std::wstring m_windowTitle;
@@ -51,6 +86,10 @@ private:
 	ComPtr<ID3D12DescriptorHeap> m_RTVDescriptorHeap;
 	UINT m_RTVDescriptorSize;
 	UINT m_CurrentBackBufferIndex;
+	// Depth buffer.
+	ComPtr<ID3D12Resource> m_DepthBuffer;
+	// Descriptor heap for depth buffer.
+	ComPtr<ID3D12DescriptorHeap> m_DSVHeap;
 
 	// Synchronization objects
 	ComPtr<ID3D12Fence> m_Fence;

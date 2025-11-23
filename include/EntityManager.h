@@ -1,5 +1,5 @@
 #pragma once
-#include <Renderable.h>
+#include <Mesh.h>
 #include <vector>
 
 class EntityManager
@@ -7,9 +7,9 @@ class EntityManager
 public:
 	EntityManager();
 
-	void AddEntity(Renderable& entity);
+	void AddEntity(Mesh* entity_p);
 	void Render();
 
 private:
-	std::vector<Renderable*> m_entities;
+	std::vector<Mesh*> m_entities;
 };
