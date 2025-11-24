@@ -55,4 +55,9 @@ typedef struct PipelineStateStream
 } PipelineStateStream;
 
 // Global function definition
-void LoadOBJFile(const wchar_t* p_objFilePath);
+void LoadOBJFile(
+	const wchar_t* p_objFilePath,
+	std::vector<float>& p_vertices,
+	std::vector<float>& p_normals,
+	std::vector<uint32_t>& p_triangles,
+	std::vector<uint32_t>& p_triangleNormalIndex);

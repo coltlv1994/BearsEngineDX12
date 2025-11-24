@@ -153,13 +153,13 @@
   <ItemGroup>
     <ClCompile Include="include\CommonHeaders.h" />
     <ClCompile Include="include\EntityManager.h" />
-    <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\CommonFunctions.cpp" />
     <ClCompile Include="src\d3dx12_property_format_table.cpp" />
     <ClCompile Include="src\dxguids.cpp" />
     <ClCompile Include="src\EntityManager.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\Mesh.cpp" />
     <ClCompile Include="src\Shader.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -5,7 +5,7 @@
 #include <regex>
 
 void LoadOBJFile(
-	const char* p_objFilePath,
+	const wchar_t* p_objFilePath,
 	std::vector<float>& p_vertices,
 	std::vector<float>& p_normals,
 	std::vector<uint32_t>& p_triangles,

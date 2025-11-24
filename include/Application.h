@@ -6,7 +6,7 @@
 #include <chrono>
 
 // The number of swap chain back buffers.
-constexpr uint8_t NUM_OF_FRAMES = 2;
+constexpr uint8_t NUM_OF_FRAMES = 3;
 
 // This class handles the window
 
@@ -59,11 +59,6 @@ public:
 	{
 		return m_DSVHeap;
 	}
-
-	//UINT GetRTVDescriptorSize()
-	//{
-	//	return m_RTVDescriptorSize;
-	//}
 
 private:
 	HINSTANCE m_hInst;

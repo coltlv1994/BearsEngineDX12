@@ -7,7 +7,7 @@
 class Mesh
 {
 public:
-	Mesh(const wchar_t* verticesPath, const wchar_t* indicesPath);
+	Mesh(const wchar_t* p_objFilePath);
 	void UseShader(Shader* shader_p);
 	Shader& GetShaderObjectByRef();
 	ComPtr<ID3D12GraphicsCommandList2> PopulateCommandList();
@@ -17,10 +17,36 @@ public:
 
 private:
 	std::vector<float> m_vertices;
-	std::vector<uint16_t> m_indices;
+	std::vector<float> m_normals;
+	std::vector<uint32_t> m_triangles;
+	std::vector<uint32_t> m_triangleNormalIndex;
+	
 	ComPtr<ID3D12GraphicsCommandList2> m_commandList;
+	// Vertex buffer for the mesh.
+	ComPtr<ID3D12Resource> m_vertexBuffer;
+	D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
+	// Index buffer for the mesh.
+	ComPtr<ID3D12Resource> m_indexBuffer;
+	D3D12_INDEX_BUFFER_VIEW m_indexBufferView;
+
+	ComPtr<ID3D12Device2> m_device; // save all these
+	ComPtr<ID3D12CommandAllocator> m_commandAllocator;
+
+	// Depth buffer.
+	ComPtr<ID3D12Resource> m_depthBuffer;
+	// Descriptor heap for depth buffer.
+	ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
 
 	Shader* m_shader_p;
 
-	void _readFromFile(const wchar_t* verticesPath, const wchar_t* indicesPath);
+	D3D12_VIEWPORT m_viewPort;
+	D3D12_RECT m_scissorRect;
+
+	// 3D matrices
+	float m_fov;
+	DirectX::XMMATRIX m_modelMatrix;
+	DirectX::XMMATRIX m_viewMatrix;
+	DirectX::XMMATRIX m_projectionMatrix;
+
+	void _updateBufferResources();
 };
