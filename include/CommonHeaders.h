@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <exception>
+#include <vector>
 
 // The min/max macros conflict with like-named member functions.
 // Only use std::min and std::max defined in <algorithm>.
@@ -52,3 +53,6 @@ typedef struct PipelineStateStream
     CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
     CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
 } PipelineStateStream;
+
+// Global function definition
+void LoadOBJFile(const wchar_t* p_objFilePath);
