@@ -17,6 +17,9 @@ Mesh::Mesh(const wchar_t* p_objFilePath)
 	m_device = app.GetDevice();
 	m_commandAllocator = app.GetCommandAllocator();
 	ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_commandList)));
+    // Command lists are created in the recording state, but there is nothing
+    // to record yet. The main loop expects it to be closed, so close it now.
+	m_commandList->Close();
 
 	// Upload vertex buffer data.
 	_updateBufferResources();
@@ -60,8 +63,7 @@ ComPtr<ID3D12GraphicsCommandList2> Mesh::PopulateCommandList()
 	m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
 	m_commandList->IASetIndexBuffer(&m_indexBufferView);
 
-	m_commandList->RSSetViewports(1, &m_viewPort);
-	m_commandList->RSSetScissorRects(1, &m_scissorRect);
+	//m_commandList->RSSetViewports(1, &m_viewPort);
 
 	m_commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
 
@@ -83,6 +85,8 @@ void Mesh::UseShader(Shader* p_shader_p)
 
 	// set new shader
 	m_shader_p = p_shader_p;
+
+	// create new root signiture
 }
 
 Shader& Mesh::GetShaderObjectByRef()
@@ -109,22 +113,27 @@ void Mesh::_updateBufferResources()
 
 	size_t vertexBufferSize = m_vertices.size() * sizeof(float);
 	size_t indexBufferSize = m_triangles.size() * sizeof(uint32_t);
+	CD3DX12_HEAP_PROPERTIES heapTypeDefault = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+	CD3DX12_HEAP_PROPERTIES heapTypeUpload = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+	CD3DX12_RESOURCE_DESC vertexBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize, D3D12_RESOURCE_FLAG_NONE);
+	CD3DX12_RESOURCE_DESC vertexBufferSizeDesc = CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize);
+	CD3DX12_RESOURCE_DESC indexBufferSizeDesc = CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize);
 
 	// vertex buffer
 	// Create a committed resource for the GPU resource in a default heap.
 	ThrowIfFailed(m_device->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		&heapTypeDefault,
 		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize, D3D12_RESOURCE_FLAG_NONE),
+		&vertexBufferDesc,
 		D3D12_RESOURCE_STATE_COMMON,
 		nullptr,
 		IID_PPV_ARGS(&m_vertexBuffer)));
 
 	// Create an committed resource for the upload.
 	ThrowIfFailed(m_device->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		&heapTypeUpload,
 		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
+		&vertexBufferSizeDesc,
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
 		IID_PPV_ARGS(&intermediateVertexBuffer)));
@@ -140,18 +149,18 @@ void Mesh::_updateBufferResources()
 
 	// Indices buffer
 	ThrowIfFailed(m_device->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		&heapTypeDefault,
 		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize),
+		&indexBufferSizeDesc,
 		D3D12_RESOURCE_STATE_COMMON,
 		nullptr,
 		IID_PPV_ARGS(&m_indexBuffer)));
 
 	// Create an committed resource for the upload.
 	ThrowIfFailed(m_device->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		&heapTypeUpload,
 		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize),
+		&indexBufferSizeDesc,
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
 		IID_PPV_ARGS(&intermediateIndexBuffer)));

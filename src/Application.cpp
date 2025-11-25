@@ -1,5 +1,6 @@
 #include <Application.h>
 #include <cassert>
+#include <iostream>
 
 std::map<HWND, Application*> hwndMapper;
 static Application* app_singleton = nullptr;
@@ -359,9 +360,9 @@ ComPtr<ID3D12CommandAllocator> Application::_createCommandAllocator(ComPtr<ID3D1
 	return commandAllocator;
 }
 
-ComPtr<ID3D12GraphicsCommandList> Application::_createCommandList(ComPtr<ID3D12Device2> device, ComPtr<ID3D12CommandAllocator> commandAllocator, D3D12_COMMAND_LIST_TYPE type)
+ComPtr<ID3D12GraphicsCommandList2> Application::_createCommandList(ComPtr<ID3D12Device2> device, ComPtr<ID3D12CommandAllocator> commandAllocator, D3D12_COMMAND_LIST_TYPE type)
 {
-	ComPtr<ID3D12GraphicsCommandList> commandList;
+	ComPtr<ID3D12GraphicsCommandList2> commandList;
 	ThrowIfFailed(device->CreateCommandList(0, type, commandAllocator.Get(), nullptr, IID_PPV_ARGS(&commandList)));
 
 	ThrowIfFailed(commandList->Close());
@@ -530,7 +531,7 @@ void Application::_render()
 
 		m_CommandList->ResourceBarrier(1, &barrier);
 
-		FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
+		FLOAT clearColor[] = { 1.0f, 0.0f, 0.0f, 1.0f };
 		CD3DX12_CPU_DESCRIPTOR_HANDLE rtv(m_RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
 			m_CurrentBackBufferIndex, m_RTVDescriptorSize);
 
@@ -549,6 +550,7 @@ void Application::_render()
 		ID3D12CommandList* const commandLists[] = {
 			m_CommandList.Get()
 		};
+
 		m_CommandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
 
 		m_FrameFenceValues[m_CurrentBackBufferIndex] = _signal(m_CommandQueue, m_Fence, m_FenceValue);
@@ -560,6 +562,31 @@ void Application::_render()
 		m_CurrentBackBufferIndex = m_SwapChain->GetCurrentBackBufferIndex();
 
 		_waitForFenceValue(m_Fence, m_FrameFenceValues[m_CurrentBackBufferIndex], m_FenceEvent);
+	}
+}
+
+void Application::_render2()
+{
+	auto commandAllocator = m_CommandAllocators[m_CurrentBackBufferIndex];
+	auto backBuffer = m_BackBuffers[m_CurrentBackBufferIndex];
+
+	commandAllocator->Reset();
+	m_CommandList->Reset(commandAllocator.Get(), nullptr);
+
+	// Clear the render target.
+	{
+		CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+			backBuffer.Get(),
+			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+		m_CommandList->ResourceBarrier(1, &barrier);
+
+		// Reset background color
+		FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
+		CD3DX12_CPU_DESCRIPTOR_HANDLE rtv(m_RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
+			m_CurrentBackBufferIndex, m_RTVDescriptorSize);
+
+		m_CommandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
 	}
 }
 
@@ -597,12 +624,13 @@ void Application::_resize(uint32_t width, uint32_t height)
 		D3D12_CLEAR_VALUE optimizedClearValue = {};
 		optimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
 		optimizedClearValue.DepthStencil = { 1.0f, 0 };
+		CD3DX12_HEAP_PROPERTIES heapProperty = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+		CD3DX12_RESOURCE_DESC tex2d = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, width, height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
 
 		ThrowIfFailed(m_Device->CreateCommittedResource(
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			&heapProperty,
 			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, width, height,
-				1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL),
+			&tex2d,
 			D3D12_RESOURCE_STATE_DEPTH_WRITE,
 			&optimizedClearValue,
 			IID_PPV_ARGS(&m_DepthBuffer)
@@ -617,6 +645,9 @@ void Application::_resize(uint32_t width, uint32_t height)
 
 		m_Device->CreateDepthStencilView(m_DepthBuffer.Get(), &dsv,
 			m_DSVHeap->GetCPUDescriptorHandleForHeapStart());
+
+		m_viewPort = CD3DX12_VIEWPORT(0.0f, 0.0f,
+			static_cast<float>(width), static_cast<float>(height));
 	}
 }
 
@@ -682,4 +713,46 @@ Application& Application::GetInstance(HINSTANCE p_hInst, const std::wstring& p_w
 Application& Application::GetInstance()
 {
 	return *app_singleton;
+}
+
+void Application::AddEntity(const wchar_t* p_objFilePath)
+{
+	m_entityManager.AddEntity(p_objFilePath);
+}
+
+void Application::AddEntity(Mesh* p_mesh_p)
+{
+	m_entityManager.AddEntity(p_mesh_p);
+}
+
+void Application::_renderEntities()
+{
+	// create command list for each entity
+	std::vector<ComPtr<ID3D12GraphicsCommandList2>> commandLists;
+
+	// It will get a vector of commandLists of each entity
+	m_entityManager.Render(commandLists);
+
+
+	// Render to screen
+	for (auto& commandList : commandLists)
+	{
+		CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+			m_BackBuffers[m_CurrentBackBufferIndex].Get(),
+			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+		commandList->ResourceBarrier(1, &barrier);
+		commandList->Close();
+
+		ID3D12CommandList* const ppCommandLists[] = { commandList.Get() };
+
+		m_CommandQueue->ExecuteCommandLists(1, ppCommandLists);
+
+		// Fence event
+		m_FrameFenceValues[m_CurrentBackBufferIndex] += 1;
+		m_CommandQueue->Signal(m_Fence.Get(), m_FrameFenceValues[m_CurrentBackBufferIndex]);
+
+		m_Fence->SetEventOnCompletion(m_FrameFenceValues[m_CurrentBackBufferIndex], m_FenceEvent);
+		::WaitForSingleObject(m_FenceEvent, DWORD_MAX);
+	}
 }

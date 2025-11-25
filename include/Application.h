@@ -1,12 +1,11 @@
 #pragma once
 #include <CommonHeaders.h>
+#include <EntityManager.h>
+#include <Mesh.h>
 
 #include <map>
 #include <cassert>
 #include <chrono>
-
-// The number of swap chain back buffers.
-constexpr uint8_t NUM_OF_FRAMES = 3;
 
 // This class handles the window
 
@@ -23,6 +22,9 @@ public:
 	static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 	void Run();
+
+	void AddEntity(const wchar_t* p_objFilePath);
+	void AddEntity(Mesh* p_mesh_p);
 
 	// Get functions
 	ComPtr<ID3D12Device2> GetDevice()
@@ -60,6 +62,26 @@ public:
 		return m_DSVHeap;
 	}
 
+	ComPtr<ID3D12CommandQueue> GetCommandQueue()
+	{
+		return m_CommandQueue;
+	}
+
+	uint64_t GetFenceValueForCurrentBackBuffer()
+	{
+		return m_FrameFenceValues[m_CurrentBackBufferIndex];
+	}
+
+	void SetFenceValueArrayForCurrentBackBuffer(uint64_t p_newFenceValue)
+	{
+		m_FrameFenceValues[m_CurrentBackBufferIndex] = p_newFenceValue;
+	}
+
+	void SignalCommandQueue(uint64_t p_value)
+	{
+		m_CommandQueue->Signal(m_Fence.Get(), p_value);
+	}
+
 private:
 	HINSTANCE m_hInst;
 	std::wstring m_windowTitle;
@@ -76,7 +98,7 @@ private:
 	ComPtr<ID3D12CommandQueue> m_CommandQueue;
 	ComPtr<IDXGISwapChain4> m_SwapChain;
 	ComPtr<ID3D12Resource> m_BackBuffers[NUM_OF_FRAMES];
-	ComPtr<ID3D12GraphicsCommandList> m_CommandList;
+	ComPtr<ID3D12GraphicsCommandList2> m_CommandList;
 	ComPtr<ID3D12CommandAllocator> m_CommandAllocators[NUM_OF_FRAMES];
 	ComPtr<ID3D12DescriptorHeap> m_RTVDescriptorHeap;
 	UINT m_RTVDescriptorSize;
@@ -85,6 +107,7 @@ private:
 	ComPtr<ID3D12Resource> m_DepthBuffer;
 	// Descriptor heap for depth buffer.
 	ComPtr<ID3D12DescriptorHeap> m_DSVHeap;
+	D3D12_VIEWPORT m_viewPort;
 
 	// Synchronization objects
 	ComPtr<ID3D12Fence> m_Fence;
@@ -103,6 +126,9 @@ private:
 	// Use WARP adapter
 	bool m_UseWarp = false;
 
+	// Entity manager of this class
+	EntityManager m_entityManager;
+
 	Application(HINSTANCE p_hInst, const std::wstring& p_windowTitle, int p_width, int p_height, bool p_isVSync = true);
 
 	void _windowInit();
@@ -116,7 +142,7 @@ private:
 	ComPtr<ID3D12DescriptorHeap> _createDescriptorHeap(ComPtr<ID3D12Device2> device, D3D12_DESCRIPTOR_HEAP_TYPE type);
 	void _updateRenderTargetViews(ComPtr<ID3D12Device2> device, ComPtr<IDXGISwapChain4> swapChain, ComPtr<ID3D12DescriptorHeap> descriptorHeap);
 	ComPtr<ID3D12CommandAllocator> _createCommandAllocator(ComPtr<ID3D12Device2> device, D3D12_COMMAND_LIST_TYPE type);
-	ComPtr<ID3D12GraphicsCommandList> _createCommandList(ComPtr<ID3D12Device2> device, ComPtr<ID3D12CommandAllocator> commandAllocator, D3D12_COMMAND_LIST_TYPE type);
+	ComPtr<ID3D12GraphicsCommandList2> _createCommandList(ComPtr<ID3D12Device2> device, ComPtr<ID3D12CommandAllocator> commandAllocator, D3D12_COMMAND_LIST_TYPE type);
 	ComPtr<ID3D12Fence> _createFence(ComPtr<ID3D12Device2> device);
 	HANDLE _createEventHandle();
 
@@ -129,8 +155,10 @@ private:
 	void _flush(ComPtr<ID3D12CommandQueue> commandQueue, ComPtr<ID3D12Fence> fence, uint64_t& fenceValue, HANDLE fenceEvent);
 	void _update();
 	void _render();
+	void _render2();
 	void _resize(uint32_t width, uint32_t height);
 	void _setFullscreen(bool fullscreen);
+	void _renderEntities();
 };
 
 extern std::map<HWND, Application*> hwndMapper;

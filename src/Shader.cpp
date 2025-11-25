@@ -41,7 +41,8 @@ const void* Shader::GetPsByteCode()
 
 bool Shader::PopulateRootConstants(std::vector<size_t>& p_constantSize, D3D12_SHADER_VISIBILITY p_enumVisibility)
 {
-	return m_numOfConstants[p_enumVisibility] = p_constantSize;
+	//return m_numOfConstants[p_enumVisibility] = p_constantSize;
+	return true;
 }
 
 void Shader::SetRootConstants()

@@ -34,6 +34,9 @@ using namespace Microsoft::WRL;
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
 
+// The number of swap chain back buffers.
+constexpr uint8_t NUM_OF_FRAMES = 3;
+
 // Helper function
 static inline void ThrowIfFailed(HRESULT hr)
 {

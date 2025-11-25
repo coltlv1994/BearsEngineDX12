@@ -39,9 +39,6 @@ private:
 
 	Shader* m_shader_p;
 
-	D3D12_VIEWPORT m_viewPort;
-	D3D12_RECT m_scissorRect;
-
 	// 3D matrices
 	float m_fov;
 	DirectX::XMMATRIX m_modelMatrix;
