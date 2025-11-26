@@ -588,6 +588,35 @@ void Application::_render2()
 
 		m_CommandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
 	}
+
+	// Present
+	{
+		CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+			backBuffer.Get(),
+			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+		m_CommandList->ResourceBarrier(1, &barrier);
+
+		ThrowIfFailed(m_CommandList->Close());
+
+		// Populate command list here
+
+
+		ID3D12CommandList* const commandLists[] = {
+			m_CommandList.Get()
+		};
+
+		m_CommandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
+
+		m_FrameFenceValues[m_CurrentBackBufferIndex] = _signal(m_CommandQueue, m_Fence, m_FenceValue);
+
+		UINT syncInterval = m_isVSync ? 1 : 0;
+		UINT presentFlags = m_TearingSupported && !m_isVSync ? DXGI_PRESENT_ALLOW_TEARING : 0;
+		ThrowIfFailed(m_SwapChain->Present(syncInterval, presentFlags));
+
+		m_CurrentBackBufferIndex = m_SwapChain->GetCurrentBackBufferIndex();
+
+		_waitForFenceValue(m_Fence, m_FrameFenceValues[m_CurrentBackBufferIndex], m_FenceEvent);
+	}
 }
 
 void Application::_resize(uint32_t width, uint32_t height)

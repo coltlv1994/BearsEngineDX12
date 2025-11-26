@@ -12,6 +12,7 @@ Shader::Shader(const wchar_t* p_vsPath, const wchar_t* p_psPath, D3D12_INPUT_ELE
 	m_inputLayoutCount = p_inputLayoutCount;
 	m_inputLayout_p = new D3D12_INPUT_ELEMENT_DESC[m_inputLayoutCount];
 	memcpy(m_inputLayout_p, p_inputLayout_p, sizeof(D3D12_INPUT_ELEMENT_DESC) * p_inputLayoutCount);
+	Create();
 }
 
 Shader::~Shader()

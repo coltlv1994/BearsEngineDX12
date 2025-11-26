@@ -13,7 +13,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 	};
 	size_t inputLayoutCount = 1;
 
-	Shader meshShader = Shader(L"x64\\Debug\\VertexShader.cso", L"x64\\Debug\\PixelShader.cso", inputLayout, inputLayoutCount);
+	Shader meshShader = Shader(L"shaders\\VertexShader.cso", L"shaders\\PixelShader.cso", inputLayout, inputLayoutCount);
 	Mesh* mesh = new Mesh(L"meshes\\FinalBaseMesh.obj");
 
 	mesh->UseShader(&meshShader);

@@ -42,17 +42,6 @@ ComPtr<ID3D12GraphicsCommandList2> Mesh::PopulateCommandList()
 		currentBackBufferIndex, m_RTVDescriptorSize);
 	auto dsv = DSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 
-	// Clear the render targets.
-	{
-		TransitionResource(m_commandList, backBuffer,
-			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-		FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
-
-		m_commandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
-		m_commandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-	}
-
 	ComPtr<ID3D12PipelineState> pipelineState = m_shader_p->GetPipelineState();
 	ComPtr<ID3D12RootSignature> rootSigniture = m_shader_p->GetRootSigniture();
 
@@ -68,6 +57,7 @@ ComPtr<ID3D12GraphicsCommandList2> Mesh::PopulateCommandList()
 	m_commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
 
 	// Update the MVP matrix
+	// Should be done over shader class
 	XMMATRIX mvpMatrix = XMMatrixMultiply(m_modelMatrix, m_viewMatrix);
 	mvpMatrix = XMMatrixMultiply(mvpMatrix, m_projectionMatrix);
 	m_commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / 4, &mvpMatrix, 0);
