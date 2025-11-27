@@ -411,7 +411,7 @@ LRESULT Application::_wndProc(UINT message, WPARAM wParam, LPARAM lParam)
 		{
 		case WM_PAINT:
 			_update();
-			_render();
+			_render2();
 			break;
 		case WM_SYSKEYDOWN:
 		case WM_KEYDOWN:
@@ -582,7 +582,7 @@ void Application::_render2()
 		m_CommandList->ResourceBarrier(1, &barrier);
 
 		// Reset background color
-		FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
+		FLOAT clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 		CD3DX12_CPU_DESCRIPTOR_HANDLE rtv(m_RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
 			m_CurrentBackBufferIndex, m_RTVDescriptorSize);
 
@@ -591,15 +591,13 @@ void Application::_render2()
 
 	// Present
 	{
+		// Populate command list here
+		m_entityManager.Render(m_CommandList);
+
 		CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
 			backBuffer.Get(),
 			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 		m_CommandList->ResourceBarrier(1, &barrier);
-
-		ThrowIfFailed(m_CommandList->Close());
-
-		// Populate command list here
-
 
 		ID3D12CommandList* const commandLists[] = {
 			m_CommandList.Get()
@@ -784,4 +782,15 @@ void Application::_renderEntities()
 		m_Fence->SetEventOnCompletion(m_FrameFenceValues[m_CurrentBackBufferIndex], m_FenceEvent);
 		::WaitForSingleObject(m_FenceEvent, DWORD_MAX);
 	}
+}
+
+void Application::ExecuteCommandList_DEBUG(ComPtr<ID3D12GraphicsCommandList2> p_CommandList)
+{
+	ID3D12CommandList* const commandLists[] = {
+	p_CommandList.Get()
+	};
+
+	m_CommandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
+
+	m_FrameFenceValues[m_CurrentBackBufferIndex] = _signal(m_CommandQueue, m_Fence, m_FenceValue);
 }

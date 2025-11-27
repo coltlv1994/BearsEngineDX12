@@ -10,7 +10,7 @@ using namespace DirectX;
 Mesh::Mesh(const wchar_t* p_objFilePath)
 {
 	// read file
-	LoadOBJFile(p_objFilePath, m_vertices, m_normals, m_triangles, m_triangleNormalIndex);
+	LoadOBJFile_DEBUG(p_objFilePath, m_vertices, m_normals, m_triangles, m_triangleNormalIndex);
 
 	// create command list
 	Application& app = Application::GetInstance();
@@ -23,6 +23,12 @@ Mesh::Mesh(const wchar_t* p_objFilePath)
 
 	// Upload vertex buffer data.
 	_updateBufferResources();
+
+	int width, height;
+	app.GetWidthAndHeight(width, height);
+	m_Viewport = CD3DX12_VIEWPORT(0.0f, 0.0f,
+		static_cast<float>(width), static_cast<float>(height));
+	_resizeDepthBuffer(width, height);
 }
 
 ComPtr<ID3D12GraphicsCommandList2> Mesh::PopulateCommandList()
@@ -46,27 +52,71 @@ ComPtr<ID3D12GraphicsCommandList2> Mesh::PopulateCommandList()
 	ComPtr<ID3D12RootSignature> rootSigniture = m_shader_p->GetRootSigniture();
 
 	m_commandList->SetPipelineState(pipelineState.Get());
-	m_commandList->SetGraphicsRootSignature(rootSigniture.Get());
+	//m_commandList->SetGraphicsRootSignature(rootSigniture.Get());
 
-	m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
-	m_commandList->IASetIndexBuffer(&m_indexBufferView);
+	//m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	//m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
+	//m_commandList->IASetIndexBuffer(&m_indexBufferView);
 
-	//m_commandList->RSSetViewports(1, &m_viewPort);
+	////m_commandList->RSSetViewports(1, &m_viewPort);
 
-	m_commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
+	//m_commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
+
+	//// Update the MVP matrix
+	//// Should be done over shader class
+	//XMMATRIX mvpMatrix = XMMatrixMultiply(m_modelMatrix, m_viewMatrix);
+	//mvpMatrix = XMMatrixMultiply(mvpMatrix, m_projectionMatrix);
+	//m_commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / 4, &mvpMatrix, 0);
+
+	//m_commandList->DrawIndexedInstanced(m_triangles.size(), 1, 0, 0, 0);
+
+	ThrowIfFailed(m_commandList->Close());
+
+	return m_commandList;
+}
+
+void Mesh::PopulateCommandList(ComPtr<ID3D12GraphicsCommandList2> p_commandList)
+{
+	// Populate command queue
+	Application& app = Application::GetInstance();
+	ComPtr<ID3D12Device2> device = app.GetDevice();
+	ComPtr<ID3D12CommandAllocator> commandAllocator = app.GetCommandAllocator();
+	ComPtr<ID3D12DescriptorHeap> RTVDescriptorHeap = app.GetRTVDescriptorHeap();
+	UINT m_RTVDescriptorSize = app.GetRTVDescriptorSize();
+	ComPtr<ID3D12DescriptorHeap> DSVDescriptorHeap = app.GetDSVDescriptorHeap();
+
+	// populate command
+	UINT currentBackBufferIndex = app.GetCurrentBackBufferIndex();
+	auto backBuffer = app.GetCurrentBackBuffer();
+	auto rtv = CD3DX12_CPU_DESCRIPTOR_HANDLE(RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
+		currentBackBufferIndex, m_RTVDescriptorSize);
+	auto dsv = DSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+
+	ComPtr<ID3D12PipelineState> pipelineState = m_shader_p->GetPipelineState();
+	ComPtr<ID3D12RootSignature> rootSigniture = m_shader_p->GetRootSigniture();
+
+	p_commandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	p_commandList->SetGraphicsRootSignature(rootSigniture.Get());
+	p_commandList->SetPipelineState(pipelineState.Get());
+
+	p_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	p_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
+	p_commandList->IASetIndexBuffer(&m_indexBufferView);
+
+	p_commandList->RSSetViewports(1, &m_Viewport);
+	p_commandList->RSSetScissorRects(1, &m_ScissorRect);
+
+	p_commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
 
 	// Update the MVP matrix
 	// Should be done over shader class
 	XMMATRIX mvpMatrix = XMMatrixMultiply(m_modelMatrix, m_viewMatrix);
 	mvpMatrix = XMMatrixMultiply(mvpMatrix, m_projectionMatrix);
-	m_commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / 4, &mvpMatrix, 0);
+	p_commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / 4, &mvpMatrix, 0);
 
-	m_commandList->DrawIndexedInstanced(m_triangles.size(), 1, 0, 0, 0);
+	p_commandList->DrawIndexedInstanced(m_triangles.size(), 1, 0, 0, 0);
 
-	ThrowIfFailed(m_commandList->Close());
-
-	return m_commandList;
+	ThrowIfFailed(p_commandList->Close());
 }
 
 void Mesh::UseShader(Shader* p_shader_p)
@@ -98,6 +148,9 @@ void Mesh::TransitionResource(ComPtr<ID3D12GraphicsCommandList2> commandList,
 
 void Mesh::_updateBufferResources()
 {
+	Application& app = Application::GetInstance();
+	ComPtr<ID3D12Device2> device = app.GetDevice();
+
 	ComPtr<ID3D12Resource> intermediateVertexBuffer;
 	ComPtr<ID3D12Resource> intermediateIndexBuffer;
 
@@ -137,6 +190,11 @@ void Mesh::_updateBufferResources()
 		m_vertexBuffer.Get(), intermediateVertexBuffer.Get(),
 		0, 0, 1, &vertexSubresourceData);
 
+	// create vertex buffer view
+	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
+	m_vertexBufferView.SizeInBytes = vertexBufferSize;
+	m_vertexBufferView.StrideInBytes = sizeof(float) * 3;
+
 	// Indices buffer
 	ThrowIfFailed(m_device->CreateCommittedResource(
 		&heapTypeDefault,
@@ -163,4 +221,77 @@ void Mesh::_updateBufferResources()
 	UpdateSubresources(m_commandList.Get(),
 		m_indexBuffer.Get(), intermediateIndexBuffer.Get(),
 		0, 0, 1, &triangleSubresourceData);
+
+	m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
+	m_indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+	m_indexBufferView.SizeInBytes = indexBufferSize;
+
+	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
+	dsvHeapDesc.NumDescriptors = 1;
+	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	ThrowIfFailed(device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_dsvHeap)));
+
+	// execute commands
+	app.ExecuteCommandList_DEBUG(m_commandList);
+}
+
+void Mesh::SetModelMatrix(XMMATRIX& p_modelMatrix)
+{
+	m_modelMatrix = p_modelMatrix;
+}
+
+void Mesh::SetViewMatrix(XMMATRIX& p_viewMatrix)
+{
+	m_viewMatrix = p_viewMatrix;
+}
+
+void Mesh::SetProjectionMatrix(XMMATRIX& p_projectionMatrix)
+{
+	m_projectionMatrix = p_projectionMatrix;
+}
+
+void Mesh::SetFOV(float p_fov)
+{
+	m_fov = p_fov;
+}
+
+void Mesh::_resizeDepthBuffer(int width, int height)
+{
+	// Flush any GPU commands that might be referencing the depth buffer.
+	Application& app = Application::GetInstance();
+
+	width = std::max(1, width);
+	height = std::max(1, height);
+
+	auto device = app.GetDevice();
+
+	// Resize screen dependent resources.
+	// Create a depth buffer.
+	D3D12_CLEAR_VALUE optimizedClearValue = {};
+	optimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
+	optimizedClearValue.DepthStencil = { 1.0f, 0 };
+
+	CD3DX12_HEAP_PROPERTIES heapPropertyDefault = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+	CD3DX12_RESOURCE_DESC tex2D = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, width, height,
+		1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+
+	ThrowIfFailed(device->CreateCommittedResource(
+		&heapPropertyDefault,
+		D3D12_HEAP_FLAG_NONE,
+		&tex2D,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		&optimizedClearValue,
+		IID_PPV_ARGS(&m_depthBuffer)
+	));
+
+	// Update the depth-stencil view.
+	D3D12_DEPTH_STENCIL_VIEW_DESC dsv = {};
+	dsv.Format = DXGI_FORMAT_D32_FLOAT;
+	dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+	dsv.Texture2D.MipSlice = 0;
+	dsv.Flags = D3D12_DSV_FLAG_NONE;
+
+	device->CreateDepthStencilView(m_depthBuffer.Get(), &dsv,
+		m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
 }

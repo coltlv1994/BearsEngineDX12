@@ -76,7 +76,7 @@ void Shader::Create()
 	featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
 	if (FAILED(device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
 	{
-		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
+		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
 	}
 
 	// Allow input layout and deny unnecessary access to certain pipeline stages.

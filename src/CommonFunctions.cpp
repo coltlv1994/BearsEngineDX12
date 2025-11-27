@@ -90,3 +90,24 @@ void LoadOBJFile(
 	}
 	objFile.close();
 }
+
+void LoadOBJFile_DEBUG(const wchar_t* p_objFilePath,
+	std::vector<float>& p_vertices,
+	std::vector<float>& p_normals,
+	std::vector<uint32_t>& p_triangles,
+	std::vector<uint32_t>& p_triangleNormalIndex)
+{
+	p_vertices.push_back(0.0f);
+	p_vertices.push_back(0.0f);
+	p_vertices.push_back(0.0f);
+	p_vertices.push_back(-1.0f);
+	p_vertices.push_back(0.0f);
+	p_vertices.push_back(0.0f);
+	p_vertices.push_back(0.0f);
+	p_vertices.push_back(1.0f);
+	p_vertices.push_back(0.0f);
+
+	p_triangles.push_back(0);
+	p_triangles.push_back(1);
+	p_triangles.push_back(2);
+}

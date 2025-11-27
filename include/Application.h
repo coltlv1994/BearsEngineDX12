@@ -82,6 +82,14 @@ public:
 		m_CommandQueue->Signal(m_Fence.Get(), p_value);
 	}
 
+	void GetWidthAndHeight(int& out_width, int& out_height)
+	{
+		out_width = m_width;
+		out_height = m_height;
+	}
+
+	void ExecuteCommandList_DEBUG(ComPtr<ID3D12GraphicsCommandList2> p_CommandList);
+
 private:
 	HINSTANCE m_hInst;
 	std::wstring m_windowTitle;

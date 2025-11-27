@@ -18,6 +18,21 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 
 	mesh->UseShader(&meshShader);
 
+	// Update the view matrix.
+	const XMVECTOR eyePosition = XMVectorSet(0, 0, -5, 1);
+	const XMVECTOR focusPoint = XMVectorSet(0, 0, 0, 1);
+	const XMVECTOR upDirection = XMVectorSet(0, 1, 0, 0);
+	XMMATRIX viewMatrix = XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);
+	mesh->SetViewMatrix(viewMatrix);
+
+	// Update the projection matrix.
+	int height, width;
+	mainApp.GetWidthAndHeight(width, height);
+	float aspectRatio = width / static_cast<float>(height);
+	XMMATRIX projectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(90.0f), aspectRatio, 0.1f, 100.0f);
+	mesh->SetProjectionMatrix(projectionMatrix);
+	mesh->SetFOV(90.0f);
+
 	mainApp.AddEntity(mesh);
 
 	mainApp.Run();
