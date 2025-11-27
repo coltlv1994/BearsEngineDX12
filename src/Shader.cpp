@@ -10,14 +10,12 @@ Shader::Shader(const wchar_t* p_vsPath, const wchar_t* p_psPath, D3D12_INPUT_ELE
 	ThrowIfFailed(D3DReadFileToBlob(p_vsPath, &m_vertexShaderBlob));
 	ThrowIfFailed(D3DReadFileToBlob(p_psPath, &m_pixelShaderBlob));
 	m_inputLayoutCount = p_inputLayoutCount;
-	m_inputLayout_p = new D3D12_INPUT_ELEMENT_DESC[m_inputLayoutCount];
-	memcpy(m_inputLayout_p, p_inputLayout_p, sizeof(D3D12_INPUT_ELEMENT_DESC) * p_inputLayoutCount);
+	m_inputLayout_p = p_inputLayout_p;
 	Create();
 }
 
 Shader::~Shader()
 {
-	delete[] m_inputLayout_p;
 }
 
 D3D12_INPUT_ELEMENT_DESC& Shader::GetInputLayout()
@@ -104,10 +102,6 @@ void Shader::Create()
 		rootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)));
 
 	// Create pipeline state
-	D3D12_RT_FORMAT_ARRAY rtvFormats = {};
-	rtvFormats.NumRenderTargets = 1;
-	rtvFormats.RTFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-
 	// Describe and create the graphics pipeline state object (PSO).
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 	psoDesc.InputLayout = { m_inputLayout_p, (UINT)m_inputLayoutCount };

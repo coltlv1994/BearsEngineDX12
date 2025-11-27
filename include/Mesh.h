@@ -49,9 +49,6 @@ private:
 
 	Shader* m_shader_p;
 
-	D3D12_VIEWPORT m_Viewport;
-	D3D12_RECT m_ScissorRect = CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX);
-
 	// 3D matrices
 	/*
 	* (Explanation keeps here for reference)

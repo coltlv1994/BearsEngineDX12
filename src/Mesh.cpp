@@ -95,16 +95,13 @@ void Mesh::PopulateCommandList(ComPtr<ID3D12GraphicsCommandList2> p_commandList)
 	ComPtr<ID3D12PipelineState> pipelineState = m_shader_p->GetPipelineState();
 	ComPtr<ID3D12RootSignature> rootSigniture = m_shader_p->GetRootSigniture();
 
-	p_commandList->SetGraphicsRootSignature(rootSigniture.Get());
 	p_commandList->SetPipelineState(pipelineState.Get());
-	p_commandList->RSSetViewports(1, &m_Viewport);
-	p_commandList->RSSetScissorRects(1, &m_ScissorRect);
+	p_commandList->SetGraphicsRootSignature(rootSigniture.Get());
+	p_commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
 
 	p_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	p_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
 	p_commandList->IASetIndexBuffer(&m_indexBufferView);
-
-	p_commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
 
 	// Update the MVP matrix
 	// Should be done over shader class
@@ -117,8 +114,6 @@ void Mesh::PopulateCommandList(ComPtr<ID3D12GraphicsCommandList2> p_commandList)
 	WCHAR buffer[500];
 	swprintf_s(buffer, 500, L"# of indexed instances: %llu\n", m_triangles.size());
 	OutputDebugString(buffer);
-
-	ThrowIfFailed(p_commandList->Close());
 }
 
 void Mesh::UseShader(Shader* p_shader_p)

@@ -5,7 +5,12 @@
 std::map<HWND, Application*> hwndMapper;
 static Application* app_singleton = nullptr;
 
-Application::Application(HINSTANCE p_hInst, const std::wstring& p_windowTitle, int p_width, int p_height, bool p_isVSync)
+Application::Application(HINSTANCE p_hInst, const std::wstring& p_windowTitle, int p_width, int p_height, bool p_isVSync) :
+	m_currentBackBufferIndex(0),
+	m_viewport(0.0f, 0.0f, static_cast<float>(p_width), static_cast<float>(p_height)),
+	m_scissorRect(0, 0, static_cast<LONG>(p_width), static_cast<LONG>(p_width)),
+	m_frameFenceValues{},
+	m_rtvDescriptorSize(0)
 {
 	m_height = p_height;
 	m_windowTitle = p_windowTitle;
@@ -27,58 +32,37 @@ void Application::_windowInit()
 	// be rendered in a DPI sensitive fashion.
 	SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
-	// RegisterWindowClass() + CreateWindow()
-	// Register a window class for creating our render window with.
-	WNDCLASSEXW windowClass = {};
-
-	windowClass.cbSize = sizeof(WNDCLASSEXW);
+	// Initialize the window class.
+	WNDCLASSEX windowClass = { 0 };
+	windowClass.cbSize = sizeof(WNDCLASSEX);
 	windowClass.style = CS_HREDRAW | CS_VREDRAW;
-	windowClass.lpfnWndProc = &WndProc;
-	windowClass.cbClsExtra = 0;
-	windowClass.cbWndExtra = 0;
+	windowClass.lpfnWndProc = WndProc;
 	windowClass.hInstance = m_hInst;
-	windowClass.hIcon = ::LoadIcon(m_hInst, NULL); //  MAKEINTRESOURCE(APPLICATION_ICON));
-	windowClass.hCursor = ::LoadCursor(NULL, IDC_ARROW);
-	windowClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-	windowClass.lpszMenuName = NULL;
-	windowClass.lpszClassName = m_windowClassName;
-	windowClass.hIconSm = ::LoadIcon(m_hInst, NULL); //  MAKEINTRESOURCE(APPLICATION_ICON));
+	windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
+	windowClass.lpszClassName = L"DXSampleClass";
+	RegisterClassEx(&windowClass);
 
-	static HRESULT hr = ::RegisterClassExW(&windowClass);
-	assert(SUCCEEDED(hr));
+	::GetWindowRect(m_hwnd, &m_WindowRect);
+	AdjustWindowRect(&m_WindowRect, WS_OVERLAPPEDWINDOW, FALSE);
 
-	int screenWidth = ::GetSystemMetrics(SM_CXSCREEN);
-	int screenHeight = ::GetSystemMetrics(SM_CYSCREEN);
-
-	RECT windowRect = { 0, 0, static_cast<LONG>(m_width), static_cast<LONG>(m_height) };
-	::AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
-
-	int windowWidth = windowRect.right - windowRect.left;
-	int windowHeight = windowRect.bottom - windowRect.top;
-
-	// Center the window within the screen. Clamp to 0, 0 for the top-left corner.
-	int windowX = std::max<int>(0, (screenWidth - windowWidth) / 2);
-	int windowY = std::max<int>(0, (screenHeight - windowHeight) / 2);
-
-	m_hwnd = ::CreateWindowExW(
-		NULL,
-		m_windowClassName,
+	// Create the window and store a handle to it.
+	m_hwnd = ::CreateWindowW(
+		windowClass.lpszClassName,
 		m_windowTitle.c_str(),
 		WS_OVERLAPPEDWINDOW,
-		windowX,
-		windowY,
-		windowWidth,
-		windowHeight,
-		NULL,
-		NULL,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		m_WindowRect.right - m_WindowRect.left,
+		m_WindowRect.bottom - m_WindowRect.top,
+		nullptr,        // We have no parent window.
+		nullptr,        // We aren't using menus.
 		m_hInst,
-		nullptr
-	);
+		nullptr);
 
 	assert(m_hwnd && "Failed to create window");
 
 	hwndMapper[m_hwnd] = this;
-	::GetWindowRect(m_hwnd, &m_WindowRect);
+
 }
 
 void Application::_d3d12Init()
@@ -87,29 +71,29 @@ void Application::_d3d12Init()
 
 	ComPtr<IDXGIAdapter4> dxgiAdapter4 = _getAdapter(m_UseWarp);
 
-	m_Device = _createDevice(dxgiAdapter4);
+	m_device = _createDevice(dxgiAdapter4);
 
-	m_CommandQueue = _createCommandQueue(m_Device, D3D12_COMMAND_LIST_TYPE_DIRECT);
+	m_commandQueue = _createCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 
-	m_SwapChain = _createSwapChain(m_hwnd, m_CommandQueue, m_width, m_height);
+	m_swapChain = _createSwapChain();
 
-	m_CurrentBackBufferIndex = m_SwapChain->GetCurrentBackBufferIndex();
+	m_currentBackBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
 
-	m_RTVDescriptorHeap = _createDescriptorHeap(m_Device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	m_RTVDescriptorSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	m_RTVDescriptorHeap = _createDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	m_rtvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
-	m_DSVHeap = _createDescriptorHeap(m_Device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+	m_DSVHeap = _createDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
-	_updateRenderTargetViews(m_Device, m_SwapChain, m_RTVDescriptorHeap);
+	_updateRenderTargetViews();
 
 	for (int i = 0; i < NUM_OF_FRAMES; ++i)
 	{
-		m_CommandAllocators[i] = _createCommandAllocator(m_Device, D3D12_COMMAND_LIST_TYPE_DIRECT);
+		m_commandAllocators[i] = _createCommandAllocator(m_device, D3D12_COMMAND_LIST_TYPE_DIRECT);
 	}
 
-	m_CommandList = _createCommandList(m_Device, m_CommandAllocators[m_CurrentBackBufferIndex], D3D12_COMMAND_LIST_TYPE_DIRECT);
+	m_commandList = _createCommandList(m_device, m_commandAllocators[m_currentBackBufferIndex], D3D12_COMMAND_LIST_TYPE_DIRECT);
 
-	m_Fence = _createFence(m_Device);
+	m_fence = _createFence(m_device);
 	m_FenceEvent = _createEventHandle();
 
 	m_IsInitialized = true;
@@ -130,7 +114,7 @@ void Application::Run()
 	}
 
 	// Make sure the command queue has finished all commands before closing.
-	_flush(m_CommandQueue, m_Fence, m_FenceValue, m_FenceEvent);
+	FlushCommandQueue();
 
 	::CloseHandle(m_FenceEvent);
 }
@@ -249,7 +233,7 @@ ComPtr<ID3D12Device2> Application::_createDevice(ComPtr<IDXGIAdapter4> adapter)
 	return d3d12Device2;
 }
 
-ComPtr<ID3D12CommandQueue> Application::_createCommandQueue(ComPtr<ID3D12Device2> device, D3D12_COMMAND_LIST_TYPE type)
+ComPtr<ID3D12CommandQueue> Application::_createCommandQueue(D3D12_COMMAND_LIST_TYPE type)
 {
 	ComPtr<ID3D12CommandQueue> d3d12CommandQueue;
 
@@ -257,14 +241,13 @@ ComPtr<ID3D12CommandQueue> Application::_createCommandQueue(ComPtr<ID3D12Device2
 	desc.Type = type;
 	desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
 	desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-	desc.NodeMask = 0;
 
-	ThrowIfFailed(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&d3d12CommandQueue)));
+	ThrowIfFailed(m_device->CreateCommandQueue(&desc, IID_PPV_ARGS(&d3d12CommandQueue)));
 
 	return d3d12CommandQueue;
 }
 
-ComPtr<IDXGISwapChain4> Application::_createSwapChain(HWND hWnd, ComPtr<ID3D12CommandQueue> commandQueue, uint32_t width, uint32_t height)
+ComPtr<IDXGISwapChain4> Application::_createSwapChain()
 {
 	ComPtr<IDXGISwapChain4> dxgiSwapChain4;
 	ComPtr<IDXGIFactory4> dxgiFactory4;
@@ -276,23 +259,20 @@ ComPtr<IDXGISwapChain4> Application::_createSwapChain(HWND hWnd, ComPtr<ID3D12Co
 	ThrowIfFailed(CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(&dxgiFactory4)));
 
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
-	swapChainDesc.Width = width;
-	swapChainDesc.Height = height;
-	swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	swapChainDesc.Stereo = FALSE;
-	swapChainDesc.SampleDesc = { 1, 0 };
-	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	swapChainDesc.BufferCount = NUM_OF_FRAMES;
-	swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
+	swapChainDesc.Width = m_width;
+	swapChainDesc.Height = m_height;
+	swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-	swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
+	swapChainDesc.SampleDesc.Count = 1;
 	// It is recommended to always allow tearing if tearing support is available.
 	swapChainDesc.Flags = _checkTearingSupport() ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
 
 	ComPtr<IDXGISwapChain1> swapChain1;
 	ThrowIfFailed(dxgiFactory4->CreateSwapChainForHwnd(
-		commandQueue.Get(),
-		hWnd,
+		m_commandQueue.Get(),
+		m_hwnd,
 		&swapChainDesc,
 		nullptr,
 		nullptr,
@@ -300,14 +280,14 @@ ComPtr<IDXGISwapChain4> Application::_createSwapChain(HWND hWnd, ComPtr<ID3D12Co
 
 	// Disable the Alt+Enter fullscreen toggle feature. Switching to fullscreen
 	// will be handled manually.
-	ThrowIfFailed(dxgiFactory4->MakeWindowAssociation(hWnd, DXGI_MWA_NO_ALT_ENTER));
+	ThrowIfFailed(dxgiFactory4->MakeWindowAssociation(m_hwnd, DXGI_MWA_NO_ALT_ENTER));
 
 	ThrowIfFailed(swapChain1.As(&dxgiSwapChain4));
 
 	return dxgiSwapChain4;
 }
 
-ComPtr<ID3D12DescriptorHeap> Application::_createDescriptorHeap(ComPtr<ID3D12Device2> device, D3D12_DESCRIPTOR_HEAP_TYPE type)
+ComPtr<ID3D12DescriptorHeap> Application::_createDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type)
 {
 	ComPtr<ID3D12DescriptorHeap> descriptorHeap;
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
@@ -328,27 +308,25 @@ ComPtr<ID3D12DescriptorHeap> Application::_createDescriptorHeap(ComPtr<ID3D12Dev
 		break;
 	}
 
-	ThrowIfFailed(device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&descriptorHeap)));
+	ThrowIfFailed(m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&descriptorHeap)));
 
 	return descriptorHeap;
 }
 
-void Application::_updateRenderTargetViews(ComPtr<ID3D12Device2> device, ComPtr<IDXGISwapChain4> swapChain, ComPtr<ID3D12DescriptorHeap> descriptorHeap)
+void Application::_updateRenderTargetViews()
 {
-	auto rtvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-
-	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(descriptorHeap->GetCPUDescriptorHandleForHeapStart());
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
 	for (int i = 0; i < NUM_OF_FRAMES; ++i)
 	{
 		ComPtr<ID3D12Resource> backBuffer;
-		ThrowIfFailed(swapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffer)));
+		ThrowIfFailed(m_swapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffer)));
 
-		device->CreateRenderTargetView(backBuffer.Get(), nullptr, rtvHandle);
+		m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, rtvHandle);
 
-		m_BackBuffers[i] = backBuffer;
+		m_backBuffers[i] = backBuffer;
 
-		rtvHandle.Offset(1, rtvDescriptorSize);
+		rtvHandle.Offset(1, m_rtvDescriptorSize);
 	}
 }
 
@@ -374,7 +352,8 @@ ComPtr<ID3D12Fence> Application::_createFence(ComPtr<ID3D12Device2> device)
 {
 	ComPtr<ID3D12Fence> fence;
 
-	ThrowIfFailed(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
+	ThrowIfFailed(device->CreateFence(m_frameFenceValues[m_currentBackBufferIndex], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
+	m_frameFenceValues[m_currentBackBufferIndex] += 1;
 
 	return fence;
 }
@@ -515,63 +494,13 @@ void Application::_update()
 	}
 }
 
-void Application::_render()
-{
-	auto commandAllocator = m_CommandAllocators[m_CurrentBackBufferIndex];
-	auto backBuffer = m_BackBuffers[m_CurrentBackBufferIndex];
-
-	commandAllocator->Reset();
-	m_CommandList->Reset(commandAllocator.Get(), nullptr);
-
-	// Clear the render target.
-	{
-		CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-			backBuffer.Get(),
-			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-		m_CommandList->ResourceBarrier(1, &barrier);
-
-		FLOAT clearColor[] = { 1.0f, 0.0f, 0.0f, 1.0f };
-		CD3DX12_CPU_DESCRIPTOR_HANDLE rtv(m_RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
-			m_CurrentBackBufferIndex, m_RTVDescriptorSize);
-
-		m_CommandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
-	}
-
-	// Present
-	{
-		CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-			backBuffer.Get(),
-			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-		m_CommandList->ResourceBarrier(1, &barrier);
-
-		ThrowIfFailed(m_CommandList->Close());
-
-		ID3D12CommandList* const commandLists[] = {
-			m_CommandList.Get()
-		};
-
-		m_CommandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
-
-		m_FrameFenceValues[m_CurrentBackBufferIndex] = _signal(m_CommandQueue, m_Fence, m_FenceValue);
-
-		UINT syncInterval = m_isVSync ? 1 : 0;
-		UINT presentFlags = m_TearingSupported && !m_isVSync ? DXGI_PRESENT_ALLOW_TEARING : 0;
-		ThrowIfFailed(m_SwapChain->Present(syncInterval, presentFlags));
-
-		m_CurrentBackBufferIndex = m_SwapChain->GetCurrentBackBufferIndex();
-
-		_waitForFenceValue(m_Fence, m_FrameFenceValues[m_CurrentBackBufferIndex], m_FenceEvent);
-	}
-}
-
 void Application::_render2()
 {
-	auto commandAllocator = m_CommandAllocators[m_CurrentBackBufferIndex];
-	auto backBuffer = m_BackBuffers[m_CurrentBackBufferIndex];
+	auto commandAllocator = m_commandAllocators[m_currentBackBufferIndex];
+	auto backBuffer = m_backBuffers[m_currentBackBufferIndex];
 
 	commandAllocator->Reset();
-	m_CommandList->Reset(commandAllocator.Get(), nullptr);
+	m_commandList->Reset(commandAllocator.Get(), nullptr);
 
 	// Clear the render target.
 	{
@@ -579,44 +508,45 @@ void Application::_render2()
 			backBuffer.Get(),
 			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-		m_CommandList->ResourceBarrier(1, &barrier);
+		m_commandList->ResourceBarrier(1, &barrier);
 
 		// Reset background color
 		FLOAT clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 		CD3DX12_CPU_DESCRIPTOR_HANDLE rtv(m_RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
-			m_CurrentBackBufferIndex, m_RTVDescriptorSize);
+			m_currentBackBufferIndex, m_rtvDescriptorSize);
 		auto dsv = m_DSVHeap->GetCPUDescriptorHandleForHeapStart();
 
-		m_CommandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
-		m_CommandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+		m_commandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
+		m_commandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+
+		m_commandList->RSSetViewports(1, &m_viewport);
+		m_commandList->RSSetScissorRects(1, &m_scissorRect);
 	}
 
 	// Present
 	{
 		// Populate command list here
-		m_entityManager.Render(m_CommandList);
+		m_entityManager.Render(m_commandList);
 
 		CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
 			backBuffer.Get(),
 			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
-		m_CommandList->ResourceBarrier(1, &barrier);
+		m_commandList->ResourceBarrier(1, &barrier);
+
+		ThrowIfFailed(m_commandList->Close());
 
 		ID3D12CommandList* const commandLists[] = {
-			m_CommandList.Get()
+			m_commandList.Get()
 		};
 
-		m_CommandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
-
-		m_FrameFenceValues[m_CurrentBackBufferIndex] = _signal(m_CommandQueue, m_Fence, m_FenceValue);
+		m_commandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
 
 		UINT syncInterval = m_isVSync ? 1 : 0;
 		UINT presentFlags = m_TearingSupported && !m_isVSync ? DXGI_PRESENT_ALLOW_TEARING : 0;
-		ThrowIfFailed(m_SwapChain->Present(syncInterval, presentFlags));
+		ThrowIfFailed(m_swapChain->Present(syncInterval, presentFlags));
 
-		m_CurrentBackBufferIndex = m_SwapChain->GetCurrentBackBufferIndex();
-
-		_waitForFenceValue(m_Fence, m_FrameFenceValues[m_CurrentBackBufferIndex], m_FenceEvent);
+		MoveToNextFrame();
 	}
 }
 
@@ -796,4 +726,39 @@ void Application::ExecuteCommandList_DEBUG(ComPtr<ID3D12GraphicsCommandList2> p_
 	m_CommandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
 
 	m_FrameFenceValues[m_CurrentBackBufferIndex] = _signal(m_CommandQueue, m_Fence, m_FenceValue);
+}
+
+void Application::FlushCommandQueue()
+{
+	const UINT64 currentFenceValue = m_frameFenceValues[m_currentBackBufferIndex];
+
+	m_commandQueue->Signal(m_fence.Get(), currentFenceValue);
+
+	if (m_fence->GetCompletedValue() < currentFenceValue)
+	{
+		m_fence->SetEventOnCompletion(currentFenceValue, m_FenceEvent);
+		::WaitForSingleObject(m_FenceEvent, DWORD_MAX);
+	}
+
+	m_frameFenceValues[m_currentBackBufferIndex] += 1;
+}
+
+void Application::MoveToNextFrame()
+{
+	// Schedule a Signal command in the queue.
+	const UINT64 currentFenceValue = m_frameFenceValues[m_currentBackBufferIndex];
+	ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), currentFenceValue));
+
+	// Update the frame index.
+	m_currentBackBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
+
+	// If the next frame is not ready to be rendered yet, wait until it is ready.
+	if (m_fence->GetCompletedValue() < m_frameFenceValues[m_currentBackBufferIndex])
+	{
+		ThrowIfFailed(m_fence->SetEventOnCompletion(m_frameFenceValues[m_currentBackBufferIndex], m_FenceEvent));
+		WaitForSingleObjectEx(m_FenceEvent, INFINITE, FALSE);
+	}
+
+	// Set the fence value for the next frame.
+	m_frameFenceValues[m_currentBackBufferIndex] = currentFenceValue + 1;
 }

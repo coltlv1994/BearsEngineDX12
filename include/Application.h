@@ -26,25 +26,27 @@ public:
 	void AddEntity(const wchar_t* p_objFilePath);
 	void AddEntity(Mesh* p_mesh_p);
 
+	void FlushCommandQueue();
+
 	// Get functions
 	ComPtr<ID3D12Device2> GetDevice()
 	{
-		return m_Device;
+		return m_device;
 	}
 
 	ComPtr<ID3D12CommandAllocator> GetCommandAllocator()
 	{
-		return m_CommandAllocators[m_CurrentBackBufferIndex];
+		return m_commandAllocators[m_currentBackBufferIndex];
 	}
 
 	UINT GetCurrentBackBufferIndex()
 	{
-		return m_CurrentBackBufferIndex;
+		return m_currentBackBufferIndex;
 	}
 
 	ComPtr<ID3D12Resource> GetCurrentBackBuffer()
 	{
-		return m_BackBuffers[m_CurrentBackBufferIndex];
+		return m_backBuffers[m_currentBackBufferIndex];
 	}
 
 	ComPtr<ID3D12DescriptorHeap> GetRTVDescriptorHeap()
@@ -54,7 +56,7 @@ public:
 
 	UINT GetRTVDescriptorSize()
 	{
-		return m_RTVDescriptorSize;
+		return m_rtvDescriptorSize;
 	}
 
 	ComPtr<ID3D12DescriptorHeap> GetDSVDescriptorHeap()
@@ -64,22 +66,22 @@ public:
 
 	ComPtr<ID3D12CommandQueue> GetCommandQueue()
 	{
-		return m_CommandQueue;
+		return m_commandQueue;
 	}
 
 	uint64_t GetFenceValueForCurrentBackBuffer()
 	{
-		return m_FrameFenceValues[m_CurrentBackBufferIndex];
+		return m_frameFenceValues[m_currentBackBufferIndex];
 	}
 
 	void SetFenceValueArrayForCurrentBackBuffer(uint64_t p_newFenceValue)
 	{
-		m_FrameFenceValues[m_CurrentBackBufferIndex] = p_newFenceValue;
+		m_frameFenceValues[m_currentBackBufferIndex] = p_newFenceValue;
 	}
 
 	void SignalCommandQueue(uint64_t p_value)
 	{
-		m_CommandQueue->Signal(m_Fence.Get(), p_value);
+		m_commandQueue->Signal(m_fence.Get(), p_value);
 	}
 
 	void GetWidthAndHeight(int& out_width, int& out_height)
@@ -89,6 +91,8 @@ public:
 	}
 
 	void ExecuteCommandList_DEBUG(ComPtr<ID3D12GraphicsCommandList2> p_CommandList);
+
+	void MoveToNextFrame();
 
 private:
 	HINSTANCE m_hInst;
@@ -102,25 +106,25 @@ private:
 	RECT m_WindowRect; // Window rectangle (used to toggle fullscreen state).
 
 	// DirectX 12 Objects
-	ComPtr<ID3D12Device2> m_Device;
-	ComPtr<ID3D12CommandQueue> m_CommandQueue;
-	ComPtr<IDXGISwapChain4> m_SwapChain;
-	ComPtr<ID3D12Resource> m_BackBuffers[NUM_OF_FRAMES];
-	ComPtr<ID3D12GraphicsCommandList2> m_CommandList;
-	ComPtr<ID3D12CommandAllocator> m_CommandAllocators[NUM_OF_FRAMES];
+	ComPtr<ID3D12Device2> m_device;
+	ComPtr<ID3D12CommandQueue> m_commandQueue;
+	ComPtr<IDXGISwapChain4> m_swapChain;
+	ComPtr<ID3D12Resource> m_backBuffers[NUM_OF_FRAMES];
+	ComPtr<ID3D12GraphicsCommandList2> m_commandList;
+	ComPtr<ID3D12CommandAllocator> m_commandAllocators[NUM_OF_FRAMES];
 	ComPtr<ID3D12DescriptorHeap> m_RTVDescriptorHeap;
-	UINT m_RTVDescriptorSize;
-	UINT m_CurrentBackBufferIndex;
+	UINT m_rtvDescriptorSize;
+	UINT m_currentBackBufferIndex;
 	// Depth buffer.
 	ComPtr<ID3D12Resource> m_DepthBuffer;
 	// Descriptor heap for depth buffer.
 	ComPtr<ID3D12DescriptorHeap> m_DSVHeap;
-	D3D12_VIEWPORT m_viewPort;
+	CD3DX12_VIEWPORT m_viewport;
+	CD3DX12_RECT m_scissorRect;
 
 	// Synchronization objects
-	ComPtr<ID3D12Fence> m_Fence;
-	uint64_t m_FenceValue = 0;
-	uint64_t m_FrameFenceValues[NUM_OF_FRAMES] = {0};
+	ComPtr<ID3D12Fence> m_fence;
+	uint64_t m_frameFenceValues[NUM_OF_FRAMES] = {0};
 	HANDLE m_FenceEvent;
 
 	// By default, enable V-Sync.
@@ -145,10 +149,10 @@ private:
 	bool _checkTearingSupport();
 	ComPtr<IDXGIAdapter4> _getAdapter(bool useWarp);
 	ComPtr<ID3D12Device2> _createDevice(ComPtr<IDXGIAdapter4> adapter);
-	ComPtr<ID3D12CommandQueue> _createCommandQueue(ComPtr<ID3D12Device2> device, D3D12_COMMAND_LIST_TYPE type);
-	ComPtr<IDXGISwapChain4> _createSwapChain(HWND hWnd, ComPtr<ID3D12CommandQueue> commandQueue, uint32_t width, uint32_t height);
-	ComPtr<ID3D12DescriptorHeap> _createDescriptorHeap(ComPtr<ID3D12Device2> device, D3D12_DESCRIPTOR_HEAP_TYPE type);
-	void _updateRenderTargetViews(ComPtr<ID3D12Device2> device, ComPtr<IDXGISwapChain4> swapChain, ComPtr<ID3D12DescriptorHeap> descriptorHeap);
+	ComPtr<ID3D12CommandQueue> _createCommandQueue(D3D12_COMMAND_LIST_TYPE type);
+	ComPtr<IDXGISwapChain4> _createSwapChain();
+	ComPtr<ID3D12DescriptorHeap> _createDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type);
+	void _updateRenderTargetViews();
 	ComPtr<ID3D12CommandAllocator> _createCommandAllocator(ComPtr<ID3D12Device2> device, D3D12_COMMAND_LIST_TYPE type);
 	ComPtr<ID3D12GraphicsCommandList2> _createCommandList(ComPtr<ID3D12Device2> device, ComPtr<ID3D12CommandAllocator> commandAllocator, D3D12_COMMAND_LIST_TYPE type);
 	ComPtr<ID3D12Fence> _createFence(ComPtr<ID3D12Device2> device);
