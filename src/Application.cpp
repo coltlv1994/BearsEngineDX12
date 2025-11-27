@@ -348,7 +348,7 @@ void Application::_updateRenderTargetViews(ComPtr<ID3D12Device2> device, ComPtr<
 
 		m_BackBuffers[i] = backBuffer;
 
-		rtvHandle.Offset(rtvDescriptorSize);
+		rtvHandle.Offset(1, rtvDescriptorSize);
 	}
 }
 
@@ -585,8 +585,10 @@ void Application::_render2()
 		FLOAT clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 		CD3DX12_CPU_DESCRIPTOR_HANDLE rtv(m_RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
 			m_CurrentBackBufferIndex, m_RTVDescriptorSize);
+		auto dsv = m_DSVHeap->GetCPUDescriptorHandleForHeapStart();
 
 		m_CommandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
+		m_CommandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 	}
 
 	// Present
@@ -597,6 +599,7 @@ void Application::_render2()
 		CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
 			backBuffer.Get(),
 			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+
 		m_CommandList->ResourceBarrier(1, &barrier);
 
 		ID3D12CommandList* const commandLists[] = {

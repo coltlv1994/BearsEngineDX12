@@ -120,7 +120,7 @@ private:
 	// Synchronization objects
 	ComPtr<ID3D12Fence> m_Fence;
 	uint64_t m_FenceValue = 0;
-	uint64_t m_FrameFenceValues[NUM_OF_FRAMES] = {};
+	uint64_t m_FrameFenceValues[NUM_OF_FRAMES] = {0};
 	HANDLE m_FenceEvent;
 
 	// By default, enable V-Sync.

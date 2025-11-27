@@ -95,16 +95,14 @@ void Mesh::PopulateCommandList(ComPtr<ID3D12GraphicsCommandList2> p_commandList)
 	ComPtr<ID3D12PipelineState> pipelineState = m_shader_p->GetPipelineState();
 	ComPtr<ID3D12RootSignature> rootSigniture = m_shader_p->GetRootSigniture();
 
-	p_commandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 	p_commandList->SetGraphicsRootSignature(rootSigniture.Get());
 	p_commandList->SetPipelineState(pipelineState.Get());
+	p_commandList->RSSetViewports(1, &m_Viewport);
+	p_commandList->RSSetScissorRects(1, &m_ScissorRect);
 
 	p_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	p_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
 	p_commandList->IASetIndexBuffer(&m_indexBufferView);
-
-	p_commandList->RSSetViewports(1, &m_Viewport);
-	p_commandList->RSSetScissorRects(1, &m_ScissorRect);
 
 	p_commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
 
@@ -115,6 +113,10 @@ void Mesh::PopulateCommandList(ComPtr<ID3D12GraphicsCommandList2> p_commandList)
 	p_commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / 4, &mvpMatrix, 0);
 
 	p_commandList->DrawIndexedInstanced(m_triangles.size(), 1, 0, 0, 0);
+
+	WCHAR buffer[500];
+	swprintf_s(buffer, 500, L"# of indexed instances: %llu\n", m_triangles.size());
+	OutputDebugString(buffer);
 
 	ThrowIfFailed(p_commandList->Close());
 }
@@ -190,6 +192,12 @@ void Mesh::_updateBufferResources()
 		m_vertexBuffer.Get(), intermediateVertexBuffer.Get(),
 		0, 0, 1, &vertexSubresourceData);
 
+	CD3DX12_RESOURCE_BARRIER vertexBarrier = CD3DX12_RESOURCE_BARRIER::Transition(m_vertexBuffer.Get(),
+		D3D12_RESOURCE_STATE_COPY_DEST,
+		D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+
+	m_commandList->ResourceBarrier( 1, &vertexBarrier);
+
 	// create vertex buffer view
 	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
 	m_vertexBufferView.SizeInBytes = vertexBufferSize;
@@ -221,6 +229,12 @@ void Mesh::_updateBufferResources()
 	UpdateSubresources(m_commandList.Get(),
 		m_indexBuffer.Get(), intermediateIndexBuffer.Get(),
 		0, 0, 1, &triangleSubresourceData);
+
+	CD3DX12_RESOURCE_BARRIER indexBarrier = CD3DX12_RESOURCE_BARRIER::Transition(m_indexBuffer.Get(),
+		D3D12_RESOURCE_STATE_COPY_DEST,
+		D3D12_RESOURCE_STATE_INDEX_BUFFER);
+
+	m_commandList->ResourceBarrier(1, &indexBarrier);
 
 	m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
 	m_indexBufferView.Format = DXGI_FORMAT_R32_UINT;
