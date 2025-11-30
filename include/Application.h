@@ -1,176 +1,124 @@
+/**
+* The application class is used to create windows for our application.
+*/
 #pragma once
-#include <CommonHeaders.h>
-#include <EntityManager.h>
-#include <Mesh.h>
 
-#include <map>
-#include <cassert>
-#include <chrono>
+#include <d3d12.h>
+#include <dxgi1_6.h>
+#include <wrl.h>
 
-// This class handles the window
+#include <memory>
+#include <string>
+
+class Window;
+class Game;
+class CommandQueue;
 
 class Application
 {
 public:
 
-	static Application& GetInstance(HINSTANCE p_hInst, const std::wstring& p_windowTitle, int p_width, int p_height, bool p_isVSync = false);
+    /**
+    * Create the application singleton with the application instance handle.
+    */
+    static void Create(HINSTANCE hInst);
 
-	static Application& GetInstance();
+    /**
+    * Destroy the application instance and all windows created by this application instance.
+    */
+    static void Destroy();
+    /**
+    * Get the application singleton.
+    */
+    static Application& Get();
 
-	// will distribute via hwndMapper
-	// to get Application address
-	static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+    /**
+     * Check to see if VSync-off is supported.
+     */
+    bool IsTearingSupported() const;
 
-	void Run();
+    /**
+    * Create a new DirectX11 render window instance.
+    * @param windowName The name of the window. This name will appear in the title bar of the window. This name should be unique.
+    * @param clientWidth The width (in pixels) of the window's client area.
+    * @param clientHeight The height (in pixels) of the window's client area.
+    * @param vSync Should the rendering be synchronized with the vertical refresh rate of the screen.
+    * @param windowed If true, the window will be created in windowed mode. If false, the window will be created full-screen.
+    * @returns The created window instance. If an error occurred while creating the window an invalid
+    * window instance is returned. If a window with the given name already exists, that window will be
+    * returned.
+    */
+    std::shared_ptr<Window> CreateRenderWindow(const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync = true );
 
-	void AddEntity(const wchar_t* p_objFilePath);
-	void AddEntity(Mesh* p_mesh_p);
+    /**
+    * Destroy a window given the window name.
+    */
+    void DestroyWindow(const std::wstring& windowName);
+    /**
+    * Destroy a window given the window reference.
+    */
+    void DestroyWindow(std::shared_ptr<Window> window);
 
-	void FlushCommandQueue();
+    /**
+    * Find a window by the window name.
+    */
+    std::shared_ptr<Window> GetWindowByName(const std::wstring& windowName);
 
-	// Get functions
-	ComPtr<ID3D12Device2> GetDevice()
-	{
-		return m_device;
-	}
+    /**
+    * Run the application loop and message pump.
+    * @return The error code if an error occurred.
+    */
+    int Run(std::shared_ptr<Game> pGame);
 
-	ComPtr<ID3D12CommandAllocator> GetCommandAllocator()
-	{
-		return m_commandAllocators[m_currentBackBufferIndex];
-	}
+    /**
+    * Request to quit the application and close all windows.
+    * @param exitCode The error code to return to the invoking process.
+    */
+    void Quit(int exitCode = 0);
 
-	UINT GetCurrentBackBufferIndex()
-	{
-		return m_currentBackBufferIndex;
-	}
+    /**
+     * Get the Direct3D 12 device
+     */
+    Microsoft::WRL::ComPtr<ID3D12Device2> GetDevice() const;
+    /**
+     * Get a command queue. Valid types are:
+     * - D3D12_COMMAND_LIST_TYPE_DIRECT : Can be used for draw, dispatch, or copy commands.
+     * - D3D12_COMMAND_LIST_TYPE_COMPUTE: Can be used for dispatch or copy commands.
+     * - D3D12_COMMAND_LIST_TYPE_COPY   : Can be used for copy commands.
+     */
+    std::shared_ptr<CommandQueue> GetCommandQueue(D3D12_COMMAND_LIST_TYPE type = D3D12_COMMAND_LIST_TYPE_DIRECT) const;
 
-	ComPtr<ID3D12Resource> GetCurrentBackBuffer()
-	{
-		return m_backBuffers[m_currentBackBufferIndex];
-	}
+    // Flush all command queues.
+    void Flush();
 
-	ComPtr<ID3D12DescriptorHeap> GetRTVDescriptorHeap()
-	{
-		return m_RTVDescriptorHeap;
-	}
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(UINT numDescriptors, D3D12_DESCRIPTOR_HEAP_TYPE type);
+    UINT GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
 
-	UINT GetRTVDescriptorSize()
-	{
-		return m_rtvDescriptorSize;
-	}
+protected:
 
-	ComPtr<ID3D12DescriptorHeap> GetDSVDescriptorHeap()
-	{
-		return m_DSVHeap;
-	}
+    // Create an application instance.
+    Application(HINSTANCE hInst);
+    // Destroy the application instance and all windows associated with this application.
+    virtual ~Application();
 
-	ComPtr<ID3D12CommandQueue> GetCommandQueue()
-	{
-		return m_commandQueue;
-	}
-
-	uint64_t GetFenceValueForCurrentBackBuffer()
-	{
-		return m_frameFenceValues[m_currentBackBufferIndex];
-	}
-
-	void SetFenceValueArrayForCurrentBackBuffer(uint64_t p_newFenceValue)
-	{
-		m_frameFenceValues[m_currentBackBufferIndex] = p_newFenceValue;
-	}
-
-	void SignalCommandQueue(uint64_t p_value)
-	{
-		m_commandQueue->Signal(m_fence.Get(), p_value);
-	}
-
-	void GetWidthAndHeight(int& out_width, int& out_height)
-	{
-		out_width = m_width;
-		out_height = m_height;
-	}
-
-	void ExecuteCommandList_DEBUG(ComPtr<ID3D12GraphicsCommandList2> p_CommandList);
-
-	void MoveToNextFrame();
+    Microsoft::WRL::ComPtr<IDXGIAdapter4> GetAdapter(bool bUseWarp);
+    Microsoft::WRL::ComPtr<ID3D12Device2> CreateDevice(Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter);
+    bool CheckTearingSupport();
 
 private:
-	HINSTANCE m_hInst;
-	std::wstring m_windowTitle;
-	int m_height;
-	int m_width;
-	bool m_isVSync = true;
-	const wchar_t* m_windowClassName = L"BearsEngineMainApplication";
-	bool m_IsInitialized;
-	HWND m_hwnd;
-	RECT m_WindowRect; // Window rectangle (used to toggle fullscreen state).
+    Application(const Application& copy) = delete;
+    Application& operator=(const Application& other) = delete;
 
-	// DirectX 12 Objects
-	ComPtr<ID3D12Device2> m_device;
-	ComPtr<ID3D12CommandQueue> m_commandQueue;
-	ComPtr<IDXGISwapChain4> m_swapChain;
-	ComPtr<ID3D12Resource> m_backBuffers[NUM_OF_FRAMES];
-	ComPtr<ID3D12GraphicsCommandList2> m_commandList;
-	ComPtr<ID3D12CommandAllocator> m_commandAllocators[NUM_OF_FRAMES];
-	ComPtr<ID3D12DescriptorHeap> m_RTVDescriptorHeap;
-	UINT m_rtvDescriptorSize;
-	UINT m_currentBackBufferIndex;
-	// Depth buffer.
-	ComPtr<ID3D12Resource> m_DepthBuffer;
-	// Descriptor heap for depth buffer.
-	ComPtr<ID3D12DescriptorHeap> m_DSVHeap;
-	CD3DX12_VIEWPORT m_viewport;
-	CD3DX12_RECT m_scissorRect;
+    // The application instance handle that this application was created with.
+    HINSTANCE m_hInstance;
 
-	// Synchronization objects
-	ComPtr<ID3D12Fence> m_fence;
-	uint64_t m_frameFenceValues[NUM_OF_FRAMES] = {0};
-	HANDLE m_FenceEvent;
+    Microsoft::WRL::ComPtr<IDXGIAdapter4> m_dxgiAdapter;
+    Microsoft::WRL::ComPtr<ID3D12Device2> m_d3d12Device;
 
-	// By default, enable V-Sync.
-	// Can be toggled with the V key.
-	bool m_TearingSupported = false;
-	// By default, use windowed mode.
-	// Can be toggled with the Alt+Enter or F11
-	bool m_Fullscreen = false;
+    std::shared_ptr<CommandQueue> m_DirectCommandQueue;
+    std::shared_ptr<CommandQueue> m_ComputeCommandQueue;
+    std::shared_ptr<CommandQueue> m_CopyCommandQueue;
 
-	// The number of swap chain back buffers.
-	// Use WARP adapter
-	bool m_UseWarp = false;
+    bool m_TearingSupported;
 
-	// Entity manager of this class
-	EntityManager m_entityManager;
-
-	Application(HINSTANCE p_hInst, const std::wstring& p_windowTitle, int p_width, int p_height, bool p_isVSync = true);
-
-	void _windowInit();
-	void _d3d12Init();
-
-	bool _checkTearingSupport();
-	ComPtr<IDXGIAdapter4> _getAdapter(bool useWarp);
-	ComPtr<ID3D12Device2> _createDevice(ComPtr<IDXGIAdapter4> adapter);
-	ComPtr<ID3D12CommandQueue> _createCommandQueue(D3D12_COMMAND_LIST_TYPE type);
-	ComPtr<IDXGISwapChain4> _createSwapChain();
-	ComPtr<ID3D12DescriptorHeap> _createDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type);
-	void _updateRenderTargetViews();
-	ComPtr<ID3D12CommandAllocator> _createCommandAllocator(ComPtr<ID3D12Device2> device, D3D12_COMMAND_LIST_TYPE type);
-	ComPtr<ID3D12GraphicsCommandList2> _createCommandList(ComPtr<ID3D12Device2> device, ComPtr<ID3D12CommandAllocator> commandAllocator, D3D12_COMMAND_LIST_TYPE type);
-	ComPtr<ID3D12Fence> _createFence(ComPtr<ID3D12Device2> device);
-	HANDLE _createEventHandle();
-
-	// call proper WndProc()
-	LRESULT _wndProc(UINT message, WPARAM wParam, LPARAM lParam);
-
-	// Rendering functions
-	uint64_t _signal(ComPtr<ID3D12CommandQueue> commandQueue, ComPtr<ID3D12Fence> fence, uint64_t& fenceValue);
-	void _waitForFenceValue(ComPtr<ID3D12Fence> fence, uint64_t fenceValue, HANDLE fenceEvent, std::chrono::milliseconds duration = std::chrono::milliseconds::max());
-	void _flush(ComPtr<ID3D12CommandQueue> commandQueue, ComPtr<ID3D12Fence> fence, uint64_t& fenceValue, HANDLE fenceEvent);
-	void _update();
-	void _render();
-	void _render2();
-	void _resize(uint32_t width, uint32_t height);
-	void _setFullscreen(bool fullscreen);
-	void _renderEntities();
 };
-
-extern std::map<HWND, Application*> hwndMapper;

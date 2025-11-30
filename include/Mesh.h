@@ -1,21 +1,25 @@
 #pragma once
-#include <CommonHeaders.h>
 #include <Shader.h>
-#include <Renderable.h>
 #include <vector>
 
 using namespace DirectX;
+
+// Global function definition
+void LoadOBJFile(
+	const wchar_t* p_objFilePath,
+	std::vector<float>& p_vertices,
+	std::vector<float>& p_normals,
+	std::vector<uint32_t>& p_triangles,
+	std::vector<uint32_t>& p_triangleNormalIndex);
 
 class Mesh
 {
 public:
 	Mesh(const wchar_t* p_objFilePath);
 	void UseShader(Shader* shader_p);
-	Shader& GetShaderObjectByRef();
+
 	ComPtr<ID3D12GraphicsCommandList2> PopulateCommandList();
-	void TransitionResource(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList,
-		Microsoft::WRL::ComPtr<ID3D12Resource> resource,
-		D3D12_RESOURCE_STATES beforeState, D3D12_RESOURCE_STATES afterState);
+
 
 	void SetModelMatrix(XMMATRIX& p_modelMatrix);
 	void SetViewMatrix(XMMATRIX& p_viewMatrix);
@@ -30,7 +34,7 @@ private:
 	std::vector<float> m_normals;
 	std::vector<uint32_t> m_triangles;
 	std::vector<uint32_t> m_triangleNormalIndex;
-	
+
 	ComPtr<ID3D12GraphicsCommandList2> m_commandList;
 	// Vertex buffer for the mesh.
 	ComPtr<ID3D12Resource> m_vertexBuffer;
@@ -60,7 +64,7 @@ private:
 	  the world. The inverse of this is used to take objects that are in the world,
 	  and move everything such that the camera is at the origin, looking down
 	  the Z (or -Z depending on convention) axis. This is done so that the the next steps are easier and simpler.
-	  
+
 	  The "projection" matrix is a bit special, in that it is no longer
 	  a simple rotate/translate, but also scales objects based on distance,
 	  and "pulls in" objects so that everything in the frustum is contained inside a unit-cube of space.
@@ -69,7 +73,4 @@ private:
 	XMMATRIX m_modelMatrix = XMMatrixIdentity(); // position, rotaion, scale in *local* space
 	XMMATRIX m_viewMatrix = XMMatrixIdentity(); // view and projection matrices can be set in Camera class later
 	XMMATRIX m_projectionMatrix = XMMatrixIdentity();
-
-	void _updateBufferResources();
-	void _resizeDepthBuffer(int width, int height);
 };
