@@ -6,6 +6,10 @@
 #include <CommandQueue.h>
 #include <Window.h>
 
+#include "imgui.h"
+#include "imgui_impl_win32.h"
+#include "imgui_impl_dx12.h"
+
 constexpr wchar_t WINDOW_CLASS_NAME[] = L"DX12RenderWindowClass";
 
 using WindowPtr = std::shared_ptr<Window>;
@@ -34,7 +38,8 @@ Application::Application(HINSTANCE hInst)
     // Using this awareness context allows the client area of the window 
     // to achieve 100% scaling while still allowing non-client window content to 
     // be rendered in a DPI sensitive fashion.
-    //SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+    SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+
 
 #if defined(_DEBUG)
     // Always enable the debug layer before doing anything DX12 related
@@ -288,6 +293,10 @@ int Application::Run(std::shared_ptr<Game> pGame)
     if (!pGame->Initialize()) return 1;
     if (!pGame->LoadContent()) return 2;
 
+    bool show_demo_window = true;
+    bool show_another_window = false;
+    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
     MSG msg = { 0 };
     while (msg.message != WM_QUIT)
     {
@@ -296,10 +305,25 @@ int Application::Run(std::shared_ptr<Game> pGame)
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
+
+        // Start the Dear ImGui frame
+        ImGui_ImplDX12_NewFrame();
+        ImGui_ImplWin32_NewFrame();
+        ImGui::NewFrame();
+
+        if (show_demo_window)
+            ImGui::ShowDemoWindow(&show_demo_window);
+
+        ImGui::Render();
     }
 
     // Flush any commands in the commands queues before quiting.
     Flush();
+
+    // Cleanup
+    ImGui_ImplDX12_Shutdown();
+    ImGui_ImplWin32_Shutdown();
+    ImGui::DestroyContext();
 
     pGame->UnloadContent();
     pGame->Destroy();
@@ -409,8 +433,16 @@ MouseButtonEventArgs::MouseButton DecodeMouseButton(UINT messageID)
     return mouseButton;
 }
 
+// Forward declare message handler from imgui_impl_win32.cpp
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    if (ImGui_ImplWin32_WndProcHandler(hwnd, message, wParam, lParam))
+        return true;
+
+    // any message that imgui won't handle goes down here
+
     WindowPtr pWindow;
     {
         WindowMap::iterator iter = gs_Windows.find(hwnd);

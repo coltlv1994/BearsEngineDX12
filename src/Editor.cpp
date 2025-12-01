@@ -12,6 +12,10 @@ using namespace Microsoft::WRL;
 #include <d3dx12.h>
 #include <d3dcompiler.h>
 
+#include "imgui.h"
+#include "imgui_impl_win32.h"
+#include "imgui_impl_dx12.h"
+
 #include <algorithm> // For std::min and std::max.
 #if defined(min)
 #undef min
@@ -23,6 +27,53 @@ using namespace Microsoft::WRL;
 
 using namespace DirectX;
 
+// Simple free list based allocator
+struct ExampleDescriptorHeapAllocator
+{
+    ID3D12DescriptorHeap* Heap = nullptr;
+    D3D12_DESCRIPTOR_HEAP_TYPE  HeapType = D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES;
+    D3D12_CPU_DESCRIPTOR_HANDLE HeapStartCpu;
+    D3D12_GPU_DESCRIPTOR_HANDLE HeapStartGpu;
+    UINT                        HeapHandleIncrement;
+    ImVector<int>               FreeIndices;
+
+    void Create(ID3D12Device* device, ID3D12DescriptorHeap* heap)
+    {
+        IM_ASSERT(Heap == nullptr && FreeIndices.empty());
+        Heap = heap;
+        D3D12_DESCRIPTOR_HEAP_DESC desc = heap->GetDesc();
+        HeapType = desc.Type;
+        HeapStartCpu = Heap->GetCPUDescriptorHandleForHeapStart();
+        HeapStartGpu = Heap->GetGPUDescriptorHandleForHeapStart();
+        HeapHandleIncrement = device->GetDescriptorHandleIncrementSize(HeapType);
+        FreeIndices.reserve((int)desc.NumDescriptors);
+        for (int n = desc.NumDescriptors; n > 0; n--)
+            FreeIndices.push_back(n - 1);
+    }
+    void Destroy()
+    {
+        Heap = nullptr;
+        FreeIndices.clear();
+    }
+    void Alloc(D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_desc_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_desc_handle)
+    {
+        IM_ASSERT(FreeIndices.Size > 0);
+        int idx = FreeIndices.back();
+        FreeIndices.pop_back();
+        out_cpu_desc_handle->ptr = HeapStartCpu.ptr + (idx * HeapHandleIncrement);
+        out_gpu_desc_handle->ptr = HeapStartGpu.ptr + (idx * HeapHandleIncrement);
+    }
+    void Free(D3D12_CPU_DESCRIPTOR_HANDLE out_cpu_desc_handle, D3D12_GPU_DESCRIPTOR_HANDLE out_gpu_desc_handle)
+    {
+        int cpu_idx = (int)((out_cpu_desc_handle.ptr - HeapStartCpu.ptr) / HeapHandleIncrement);
+        int gpu_idx = (int)((out_gpu_desc_handle.ptr - HeapStartGpu.ptr) / HeapHandleIncrement);
+        IM_ASSERT(cpu_idx == gpu_idx);
+        FreeIndices.push_back(cpu_idx);
+    }
+};
+
+static ExampleDescriptorHeapAllocator g_pd3dSrvDescHeapAlloc;
+static ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 // Clamp a value between a min and max range.
 template<typename T>
@@ -35,7 +86,6 @@ Editor::Editor(const std::wstring& name, int width, int height, bool vSync)
     : super(name, width, height, vSync)
     , m_ScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX))
     , m_Viewport(CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)))
-    , m_FoV(45.0)
     , m_ContentLoaded(false)
 {
 }
@@ -44,6 +94,7 @@ Editor::Editor(const std::wstring& name, int width, int height, bool vSync)
 bool Editor::LoadContent()
 {
     auto device = Application::Get().GetDevice();
+    auto commandQueue = Application::Get().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT)->GetD3D12CommandQueue();
 
     // Create the descriptor heap for the depth-stencil view.
     D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
@@ -56,6 +107,28 @@ bool Editor::LoadContent()
 
     // Resize/Create the depth buffer.
     ResizeDepthBuffer(GetClientWidth(), GetClientHeight());
+
+    ImGui_ImplDX12_InitInfo init_info = {};
+    init_info.Device = device.Get();
+    init_info.CommandQueue = commandQueue.Get();
+    init_info.NumFramesInFlight = Window::BufferCount;
+    init_info.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+    init_info.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+
+    // Allocating SRV descriptors (for textures) is up to the application, so we provide callbacks.
+    // (current version of the backend will only allocate one descriptor, future versions will need to allocate more)
+    D3D12_DESCRIPTOR_HEAP_DESC srvDesc = {};
+    srvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    srvDesc.NumDescriptors = 1;
+    srvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    ThrowIfFailed(device->CreateDescriptorHeap(&srvDesc, IID_PPV_ARGS(&m_SRVHeap)));
+    g_pd3dSrvDescHeapAlloc.Create(device.Get(), m_SRVHeap.Get());
+
+    init_info.SrvDescriptorHeap = m_SRVHeap.Get();
+    init_info.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_handle) { return g_pd3dSrvDescHeapAlloc.Alloc(out_cpu_handle, out_gpu_handle); };
+    init_info.SrvDescriptorFreeFn = [](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle) { return g_pd3dSrvDescHeapAlloc.Free(cpu_handle, gpu_handle); };
+    
+    ImGui_ImplDX12_Init(&init_info);
 
     return true;
 }
@@ -189,10 +262,14 @@ void Editor::OnRender(RenderEventArgs& e)
         TransitionResource(commandList, backBuffer,
             D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
+        float clear_color_with_alpha[4] = { clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w };
+
         FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
 
-        ClearRTV(commandList, rtv, clearColor);
+        ClearRTV(commandList, rtv, clear_color_with_alpha);
         ClearDepth(commandList, dsv);
+        ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap.Get() };
+        commandList->SetDescriptorHeaps(1, ppHeaps);
     }
 
     commandList->RSSetViewports(1, &m_Viewport);
@@ -201,6 +278,8 @@ void Editor::OnRender(RenderEventArgs& e)
     commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
 
     m_EntityManager.Render(commandList);
+
+    ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList.Get());
 
     // Present
     {
@@ -239,12 +318,13 @@ void Editor::OnKeyPressed(KeyEventArgs& e)
 
 void Editor::OnMouseWheel(MouseWheelEventArgs& e)
 {
-    m_FoV -= e.WheelDelta;
-    m_FoV = clamp(m_FoV, 12.0f, 90.0f);
+    // Update with message system to EntityManager
+    //m_FoV -= e.WheelDelta;
+    //m_FoV = clamp(m_FoV, 12.0f, 90.0f);
 
-    char buffer[256];
-    sprintf_s(buffer, "FoV: %f\n", m_FoV);
-    OutputDebugStringA(buffer);
+    //char buffer[256];
+    //sprintf_s(buffer, "FoV: %f\n", m_FoV);
+    //OutputDebugStringA(buffer);
 }
 
 void Editor::AddEntity(std::shared_ptr<Mesh> p_MeshPointer)
