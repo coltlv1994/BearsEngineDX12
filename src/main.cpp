@@ -4,6 +4,7 @@
 
 #include <Application.h>
 #include <Editor.h>
+#include <Helpers.h>
 
 #include <dxgidebug.h>
 
@@ -21,17 +22,33 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
     int retCode = 0;
 
     // Set the working directory to the path of the executable.
-    WCHAR path[MAX_PATH];
-    HMODULE hModule = GetModuleHandleW(NULL);
-    if (GetModuleFileNameW(hModule, path, MAX_PATH) > 0)
-    {
-        PathRemoveFileSpecW(path);
-        SetCurrentDirectoryW(path);
-    }
+    //WCHAR path[MAX_PATH];
+    //HMODULE hModule = GetModuleHandleW(NULL);
+    //if (GetModuleFileNameW(hModule, path, MAX_PATH) > 0)
+    //{
+    //    PathRemoveFileSpecW(path);
+    //    SetCurrentDirectoryW(path);
+    //}
 
     Application::Create(hInstance);
+
     {
+        Shader demoShader(L"shaders\\VertexShader.cso", L"shaders\\PixelShader.cso");
+        // Create the vertex input layout
+        D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        };
+        demoShader.CreateRootSignitureAndPipelineStream(inputLayout, 3);
+
         std::shared_ptr<Editor> demo = std::make_shared<Editor>(L"BearsEngine in D3D12", 1280, 720);
+        std::shared_ptr<Mesh> newMesh = std::make_shared<Mesh>(L"meshes\\FinalBaseMesh.obj");
+        newMesh->UseShader(&demoShader);
+        newMesh->LoadDataToGPU();
+
+        demo->AddEntity(newMesh);
+
         retCode = Application::Get().Run(demo);
     }
     Application::Destroy();

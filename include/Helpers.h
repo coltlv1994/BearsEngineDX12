@@ -33,6 +33,9 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h> // For HRESULT
 
+#include <DirectXMath.h>
+using namespace DirectX;
+
 // From DXSampleHelper.h 
 // Source: https://github.com/Microsoft/DirectX-Graphics-Samples
 inline void ThrowIfFailed(HRESULT hr)
@@ -48,3 +51,11 @@ inline void ThrowIfFailed(HRESULT hr)
 #define WSTR1(x) L##x
 #define WSTR(x) WSTR1(x)
 #define NAME_D3D12_OBJECT(x) x->SetName( WSTR(__FILE__ "(" STR(__LINE__) "): " L#x) )
+
+// Vertex data for a colored cube.
+struct VertexPosColor
+{
+    XMFLOAT3 Position;
+    XMFLOAT3 Normal;
+    XMFLOAT2 TexCoord;
+};

@@ -153,6 +153,7 @@
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\CommandQueue.cpp" />
     <ClCompile Include="src\DX12LibPCH.cpp" />
+    <ClCompile Include="src\EntityManager.cpp" />
     <ClCompile Include="src\Game.cpp" />
     <ClCompile Include="src\HighResolutionClock.cpp" />
     <ClCompile Include="src\Main.cpp" />
@@ -171,6 +172,10 @@
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.1</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.1</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">shaders\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">shaders\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shaders\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shaders\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
     <FxCompile Include="shaders\VertexShader.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
@@ -181,6 +186,10 @@
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.1</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.1</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">shaders\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">shaders\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shaders\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shaders\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
@@ -188,6 +197,7 @@
     <ClInclude Include="include\CommandQueue.h" />
     <ClInclude Include="include\d3dx12.h" />
     <ClInclude Include="include\DX12LibPCH.h" />
+    <ClInclude Include="include\EntityManager.h" />
     <ClInclude Include="include\Events.h" />
     <ClInclude Include="include\Game.h" />
     <ClInclude Include="include\Helpers.h" />

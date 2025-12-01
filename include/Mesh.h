@@ -1,6 +1,8 @@
 #pragma once
 #include <Shader.h>
 #include <vector>
+#include <Helpers.h>
+#include <memory>
 
 using namespace DirectX;
 
@@ -17,9 +19,7 @@ class Mesh
 public:
 	Mesh(const wchar_t* p_objFilePath);
 	void UseShader(Shader* shader_p);
-
-	ComPtr<ID3D12GraphicsCommandList2> PopulateCommandList();
-
+	void LoadDataToGPU();
 
 	void SetModelMatrix(XMMATRIX& p_modelMatrix);
 	void SetViewMatrix(XMMATRIX& p_viewMatrix);
@@ -27,24 +27,21 @@ public:
 	void SetFOV(float p_fov);
 
 	// DEBUG
-	void PopulateCommandList(ComPtr<ID3D12GraphicsCommandList2> p_commandList);
+	void PopulateCommandList(ComPtr<ID3D12GraphicsCommandList2> p_commandList, float deltaTime);
 
 private:
 	std::vector<float> m_vertices;
 	std::vector<float> m_normals;
 	std::vector<uint32_t> m_triangles;
 	std::vector<uint32_t> m_triangleNormalIndex;
+	std::vector<VertexPosColor> combinedBuffer;
 
-	ComPtr<ID3D12GraphicsCommandList2> m_commandList;
 	// Vertex buffer for the mesh.
 	ComPtr<ID3D12Resource> m_vertexBuffer;
 	D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
 	// Index buffer for the mesh.
 	ComPtr<ID3D12Resource> m_indexBuffer;
 	D3D12_INDEX_BUFFER_VIEW m_indexBufferView;
-
-	ComPtr<ID3D12Device2> m_device; // save all these
-	ComPtr<ID3D12CommandAllocator> m_commandAllocator;
 
 	// Depth buffer.
 	ComPtr<ID3D12Resource> m_depthBuffer;
@@ -73,4 +70,10 @@ private:
 	XMMATRIX m_modelMatrix = XMMatrixIdentity(); // position, rotaion, scale in *local* space
 	XMMATRIX m_viewMatrix = XMMatrixIdentity(); // view and projection matrices can be set in Camera class later
 	XMMATRIX m_projectionMatrix = XMMatrixIdentity();
+
+	// Create a GPU buffer.
+	void UpdateBufferResource(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList,
+		ID3D12Resource** pDestinationResource, ID3D12Resource** pIntermediateResource,
+		size_t numElements, size_t elementSize, const void* bufferData,
+		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
 };

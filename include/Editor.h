@@ -6,6 +6,11 @@
 #include <DirectXMath.h>
 
 #include <Shader.h>
+#include <EntityManager.h>
+#include <Mesh.h>
+
+#include <memory>
+#include <utility>
 
 class Editor : public Game
 {
@@ -22,6 +27,12 @@ public:
      *  Unload demo specific content that was loaded in LoadContent.
      */
     virtual void UnloadContent() override;
+
+    void AddEntity(std::shared_ptr<Mesh> p_MeshPointer);
+
+    D3D12_VIEWPORT& GetViewport();
+
+    D3D12_RECT& GetScissorRect();
 protected:
     /**
      *  Update the game logic.
@@ -45,7 +56,7 @@ protected:
     virtual void OnMouseWheel(MouseWheelEventArgs& e) override;
 
 
-    virtual void OnResize(ResizeEventArgs& e) override; 
+    virtual void OnResize(ResizeEventArgs& e) override;
 
 private:
     // Helper functions
@@ -101,4 +112,6 @@ private:
     DirectX::XMMATRIX m_ProjectionMatrix;
 
     bool m_ContentLoaded;
+
+    EntityManager m_EntityManager;
 };
