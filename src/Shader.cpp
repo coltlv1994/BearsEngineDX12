@@ -87,6 +87,7 @@ void Shader::CreateRootSignitureAndPipelineStream(D3D12_INPUT_ELEMENT_DESC* inpu
         CD3DX12_PIPELINE_STATE_STREAM_PS PS;
         CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
         CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
+		CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER rasterizerState;
     } pipelineStateStream;
 
     D3D12_RT_FORMAT_ARRAY rtvFormats = {};
@@ -100,9 +101,14 @@ void Shader::CreateRootSignitureAndPipelineStream(D3D12_INPUT_ELEMENT_DESC* inpu
     pipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(m_pixelShaderBlob.Get());
     pipelineStateStream.DSVFormat = DXGI_FORMAT_D32_FLOAT;
     pipelineStateStream.RTVFormats = rtvFormats;
+    CD3DX12_RASTERIZER_DESC l_cWireframeRasterizer(D3D12_DEFAULT);
+    l_cWireframeRasterizer.FillMode = D3D12_FILL_MODE_WIREFRAME;
+	l_cWireframeRasterizer.CullMode = D3D12_CULL_MODE_FRONT;
+	pipelineStateStream.rasterizerState = l_cWireframeRasterizer;
 
     D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
         sizeof(PipelineStateStream), &pipelineStateStream
     };
+
     ThrowIfFailed(device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_PipelineState)));
 }

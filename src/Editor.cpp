@@ -73,7 +73,6 @@ struct ExampleDescriptorHeapAllocator
 };
 
 static ExampleDescriptorHeapAllocator g_pd3dSrvDescHeapAlloc;
-static ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 // Clamp a value between a min and max range.
 template<typename T>
@@ -262,11 +261,9 @@ void Editor::OnRender(RenderEventArgs& e)
         TransitionResource(commandList, backBuffer,
             D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-        float clear_color_with_alpha[4] = { clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w };
+        FLOAT clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-        FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
-
-        ClearRTV(commandList, rtv, clear_color_with_alpha);
+        ClearRTV(commandList, rtv, clearColor);
         ClearDepth(commandList, dsv);
         ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap.Get() };
         commandList->SetDescriptorHeaps(1, ppHeaps);

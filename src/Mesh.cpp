@@ -2,6 +2,7 @@
 #include <Application.h>
 #include <Helpers.h>
 #include <CommandQueue.h>
+#include <regex>
 
 #include <DirectXMath.h>
 using namespace DirectX;
@@ -9,10 +10,32 @@ using namespace DirectX;
 #include <sstream>
 #include <fstream>
 
+// DEBUG INPUT
+static VertexPosColor g_Vertices[8] = {
+	{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 0.0f)}, // 0
+	{ XMFLOAT3(-1.0f,  1.0f, -1.0f), XMFLOAT3(0.0f, 1.0f, 2.0f), XMFLOAT2(0.0f, 0.0f) }, // 1
+	{ XMFLOAT3(1.0f,  1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) }, // 2
+	{ XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) }, // 3
+	{ XMFLOAT3(-1.0f, -1.0f,  1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(0.0f, 0.0f) }, // 4
+	{ XMFLOAT3(-1.0f,  1.0f,  1.0f), XMFLOAT3(0.0f, 1.0f, 1.0f), XMFLOAT2(0.0f, 0.0f) }, // 5
+	{ XMFLOAT3(1.0f,  1.0f,  1.0f), XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT2(0.0f, 0.0f) }, // 6
+	{ XMFLOAT3(1.0f, -1.0f,  1.0f), XMFLOAT3(1.0f, 0.0f, 1.0f), XMFLOAT2(0.0f, 0.0f) }  // 7
+};
+
+static uint32_t g_Indicies[36] =
+{
+	0, 1, 2, 0, 2, 3,
+	4, 6, 5, 4, 7, 6,
+	4, 5, 1, 4, 1, 0,
+	3, 2, 6, 3, 6, 7,
+	1, 5, 6, 1, 6, 2,
+	4, 0, 3, 4, 3, 7
+};
+
 Mesh::Mesh(const wchar_t* p_objFilePath)
 {
 	// read file
-	LoadOBJFile(p_objFilePath, m_vertices, m_normals, m_triangles, m_triangleNormalIndex);
+	LoadOBJFile(p_objFilePath);
 }
 
 void Mesh::SetModelMatrix(XMMATRIX& p_modelMatrix)
@@ -35,12 +58,7 @@ void Mesh::SetFOV(float p_fov)
 	m_fov = p_fov;
 }
 
-void LoadOBJFile(
-	const wchar_t* p_objFilePath,
-	std::vector<float>& p_vertices,
-	std::vector<float>& p_normals,
-	std::vector<uint32_t>& p_triangles,
-	std::vector<uint32_t>& p_triangleNormalIndex)
+void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 {
 	/*
 	* TODO:
@@ -57,6 +75,7 @@ void LoadOBJFile(
 	}
 
 	std::string line;
+	std::regex delimiter(" ");
 
 	while (std::getline(objFile, line))
 	{
@@ -65,6 +84,13 @@ void LoadOBJFile(
 			// ill-formatted line, next
 			continue;
 		}
+
+		std::sregex_token_iterator iter(line.begin(), line.end(), delimiter, -1);
+		std::sregex_token_iterator end;
+		int v[4];
+		int vt[4];
+		int vn[4];
+		int i = 0;
 
 		switch (line[0])
 		{
@@ -76,43 +102,84 @@ void LoadOBJFile(
 				// read vertex
 				float vx, vy, vz;
 				sscanf_s(&line.c_str()[2], "%f %f %f", &vx, &vy, &vz);
-				p_vertices.push_back(vx);
-				p_vertices.push_back(vy);
-				p_vertices.push_back(vz);
+				m_vertices.push_back(vx);
+				m_vertices.push_back(vy);
+				m_vertices.push_back(vz);
 				break;
 			case 't':
 				// texture coordinate
+				float tu, tv;
+				// "vt " has three characters, including the space
+				sscanf_s(&line.c_str()[3], "%f %f", &tu, &tv);
+				m_texcoords.push_back(tu);
+				m_texcoords.push_back(tv);
 				break;
 			case 'n':
 				// read vertex normal
 				float nx, ny, nz;
 				// "vn " has three characters, including the space 
 				sscanf_s(&line.c_str()[3], "%f %f %f", &nx, &ny, &nz);
-				p_normals.push_back(nx);
-				p_normals.push_back(ny);
-				p_normals.push_back(nz);
+				m_normals.push_back(nx);
+				m_normals.push_back(ny);
+				m_normals.push_back(nz);
 				break;
 			}
 			break;
 		case 'f':
 			// read faces
-			// currently only work with polygons without vt, i.e. we expect "xxxx//yyyy" and only four vertices per line
-			int v1, v2, v3, v4, vn1, vn2, vn3, vn4;
-			sscanf_s(&line.c_str()[2], "%d//%d %d//%d %d//%d %d//%d", &v1, &v2, &v3, &v4, &vn1, &vn2, &vn3, &vn4);
-			// break down to two triangles
-			// obj file uses counter-clockwise winding order and we will rotate to clockwise for D3D12
-			p_triangles.push_back(v1 - 1);
-			p_triangles.push_back(v4 - 1);
-			p_triangles.push_back(v3 - 1);
-			p_triangles.push_back(v1 - 1);
-			p_triangles.push_back(v3 - 1);
-			p_triangles.push_back(v2 - 1);
-			p_triangleNormalIndex.push_back(v1 - 1);
-			p_triangleNormalIndex.push_back(v4 - 1);
-			p_triangleNormalIndex.push_back(v3 - 1);
-			p_triangleNormalIndex.push_back(v1 - 1);
-			p_triangleNormalIndex.push_back(v3 - 1);
-			p_triangleNormalIndex.push_back(v2 - 1);
+			// currently only work with polygons without vt, i.e. we expect "xxxx/yyyy/zzzz" and only three vertices per line
+			i = 0;
+			while (iter != end)
+			{
+				std::string vertexDef = *iter;
+				if (vertexDef.size() > 0 && vertexDef[0] != 'f')
+				{
+					sscanf_s(vertexDef.c_str(), "%d/%d/%d", &v[i], &vt[i], &vn[i]);
+					i++;
+				}
+				++iter;
+			}
+			if (i == 3)
+			{
+				// triangle
+				m_triangles.push_back(v[0] - 1);
+				m_triangles.push_back(v[1] - 1);
+				m_triangles.push_back(v[2] - 1);
+				m_triangleNormalIndex.push_back(vn[0] - 1);
+				m_triangleNormalIndex.push_back(vn[1] - 1);
+				m_triangleNormalIndex.push_back(vn[2] - 1);
+				m_triangleTexcoordIndex.push_back(vt[0] - 1);
+				m_triangleTexcoordIndex.push_back(vt[1] - 1);
+				m_triangleTexcoordIndex.push_back(vt[2] - 1);
+				break;
+			}
+			else if (i == 4)
+			{
+				// quad, need to split into two triangles
+				m_triangles.push_back(v[0] - 1);
+				m_triangles.push_back(v[1] - 1);
+				m_triangles.push_back(v[2] - 1);
+				m_triangleNormalIndex.push_back(vn[0] - 1);
+				m_triangleNormalIndex.push_back(vn[1] - 1);
+				m_triangleNormalIndex.push_back(vn[2] - 1);
+				m_triangleTexcoordIndex.push_back(vt[0] - 1);
+				m_triangleTexcoordIndex.push_back(vt[1] - 1);
+				m_triangleTexcoordIndex.push_back(vt[2] - 1);
+				m_triangles.push_back(v[0] - 1);
+				m_triangles.push_back(v[2] - 1);
+				m_triangles.push_back(v[3] - 1);
+				m_triangleNormalIndex.push_back(vn[0] - 1);
+				m_triangleNormalIndex.push_back(vn[2] - 1);
+				m_triangleNormalIndex.push_back(vn[3] - 1);
+				m_triangleTexcoordIndex.push_back(vt[0] - 1);
+				m_triangleTexcoordIndex.push_back(vt[2] - 1);
+				m_triangleTexcoordIndex.push_back(vt[3] - 1);
+				break;
+			}
+			else
+			{
+				// unsupported polygon, ignore
+			}
 			break;
 		case 'm': // TODO
 		case '#': // comments, ignore
@@ -132,10 +199,48 @@ void Mesh::LoadDataToGPU()
 {
 	// combine buffers
 	auto noOfVertices = m_vertices.size() / 3;
-	for (auto i = 0; i < noOfVertices; i++)
+	auto noOfTriangles = m_triangles.size() / 3;
+	for (auto i = 0; i < noOfTriangles; i++)
 	{
-		combinedBuffer.push_back(VertexPosColor({m_vertices[i * 3], m_vertices[i * 3 + 1] , m_vertices[i * 3+2] }, {0.0f, 0.0f, 0.0f}, {0.0f , 0.0f}));
+		// position, normal, texcoord
+		auto vi1 = m_triangles[i * 3];
+		auto vi2 = m_triangles[i * 3 + 1];
+		auto vi3 = m_triangles[i * 3 + 2];
+
+		auto vni1 = m_triangleNormalIndex[i * 3];
+		auto vni2 = m_triangleNormalIndex[i * 3 + 1];
+		auto vni3 = m_triangleNormalIndex[i * 3 + 2];
+
+		auto vti1 = m_triangleTexcoordIndex[i * 3];
+		auto vti2 = m_triangleTexcoordIndex[i * 3 + 1];
+		auto vti3 = m_triangleTexcoordIndex[i * 3 + 2];
+
+		combinedBuffer.push_back(VertexPosColor(
+			{ m_vertices[vi1 * 3], m_vertices[vi1 * 3 + 1] , m_vertices[vi1 * 3 + 2] },
+			{ m_normals[vni1 * 3], m_normals[vni1 * 3 + 1] , m_normals[vni1 * 3 + 2] },
+			{ m_texcoords[vti1 * 2], m_texcoords[vti1 * 2 + 1] }));
+
+		combinedBuffer.push_back(VertexPosColor(
+			{ m_vertices[vi2 * 3], m_vertices[vi2 * 3 + 1] , m_vertices[vi2 * 3 + 2] },
+			{ m_normals[vni2 * 3], m_normals[vni2 * 3 + 1] , m_normals[vni2 * 3 + 2] },
+			{ m_texcoords[vti2 * 2], m_texcoords[vti2 * 2 + 1] }));
+
+		combinedBuffer.push_back(VertexPosColor(
+			{ m_vertices[vi3 * 3], m_vertices[vi3 * 3 + 1] , m_vertices[vi3 * 3 + 2] },
+			{ m_normals[vni3 * 3], m_normals[vni3 * 3 + 1] , m_normals[vni3 * 3 + 2] },
+			{ m_texcoords[vti3 * 2], m_texcoords[vti3 * 2 + 1] }));
 	}
+
+	m_triangles.clear();
+	for (auto i = 0; i < combinedBuffer.size(); i++)
+	{
+		m_triangles.push_back(i);
+	}
+
+	// Simple debug cube
+	//combinedBuffer.insert(combinedBuffer.end(), std::begin(g_Vertices), std::end(g_Vertices));
+	//m_triangles.clear();
+	//m_triangles.insert(m_triangles.end(), std::begin(g_Indicies), std::end(g_Indicies));
 
 	// prepare upload
 	auto device = Application::Get().GetDevice();
@@ -161,11 +266,26 @@ void Mesh::LoadDataToGPU()
 
 	// Create index buffer view.
 	m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
-	m_indexBufferView.Format = DXGI_FORMAT_R16_UINT;
+	m_indexBufferView.Format = DXGI_FORMAT_R32_UINT;
 	m_indexBufferView.SizeInBytes = m_triangles.size() * sizeof(uint32_t);
 
 	auto fenceValue = commandQueue->ExecuteCommandList(commandList);
 	commandQueue->WaitForFenceValue(fenceValue);
+
+	// record number of triangles before release
+	m_triangleCount = static_cast<UINT>(m_triangles.size());
+
+	// release on CPU memory
+	m_vertices.clear();
+	m_normals.clear();
+	m_texcoords.clear();
+
+	m_triangles.clear();
+	m_triangleNormalIndex.clear();
+	m_triangleTexcoordIndex.clear();
+
+	combinedBuffer.clear();
+	
 }
 
 void Mesh::UpdateBufferResource(
@@ -220,14 +340,6 @@ void Mesh::PopulateCommandList(ComPtr<ID3D12GraphicsCommandList2> p_commandList,
 	ComPtr<ID3D12RootSignature> rootSignature = m_shader_p->GetRootSigniture();
 	ComPtr<ID3D12PipelineState> pipelineState = m_shader_p->GetPipelineState();
 
-	// Pass as parameter
-	//auto commandQueue = Application::Get().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
-	//auto commandList = commandQueue->GetCommandList();
-	// Clear the render targets.
-	{
-		// This part should be in main thread
-	}
-
 	p_commandList->SetPipelineState(pipelineState.Get());
 	p_commandList->SetGraphicsRootSignature(rootSignature.Get());
 
@@ -240,10 +352,5 @@ void Mesh::PopulateCommandList(ComPtr<ID3D12GraphicsCommandList2> p_commandList,
 	mvpMatrix = XMMatrixMultiply(mvpMatrix, m_projectionMatrix);
 	p_commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / 4, &mvpMatrix, 0);
 
-	p_commandList->DrawIndexedInstanced(m_triangles.size(), 1, 0, 0, 0);
-
-	// Present
-	{
-		// This part should be in main thread
-	}
+	p_commandList->DrawIndexedInstanced(m_triangleCount, 1, 0, 0, 0);
 }

@@ -3,21 +3,17 @@
 #include <vector>
 #include <Helpers.h>
 #include <memory>
+#include <tuple>
 
 using namespace DirectX;
 
 // Global function definition
-void LoadOBJFile(
-	const wchar_t* p_objFilePath,
-	std::vector<float>& p_vertices,
-	std::vector<float>& p_normals,
-	std::vector<uint32_t>& p_triangles,
-	std::vector<uint32_t>& p_triangleNormalIndex);
 
 class Mesh
 {
 public:
 	Mesh(const wchar_t* p_objFilePath);
+	void LoadOBJFile(const wchar_t* p_objFilePath);
 	void UseShader(Shader* shader_p);
 	void LoadDataToGPU();
 
@@ -32,9 +28,15 @@ public:
 private:
 	std::vector<float> m_vertices;
 	std::vector<float> m_normals;
+	std::vector<float> m_texcoords;
+
 	std::vector<uint32_t> m_triangles;
 	std::vector<uint32_t> m_triangleNormalIndex;
+	std::vector<uint32_t> m_triangleTexcoordIndex;
+
 	std::vector<VertexPosColor> combinedBuffer;
+
+	UINT m_triangleCount = 0;
 
 	// Vertex buffer for the mesh.
 	ComPtr<ID3D12Resource> m_vertexBuffer;
