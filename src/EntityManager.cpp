@@ -27,7 +27,7 @@ void EntityManager::Render(ComPtr<ID3D12GraphicsCommandList2> p_commandList)
         XMMATRIX mScale = XMMatrixScaling(1.0f, 1.0f, 1.0f);
         const XMVECTOR rotationAxis = XMVectorSet(0, 1, 1, 0);
         XMMATRIX modelMatrix = XMMatrixRotationAxis(rotationAxis, XMConvertToRadians(26.0));
-        modelMatrix = XMMatrixIdentity() * mScale;
+        modelMatrix = modelMatrix * mScale;
         mesh_p->SetModelMatrix(modelMatrix);
 
         // Update the view matrix.

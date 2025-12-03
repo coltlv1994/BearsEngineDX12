@@ -2,8 +2,8 @@
 #include <Shader.h>
 #include <vector>
 #include <Helpers.h>
-#include <memory>
-#include <tuple>
+#include <map>
+#include <EntityInstance.h>
 
 using namespace DirectX;
 
@@ -13,6 +13,7 @@ class Mesh
 {
 public:
 	Mesh(const wchar_t* p_objFilePath);
+	~Mesh();
 	void LoadOBJFile(const wchar_t* p_objFilePath);
 	void UseShader(Shader* shader_p);
 	void LoadDataToGPU();
@@ -27,6 +28,11 @@ public:
 	// Render work
 	void PopulateCommandList(ComPtr<ID3D12GraphicsCommandList2> p_commandList, float deltaTime);
 
+	// Instance management
+	bool AddInstance(Instance* instance_p);
+	bool RemoveInstance(const std::string& instanceName);
+	bool ClearInstances();
+
 private:
 	std::vector<float> m_vertices;
 	std::vector<float> m_normals;
@@ -37,6 +43,8 @@ private:
 	std::vector<uint32_t> m_triangleTexcoordIndex;
 
 	std::vector<VertexPosColor> combinedBuffer;
+
+	std::map<std::string, Instance*> m_instances; // instances of this mesh must have UNIQUE names
 
 	UINT m_triangleCount = 0;
 
