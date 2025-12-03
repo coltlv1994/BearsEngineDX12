@@ -1,6 +1,7 @@
 #include <DX12LibPCH.h>
 #include <Application.h>
 #include "resource.h"
+#include <UIManager.h>
 
 #include <Game.h>
 #include <CommandQueue.h>
@@ -293,10 +294,6 @@ int Application::Run(std::shared_ptr<Game> pGame)
     if (!pGame->Initialize()) return 1;
     if (!pGame->LoadContent()) return 2;
 
-    bool show_demo_window = true;
-    bool show_another_window = false;
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-
     MSG msg = { 0 };
     while (msg.message != WM_QUIT)
     {
@@ -306,24 +303,15 @@ int Application::Run(std::shared_ptr<Game> pGame)
             DispatchMessage(&msg);
         }
 
-        // Start the Dear ImGui frame
-        ImGui_ImplDX12_NewFrame();
-        ImGui_ImplWin32_NewFrame();
-        ImGui::NewFrame();
-
-        if (show_demo_window)
-            ImGui::ShowDemoWindow(&show_demo_window);
-
-        ImGui::Render();
+		UIManager::Get().NewFrame();
+		UIManager::Get().CreateImGuiWindowContent();
     }
 
     // Flush any commands in the commands queues before quiting.
     Flush();
 
     // Cleanup
-    ImGui_ImplDX12_Shutdown();
-    ImGui_ImplWin32_Shutdown();
-    ImGui::DestroyContext();
+	UIManager::Get().Destroy();
 
     pGame->UnloadContent();
     pGame->Destroy();

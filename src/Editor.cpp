@@ -5,6 +5,7 @@
 #include <Helpers.h>
 #include <Window.h>
 #include <utility>
+#include <UIManager.h>
 
 #include <wrl.h>
 using namespace Microsoft::WRL;
@@ -26,53 +27,6 @@ using namespace Microsoft::WRL;
 #endif
 
 using namespace DirectX;
-
-// Simple free list based allocator
-struct ExampleDescriptorHeapAllocator
-{
-    ID3D12DescriptorHeap* Heap = nullptr;
-    D3D12_DESCRIPTOR_HEAP_TYPE  HeapType = D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES;
-    D3D12_CPU_DESCRIPTOR_HANDLE HeapStartCpu;
-    D3D12_GPU_DESCRIPTOR_HANDLE HeapStartGpu;
-    UINT                        HeapHandleIncrement;
-    ImVector<int>               FreeIndices;
-
-    void Create(ID3D12Device* device, ID3D12DescriptorHeap* heap)
-    {
-        IM_ASSERT(Heap == nullptr && FreeIndices.empty());
-        Heap = heap;
-        D3D12_DESCRIPTOR_HEAP_DESC desc = heap->GetDesc();
-        HeapType = desc.Type;
-        HeapStartCpu = Heap->GetCPUDescriptorHandleForHeapStart();
-        HeapStartGpu = Heap->GetGPUDescriptorHandleForHeapStart();
-        HeapHandleIncrement = device->GetDescriptorHandleIncrementSize(HeapType);
-        FreeIndices.reserve((int)desc.NumDescriptors);
-        for (int n = desc.NumDescriptors; n > 0; n--)
-            FreeIndices.push_back(n - 1);
-    }
-    void Destroy()
-    {
-        Heap = nullptr;
-        FreeIndices.clear();
-    }
-    void Alloc(D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_desc_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_desc_handle)
-    {
-        IM_ASSERT(FreeIndices.Size > 0);
-        int idx = FreeIndices.back();
-        FreeIndices.pop_back();
-        out_cpu_desc_handle->ptr = HeapStartCpu.ptr + (idx * HeapHandleIncrement);
-        out_gpu_desc_handle->ptr = HeapStartGpu.ptr + (idx * HeapHandleIncrement);
-    }
-    void Free(D3D12_CPU_DESCRIPTOR_HANDLE out_cpu_desc_handle, D3D12_GPU_DESCRIPTOR_HANDLE out_gpu_desc_handle)
-    {
-        int cpu_idx = (int)((out_cpu_desc_handle.ptr - HeapStartCpu.ptr) / HeapHandleIncrement);
-        int gpu_idx = (int)((out_gpu_desc_handle.ptr - HeapStartGpu.ptr) / HeapHandleIncrement);
-        IM_ASSERT(cpu_idx == gpu_idx);
-        FreeIndices.push_back(cpu_idx);
-    }
-};
-
-static ExampleDescriptorHeapAllocator g_pd3dSrvDescHeapAlloc;
 
 // Clamp a value between a min and max range.
 template<typename T>
@@ -102,18 +56,6 @@ bool Editor::LoadContent()
     dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     ThrowIfFailed(device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_DSVHeap)));
 
-    m_ContentLoaded = true;
-
-    // Resize/Create the depth buffer.
-    ResizeDepthBuffer(GetClientWidth(), GetClientHeight());
-
-    ImGui_ImplDX12_InitInfo init_info = {};
-    init_info.Device = device.Get();
-    init_info.CommandQueue = commandQueue.Get();
-    init_info.NumFramesInFlight = Window::BufferCount;
-    init_info.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-    init_info.DSVFormat = DXGI_FORMAT_D32_FLOAT;
-
     // Allocating SRV descriptors (for textures) is up to the application, so we provide callbacks.
     // (current version of the backend will only allocate one descriptor, future versions will need to allocate more)
     D3D12_DESCRIPTOR_HEAP_DESC srvDesc = {};
@@ -121,13 +63,14 @@ bool Editor::LoadContent()
     srvDesc.NumDescriptors = 1;
     srvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     ThrowIfFailed(device->CreateDescriptorHeap(&srvDesc, IID_PPV_ARGS(&m_SRVHeap)));
-    g_pd3dSrvDescHeapAlloc.Create(device.Get(), m_SRVHeap.Get());
 
-    init_info.SrvDescriptorHeap = m_SRVHeap.Get();
-    init_info.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_handle) { return g_pd3dSrvDescHeapAlloc.Alloc(out_cpu_handle, out_gpu_handle); };
-    init_info.SrvDescriptorFreeFn = [](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle) { return g_pd3dSrvDescHeapAlloc.Free(cpu_handle, gpu_handle); };
-    
-    ImGui_ImplDX12_Init(&init_info);
+    m_ContentLoaded = true;
+
+    // Resize/Create the depth buffer.
+    ResizeDepthBuffer(GetClientWidth(), GetClientHeight());
+
+	// Setup ImGui binding for DirectX 12
+	UIManager::Get().InitializeD3D12(device, commandQueue, m_SRVHeap, Window::BufferCount);
 
     return true;
 }
@@ -286,9 +229,9 @@ void Editor::OnRender(RenderEventArgs& e)
 	XMMATRIX vpMatrix = XMMatrixMultiply(viewMatrix, projectionMatrix);
 
 	m_meshManager.RenderAllMeshes(commandList, vpMatrix);
-    //m_meshManager.Render(commandList);
 
-    ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList.Get());
+	// Draw ImGui on backbuffer
+    UIManager::Get().Draw(commandList);
 
     // Present
     {

@@ -3,6 +3,7 @@
 #include <Application.h>
 #include <Game.h>
 #include <Window.h>
+#include <UIManager.h>
 
 #include "imgui.h"
 #include "imgui_impl_win32.h"
@@ -34,21 +35,7 @@ bool Game::Initialize()
     m_pWindow->RegisterCallbacks(shared_from_this());
     m_pWindow->Show();
 
-    ImGui_ImplWin32_EnableDpiAwareness();
-    float main_scale = ImGui_ImplWin32_GetDpiScaleForMonitor(::MonitorFromPoint(POINT{ 0, 0 }, MONITOR_DEFAULTTOPRIMARY));
-
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-    ImGui::StyleColorsDark();
-
-    ImGuiStyle& style = ImGui::GetStyle();
-    style.ScaleAllSizes(main_scale);
-    style.FontScaleDpi = main_scale;
-
-    ImGui_ImplWin32_Init(m_pWindow->GetWindowHandle());
+	UIManager::Get().InitializeWindow(m_pWindow->GetWindowHandle());
 
     return true;
 }
