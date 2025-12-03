@@ -16,13 +16,15 @@ public:
 	void LoadOBJFile(const wchar_t* p_objFilePath);
 	void UseShader(Shader* shader_p);
 	void LoadDataToGPU();
+	void ReadFromBinaryFile(const wchar_t* p_binFilePath);
+	void WriteToBinaryFile(const wchar_t* p_binFilePath);
 
 	void SetModelMatrix(XMMATRIX& p_modelMatrix);
 	void SetViewMatrix(XMMATRIX& p_viewMatrix);
 	void SetProjectionMatrix(XMMATRIX& p_projectionMatrix);
 	void SetFOV(float p_fov);
 
-	// DEBUG
+	// Render work
 	void PopulateCommandList(ComPtr<ID3D12GraphicsCommandList2> p_commandList, float deltaTime);
 
 private:
