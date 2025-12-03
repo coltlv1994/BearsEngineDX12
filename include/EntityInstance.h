@@ -7,14 +7,19 @@ using namespace DirectX;
 class Instance
 {
 public:
-	Instance(const std::string& name)
+	Instance(const std::wstring& name)
 		: m_name(name)
 	{
 	}
 
-	const std::string& GetName() const
+	const std::wstring& GetName() const
 	{
 		return m_name;
+	}
+
+	void SetName(const std::wstring& name)
+	{
+		m_name = name;
 	}
 
 	XMMATRIX GetModelMatrix() const
@@ -42,7 +47,7 @@ public:
 	}
 
 private:
-	std::string m_name;
+	std::wstring m_name;
 	XMVECTOR m_position = XMVectorZero();
 	XMVECTOR m_rotationAxis = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 	float m_rotationAngle = 0.0f; // in degrees

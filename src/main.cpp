@@ -46,13 +46,13 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
         };
         demoShader.CreateRootSignitureAndPipelineStream(inputLayout, 3);
 
-        std::shared_ptr<Editor> demo = std::make_shared<Editor>(L"BearsEngine in D3D12", 1280, 720);
-        std::shared_ptr<Mesh> newMesh = std::make_shared<Mesh>(L"meshes\\FinalBaseMesh.obj");
-        newMesh->UseShader(&demoShader);
+        std::shared_ptr<Editor> editor = std::make_shared<Editor>(L"BearsEngine in D3D12", 2560, 1440);
 
-        demo->AddEntity(newMesh);
+        editor->AddMesh(L"meshes\\FinalBaseMesh.obj", &demoShader);
+		editor->AddInstanceToMesh_DEBUG(L"FinalBaseMesh");
+        editor->AddInstanceToMesh_DEBUG(L"FinalBaseMesh");
 
-        retCode = Application::Get().Run(demo);
+        retCode = Application::Get().Run(editor);
     }
     Application::Destroy();
 

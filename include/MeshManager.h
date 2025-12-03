@@ -1,55 +1,27 @@
 #pragma once
 #include <Mesh.h>
 #include <vector>
+#include <map>
+#include <string>
+#include <Shader.h>
 
 class MeshManager
 {
 public:
 	MeshManager() = default;
+	~MeshManager();
+	bool AddMesh(const std::wstring& meshName, Mesh* mesh_p);
+	bool AddMesh(std::wstring meshPath, Shader* p_shader_p);
+	Mesh* GetMesh(const std::wstring& meshName);
+	bool RemoveMesh(const std::wstring& meshName);
+	void ClearMeshes();
 
-	~MeshManager()
-	{
-		for (auto mesh : m_meshList)
-		{
-			delete mesh;
-		}
-		m_meshList.clear();
-	}
+	void RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix);
 
-	void AddMesh(Mesh* mesh)
-	{
-		m_meshList.push_back(mesh);
-	}
+	// for DEBUG
+	void AddOneInstanceToMesh_DEBUG();
 
-	const std::vector<Mesh*>& GetMeshList() const
-	{
-		return m_meshList;
-	}
-
-	bool AddMesh(const wchar_t* p_objFilePath, Shader* shader_p)
-	{
-		Mesh* newMesh = new Mesh(p_objFilePath);
-		if (newMesh && shader_p)
-		{
-			newMesh->UseShader(shader_p);
-			m_meshList.push_back(newMesh);
-			return true;
-		}
-		return false;
-	}
-
-	bool RemoveMesh(Mesh* mesh)
-	{
-		auto it = std::find(m_meshList.begin(), m_meshList.end(), mesh);
-		if (it != m_meshList.end())
-		{
-			delete *it;
-			m_meshList.erase(it);
-			return true;
-		}
-		return false;
-	}
 private:
-	std::vector<Mesh*> m_meshList;
-
+	std::map<std::wstring, Mesh*> m_meshes; // map of mesh name to Mesh pointer
+	std::wstring _generateMeshName(const std::wstring& meshPath);
 };

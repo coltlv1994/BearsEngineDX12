@@ -19,6 +19,8 @@ public:
 	void LoadDataToGPU();
 	void ReadFromBinaryFile(const wchar_t* p_binFilePath);
 	void WriteToBinaryFile(const wchar_t* p_binFilePath);
+	void SetMeshClassName(const std::wstring& meshClassName);
+	const std::wstring& GetMeshClassName();
 
 	void SetModelMatrix(XMMATRIX& p_modelMatrix);
 	void SetViewMatrix(XMMATRIX& p_viewMatrix);
@@ -26,14 +28,17 @@ public:
 	void SetFOV(float p_fov);
 
 	// Render work
-	void PopulateCommandList(ComPtr<ID3D12GraphicsCommandList2> p_commandList, float deltaTime);
+	void PopulateCommandList(ComPtr<ID3D12GraphicsCommandList2> p_commandList);
+
+	void RenderInstances(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix);
 
 	// Instance management
-	bool AddInstance(Instance* instance_p);
-	bool RemoveInstance(const std::string& instanceName);
-	bool ClearInstances();
+	bool AddInstance();
+	bool RemoveInstance(const std::wstring& instanceName);
+	void ClearInstances();
 
 private:
+	std::wstring m_meshClassName;
 	std::vector<float> m_vertices;
 	std::vector<float> m_normals;
 	std::vector<float> m_texcoords;
@@ -44,7 +49,7 @@ private:
 
 	std::vector<VertexPosColor> combinedBuffer;
 
-	std::map<std::string, Instance*> m_instances; // instances of this mesh must have UNIQUE names
+	std::vector<Instance*> m_instances;
 
 	UINT m_triangleCount = 0;
 

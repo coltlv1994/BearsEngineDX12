@@ -216,7 +216,7 @@ void Editor::OnUpdate(UpdateEventArgs& e)
     }
 
     // update
-    m_EntityManager.Update(e.ElapsedTime);
+    //m_EntityManager.Update(e.ElapsedTime);
 }
 
 // Transition a resource
@@ -274,7 +274,19 @@ void Editor::OnRender(RenderEventArgs& e)
 
     commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
 
-    m_EntityManager.Render(commandList);
+    // for debug, these two matrices should be acquired from main camera
+    const XMVECTOR eyePosition = XMVectorSet(0, 0, -40, 1);
+    const XMVECTOR focusPoint = XMVectorSet(0, 0, 0, 1);
+    const XMVECTOR upDirection = XMVectorSet(0, 1, 0, 0);
+    const float aspectRatio = 2560.0 / 1440.0;
+    const float fov = 90.0;
+
+    XMMATRIX viewMatrix = XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);
+    XMMATRIX projectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(fov), aspectRatio, 0.1f, 100.0f);
+	XMMATRIX vpMatrix = XMMatrixMultiply(viewMatrix, projectionMatrix);
+
+	m_meshManager.RenderAllMeshes(commandList, vpMatrix);
+    //m_meshManager.Render(commandList);
 
     ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList.Get());
 
@@ -324,11 +336,6 @@ void Editor::OnMouseWheel(MouseWheelEventArgs& e)
     //OutputDebugStringA(buffer);
 }
 
-void Editor::AddEntity(std::shared_ptr<Mesh> p_MeshPointer)
-{
-    m_EntityManager.AddEntity(p_MeshPointer);
-}
-
 D3D12_VIEWPORT& Editor::GetViewport()
 {
     return m_Viewport;
@@ -337,4 +344,16 @@ D3D12_VIEWPORT& Editor::GetViewport()
 D3D12_RECT& Editor::GetScissorRect()
 {
     return m_ScissorRect;
+}
+
+bool Editor::AddMesh(const std::wstring& meshPath, Shader* shader_p)
+{
+	return m_meshManager.AddMesh(meshPath, shader_p);
+}
+
+// for debug purposes
+bool Editor::AddInstanceToMesh_DEBUG(const std::wstring& meshName)
+{
+    m_meshManager.AddOneInstanceToMesh_DEBUG();
+    return true;
 }

@@ -6,8 +6,7 @@
 #include <DirectXMath.h>
 
 #include <Shader.h>
-#include <EntityManager.h>
-#include <Mesh.h>
+#include <MeshManager.h>
 
 #include <memory>
 #include <utility>
@@ -28,11 +27,14 @@ public:
      */
     virtual void UnloadContent() override;
 
-    void AddEntity(std::shared_ptr<Mesh> p_MeshPointer);
-
     D3D12_VIEWPORT& GetViewport();
 
     D3D12_RECT& GetScissorRect();
+
+	bool AddMesh(const std::wstring& meshPath, Shader* shader_p);
+
+	// for debug purposes
+	bool AddInstanceToMesh_DEBUG(const std::wstring& meshName);
 protected:
     /**
      *  Update the game logic.
@@ -90,5 +92,5 @@ private:
 
     bool m_ContentLoaded;
 
-    EntityManager m_EntityManager;
+    MeshManager m_meshManager;
 };

@@ -16,6 +16,24 @@ Mesh::Mesh(const wchar_t* p_objFilePath)
 {
 	// read file
 	LoadOBJFile(p_objFilePath);
+	// default name
+	m_meshClassName = p_objFilePath;
+}
+
+Mesh::~Mesh()
+{
+	// release resources
+	ClearInstances();
+}
+
+void Mesh::SetMeshClassName(const std::wstring& meshClassName)
+{
+	m_meshClassName = meshClassName;
+}
+
+const std::wstring& Mesh::GetMeshClassName()
+{
+	return m_meshClassName;
 }
 
 void Mesh::SetModelMatrix(XMMATRIX& p_modelMatrix)
@@ -327,24 +345,9 @@ void Mesh::UpdateBufferResource(
 	}
 }
 
-void Mesh::PopulateCommandList(ComPtr<ID3D12GraphicsCommandList2> p_commandList, float deltaTime)
+void Mesh::PopulateCommandList(ComPtr<ID3D12GraphicsCommandList2> p_commandList)
 {
-	ComPtr<ID3D12RootSignature> rootSignature = m_shader_p->GetRootSigniture();
-	ComPtr<ID3D12PipelineState> pipelineState = m_shader_p->GetPipelineState();
 
-	p_commandList->SetPipelineState(pipelineState.Get());
-	p_commandList->SetGraphicsRootSignature(rootSignature.Get());
-
-	p_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	p_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
-	p_commandList->IASetIndexBuffer(&m_indexBufferView);
-
-	// Update the MVP matrix
-	XMMATRIX mvpMatrix = XMMatrixMultiply(m_modelMatrix, m_viewMatrix);
-	mvpMatrix = XMMatrixMultiply(mvpMatrix, m_projectionMatrix);
-	p_commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / 4, &mvpMatrix, 0);
-
-	p_commandList->DrawIndexedInstanced(m_triangleCount, 1, 0, 0, 0);
 }
 
 void Mesh::ReadFromBinaryFile(const wchar_t* p_binFilePath)
@@ -389,5 +392,61 @@ void Mesh::WriteToBinaryFile(const wchar_t* p_binFilePath)
 	binFile << "\nindices: " << m_triangles.size() << "\n";
 	binFile.write(reinterpret_cast<const char*>(m_triangles.data()), m_triangles.size() * sizeof(uint32_t));
 	binFile.close();
+}
 
+void Mesh::RenderInstances(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix)
+{
+	ComPtr<ID3D12RootSignature> rootSignature = m_shader_p->GetRootSigniture();
+	ComPtr<ID3D12PipelineState> pipelineState = m_shader_p->GetPipelineState();
+
+	p_commandList->SetPipelineState(pipelineState.Get());
+	p_commandList->SetGraphicsRootSignature(rootSignature.Get());
+
+	p_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	p_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
+	p_commandList->IASetIndexBuffer(&m_indexBufferView);
+
+	for (auto i = 0; i < m_instances.size(); i++)
+	{
+		// set mvp matrix
+		XMMATRIX mvpMatrix = XMMatrixMultiply(m_instances[i]->GetModelMatrix(), p_vpMatrix);
+		p_commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / 4, &mvpMatrix, 0);
+		p_commandList->DrawIndexedInstanced(m_triangleCount, 1, 0, 0, 0);
+	}
+}
+
+// Instance management
+bool Mesh::AddInstance()
+{
+	std::wstring name = m_meshClassName + L"_instance_" + std::to_wstring(m_instances.size());
+	Instance* instance_p = new Instance(name);
+	if (!instance_p)
+	{
+		return false;
+	}
+	m_instances.push_back(instance_p);
+	return true;
+}
+
+bool Mesh::RemoveInstance(const std::wstring& instanceName)
+{
+	for (auto iter = m_instances.begin(); iter != m_instances.end(); ++iter)
+	{
+		if ((*iter)->GetName() == instanceName)
+		{
+			delete *iter;
+			m_instances.erase(iter);
+			return true;
+		}
+	}
+	return false;
+}
+
+void Mesh::ClearInstances()
+{
+	for (auto instance : m_instances)
+	{
+		delete instance;
+	}
+	m_instances.clear();
 }
