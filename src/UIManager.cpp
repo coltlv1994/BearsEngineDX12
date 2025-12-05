@@ -86,8 +86,18 @@ void UIManager::CreateImGuiWindowContent()
 {
 	// all window content creation goes here
 	// for demo purposes, we just show the demo window
-	bool show_demo_window = true;
-	ImGui::ShowDemoWindow(&show_demo_window);
+	// Main body of the Demo window starts here.
+	if (!ImGui::Begin("Control Panel"))
+	{
+		// Early out if the window is collapsed, as an optimization.
+		ImGui::End();
+		return;
+	}
+
+	// Window contents
+
+
+	ImGui::End();
 
 	// Render window content
 	ImGui::Render();
