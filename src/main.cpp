@@ -48,9 +48,8 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 
         std::shared_ptr<Editor> editor = std::make_shared<Editor>(L"BearsEngine in D3D12", 2560, 1440);
 
-        editor->AddMesh(L"meshes\\FinalBaseMesh.obj", &demoShader);
-		editor->AddInstanceToMesh_DEBUG(L"FinalBaseMesh");
-        editor->AddInstanceToMesh_DEBUG(L"FinalBaseMesh");
+        editor->AddMesh(L"meshes\\sphere.obj", &demoShader, L"textures\\2k_earth_daymap.jpg");
+		editor->AddInstanceToMesh_DEBUG(L"sphere");
 
         retCode = Application::Get().Run(editor);
     }

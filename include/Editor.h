@@ -31,7 +31,7 @@ public:
 
     D3D12_RECT& GetScissorRect();
 
-	bool AddMesh(const std::wstring& meshPath, Shader* shader_p);
+	bool AddMesh(const std::wstring& meshPath, Shader* shader_p, const std::wstring& texturePath);
 
 	// for debug purposes
 	bool AddInstanceToMesh_DEBUG(const std::wstring& meshName);

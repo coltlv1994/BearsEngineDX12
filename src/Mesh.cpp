@@ -5,15 +5,28 @@
 #include <regex>
 #include <openssl/sha.h>
 #include <fstream>
+#include <cstdlib>
 
 #include <DirectXMath.h>
 using namespace DirectX;
 
 #include <sstream>
-#include <fstream>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 Mesh::Mesh(const wchar_t* p_objFilePath)
 {
+	// read file
+	LoadOBJFile(p_objFilePath);
+	// default name
+	m_meshClassName = p_objFilePath;
+}
+
+Mesh::Mesh(const wchar_t* p_objFilePath, const wchar_t* p_textureFilePath)
+{
+	// load texture file
+	m_textureFilePath = p_textureFilePath;
 	// read file
 	LoadOBJFile(p_objFilePath);
 	// default name
@@ -287,6 +300,8 @@ void Mesh::LoadDataToGPU()
 	m_indexBufferView.Format = DXGI_FORMAT_R32_UINT;
 	m_indexBufferView.SizeInBytes = m_triangles.size() * sizeof(uint32_t);
 
+	unsigned char* data = ReadAndUploadTexture();
+
 	auto fenceValue = commandQueue->ExecuteCommandList(commandList);
 	commandQueue->WaitForFenceValue(fenceValue);
 
@@ -296,6 +311,7 @@ void Mesh::LoadDataToGPU()
 	// release on CPU memory
 	m_triangles.clear();
 	combinedBuffer.clear();
+	stbi_image_free(data);
 }
 
 void Mesh::UpdateBufferResource(
@@ -449,4 +465,65 @@ void Mesh::ClearInstances()
 		delete instance;
 	}
 	m_instances.clear();
+}
+
+unsigned char* Mesh::ReadAndUploadTexture()
+{
+	auto device = Application::Get().GetDevice();
+	auto commandQueue = Application::Get().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
+	auto commandList = commandQueue->GetCommandList();
+
+	ComPtr<ID3D12Resource> textureUploadHeap;
+
+	static CD3DX12_HEAP_PROPERTIES heap_default = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
+
+	char texturePath[500];
+	wcstombs_s(nullptr, texturePath, m_textureFilePath, 500);
+
+	int width, height, channels;
+	unsigned char* imageData = stbi_load(texturePath, &width, &height, &channels, STBI_rgb_alpha);
+
+	// Describe and create a Texture2D.
+	D3D12_RESOURCE_DESC textureDesc = {};
+	textureDesc.MipLevels = 1;
+	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	textureDesc.Width = width;
+	textureDesc.Height = height;
+	textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+	textureDesc.DepthOrArraySize = 1;
+	textureDesc.SampleDesc.Count = 1;
+	textureDesc.SampleDesc.Quality = 0;
+	textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+
+	ThrowIfFailed(device->CreateCommittedResource(
+		&heap_default,
+		D3D12_HEAP_FLAG_NONE,
+		&textureDesc,
+		D3D12_RESOURCE_STATE_COPY_DEST,
+		nullptr,
+		IID_PPV_ARGS(&m_texture)));
+
+	const UINT64 uploadBufferSize = GetRequiredIntermediateSize(m_texture.Get(), 0, 1);
+
+	static CD3DX12_HEAP_PROPERTIES heap_upload = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+	CD3DX12_RESOURCE_DESC buffer_default_size = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
+
+	// Create the GPU upload buffer.
+	ThrowIfFailed(device->CreateCommittedResource(
+		&heap_upload,
+		D3D12_HEAP_FLAG_NONE,
+		&buffer_default_size,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&textureUploadHeap)));
+
+	D3D12_SUBRESOURCE_DATA textureData = {};
+	textureData.pData = &imageData[0];
+	textureData.RowPitch = width * 4;
+	textureData.SlicePitch = textureData.RowPitch * height;
+
+	UpdateSubresources(commandList.Get(), m_texture.Get(), textureUploadHeap.Get(), 0, 0, 1, &textureData);
+
+	return imageData;
 }

@@ -17,7 +17,7 @@ bool MeshManager::AddMesh(const std::wstring& meshName, Mesh* mesh_p)
 	return true;
 }
 
-bool MeshManager::AddMesh(std::wstring meshPath, Shader* p_shader_p)
+bool MeshManager::AddMesh(std::wstring meshPath, Shader* p_shader_p, const std::wstring& texturePath)
 {
 	std::wstring meshName = _generateMeshName(meshPath);
 	auto result = m_meshes.find(meshName);
@@ -28,7 +28,7 @@ bool MeshManager::AddMesh(std::wstring meshPath, Shader* p_shader_p)
 	}
 	else
 	{
-		Mesh* newMesh = new Mesh(meshPath.c_str());
+		Mesh* newMesh = new Mesh(meshPath.c_str(), texturePath.c_str());
 		if (newMesh)
 		{
 			m_meshes[meshName] = newMesh;

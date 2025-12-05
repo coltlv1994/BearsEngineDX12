@@ -11,7 +11,7 @@ public:
 	MeshManager() = default;
 	~MeshManager();
 	bool AddMesh(const std::wstring& meshName, Mesh* mesh_p);
-	bool AddMesh(std::wstring meshPath, Shader* p_shader_p);
+	bool AddMesh(std::wstring meshPath, Shader* p_shader_p, const std::wstring& texturePath);
 	Mesh* GetMesh(const std::wstring& meshName);
 	bool RemoveMesh(const std::wstring& meshName);
 	void ClearMeshes();

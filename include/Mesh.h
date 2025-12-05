@@ -13,6 +13,7 @@ class Mesh
 {
 public:
 	Mesh(const wchar_t* p_objFilePath);
+	Mesh(const wchar_t* p_objFilePath, const wchar_t* p_textureFilePath);
 	~Mesh();
 	void LoadOBJFile(const wchar_t* p_objFilePath);
 	void UseShader(Shader* shader_p);
@@ -65,6 +66,9 @@ private:
 	// Descriptor heap for depth buffer.
 	ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
 
+	// Texture resources
+	ComPtr<ID3D12Resource> m_texture;
+
 	Shader* m_shader_p;
 
 	// 3D matrices
@@ -88,9 +92,13 @@ private:
 	XMMATRIX m_viewMatrix = XMMatrixIdentity(); // view and projection matrices can be set in Camera class later
 	XMMATRIX m_projectionMatrix = XMMatrixIdentity();
 
+	const wchar_t* m_textureFilePath = nullptr;
+
 	// Create a GPU buffer.
 	void UpdateBufferResource(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList,
 		ID3D12Resource** pDestinationResource, ID3D12Resource** pIntermediateResource,
 		size_t numElements, size_t elementSize, const void* bufferData,
 		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
+
+	unsigned char* ReadAndUploadTexture();
 };
