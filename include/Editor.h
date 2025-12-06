@@ -6,7 +6,6 @@
 #include <DirectXMath.h>
 
 #include <Shader.h>
-#include <MeshManager.h>
 
 #include <memory>
 #include <utility>
@@ -16,7 +15,7 @@ class Editor : public Game
 public:
     using super = Game;
 
-    Editor(const std::wstring& name, int width, int height, bool vSync = false);
+    Editor(const std::wstring& name, int width, int height, bool vSync = true);
     /**
      *  Load content required for the demo.
      */
@@ -91,6 +90,4 @@ private:
     D3D12_RECT m_ScissorRect;
 
     bool m_ContentLoaded;
-
-    MeshManager m_meshManager;
 };

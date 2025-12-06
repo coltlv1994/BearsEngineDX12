@@ -1,4 +1,23 @@
 #include <MeshManager.h>
+#include <chrono>
+#include <thread>
+
+// UIManager singleton instance
+static MeshManager* gs_pSingleton = nullptr;
+
+MeshManager& MeshManager::Get()
+{
+	if (gs_pSingleton == nullptr)
+	{
+		gs_pSingleton = new MeshManager();
+	}
+	return *gs_pSingleton;
+}
+
+void MeshManager::Destroy()
+{
+	delete gs_pSingleton;
+}
 
 MeshManager::~MeshManager()
 {
@@ -106,5 +125,35 @@ void MeshManager::AddOneInstanceToMesh_DEBUG()
 		{
 			return;
 		}
+	}
+}
+
+void MeshManager::Listen()
+{
+	while (true)
+	{
+		Message msg;
+		if (m_messageQueue.PopMessage(msg))
+		{
+			// Process message
+			_processMessage(msg);
+			continue;
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Avoid busy waiting
+	}
+}
+
+void MeshManager::_processMessage(const Message& msg)
+{
+	switch (msg.type)
+	{
+	case MSG_TYPE_REQUIRE:
+	{
+		// Generate instance list and send back
+
+		break;
+	}
+	default:
+		return;
 	}
 }

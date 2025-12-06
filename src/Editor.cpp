@@ -6,6 +6,8 @@
 #include <Window.h>
 #include <utility>
 #include <UIManager.h>
+#include <MeshManager.h>
+#include <MessageQueue.h>
 
 #include <wrl.h>
 using namespace Microsoft::WRL;
@@ -228,7 +230,7 @@ void Editor::OnRender(RenderEventArgs& e)
 	XMMATRIX projectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(fov), aspectRatio, 0.1f, 100.0f);
 	XMMATRIX vpMatrix = XMMatrixMultiply(viewMatrix, projectionMatrix);
 
-	m_meshManager.RenderAllMeshes(commandList, vpMatrix);
+	MeshManager::Get().RenderAllMeshes(commandList, vpMatrix);
 
 	// Draw ImGui on backbuffer
 	UIManager::Get().Draw(commandList);
@@ -289,14 +291,15 @@ D3D12_RECT& Editor::GetScissorRect()
 	return m_ScissorRect;
 }
 
+// send message to MeshManager
 bool Editor::AddMesh(const std::wstring& meshPath, Shader* shader_p, const std::wstring& texturePath)
 {
-	return m_meshManager.AddMesh(meshPath, shader_p, texturePath);
+	return MeshManager::Get().AddMesh(meshPath, shader_p, texturePath);
 }
 
 // for debug purposes
 bool Editor::AddInstanceToMesh_DEBUG(const std::wstring& meshName)
 {
-	m_meshManager.AddOneInstanceToMesh_DEBUG();
+	MeshManager::Get().AddOneInstanceToMesh_DEBUG();
 	return true;
 }

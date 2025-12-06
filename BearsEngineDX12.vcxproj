@@ -156,6 +156,7 @@
     <ClCompile Include="include\imgui\imgui.cpp" />
     <ClCompile Include="include\imgui\imgui_demo.cpp" />
     <ClCompile Include="include\imgui\imgui_draw.cpp" />
+    <ClCompile Include="include\imgui\imgui_stdlib.cpp" />
     <ClCompile Include="include\imgui\imgui_tables.cpp" />
     <ClCompile Include="include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="src\Application.cpp" />
@@ -170,6 +171,7 @@
     <ClCompile Include="src\Editor.cpp" />
     <ClCompile Include="src\Mesh.cpp" />
     <ClCompile Include="src\MeshManager.cpp" />
+    <ClCompile Include="src\MessageQueue.cpp" />
     <ClCompile Include="src\Shader.cpp" />
     <ClCompile Include="src\UIManager.cpp" />
     <ClCompile Include="src\Window.cpp" />
@@ -219,6 +221,7 @@
     <ClInclude Include="include\KeyCodes.h" />
     <ClInclude Include="include\Mesh.h" />
     <ClInclude Include="include\MeshManager.h" />
+    <ClInclude Include="include\MessageQueue.h" />
     <ClInclude Include="include\resource.h" />
     <ClInclude Include="include\Editor.h" />
     <ClInclude Include="include\Shader.h" />

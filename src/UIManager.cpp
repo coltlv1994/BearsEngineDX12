@@ -1,11 +1,30 @@
 #include <UIManager.h>
 #include <exception>
+#include <vector>
 
 // UIManager singleton instance
 static UIManager* gs_pSingleton = nullptr;
 
 // copy-paste, no idea
 static ExampleDescriptorHeapAllocator g_pd3dSrvDescHeapAlloc;
+
+// persistent datas
+static float cameraPosition[3] = { 1.0f, 1.0f, 1.0f };
+static float cameraRotation[3] = { 0.0f, 0.0f, 0.0f };
+static char camTable[3][4][128] =
+{ {"MainCam", "X", "Y","Z"},
+	{"Position", "", "", ""},
+	{"Rotation"} };
+static char camTableID[3][4][128] =
+{ {"0,0", "0,1", "0,2","0,3"},
+	{"1,0", "##1,1", "##1,2","##1,3"},
+	{"2,0", "##2,1", "##2,2","##2,3"} };
+static float cameraFOV = 90.0f;
+
+static ImGuiTableFlags flags = ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_ContextMenuInBody;
+
+static std::vector<std::string> listOfMeshes;
+static char meshObjectToLoad[128] = "";
 
 inline void ThrowIfFailed(HRESULT hr)
 {
@@ -48,6 +67,9 @@ void UIManager::InitializeWindow(HWND hWnd)
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+	io.WantCaptureKeyboard = true;
+	io.WantCaptureMouse = true;
+	io.WantTextInput = true;
 	ImGui::StyleColorsDark();
 
 	ImGuiStyle& style = ImGui::GetStyle();
@@ -80,6 +102,8 @@ void UIManager::NewFrame()
 	ImGui_ImplDX12_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
+
+	ImGui::ShowDemoWindow();
 }
 
 void UIManager::CreateImGuiWindowContent()
@@ -95,6 +119,40 @@ void UIManager::CreateImGuiWindowContent()
 	}
 
 	// Window contents
+
+	if (ImGui::BeginTable("MainCam", 4, flags))
+	{
+		for (int row = 0; row < 3; row++)
+		{
+			ImGui::TableNextRow();
+			for (int column = 0; column < 4; column++)
+			{
+				ImGui::TableSetColumnIndex(column);
+				if (row == 0 || column == 0)
+				{
+					// header
+					ImGui::Text(camTable[row][column]);
+				}
+				else
+				{
+					ImGui::InputText(camTableID[row][column], camTable[row][column], 128);
+				}
+			}
+		}
+		ImGui::EndTable();
+	}
+
+	ImGui::Text("Meshes");
+	ImGui::InputText("MeshName", meshObjectToLoad, 128);
+	if (ImGui::Button("Load"))
+	{
+		// send message to load mesh
+		// NOTE: IMGUI only works with char and string
+		// conversion between char-wchar_t and string-wstring
+		// happens solely on other part of code
+	}
+
+	
 
 
 	ImGui::End();
