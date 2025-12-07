@@ -77,6 +77,8 @@ private:
 
     // Resize the depth buffer to match the size of the client area.
     void ResizeDepthBuffer(int width, int height);
+
+    unsigned char* ReadAndUploadTexture(const wchar_t* textureFilePath);
     
     uint64_t m_FenceValues[Window::BufferCount] = {};
 
@@ -86,6 +88,11 @@ private:
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DSVHeap;
 
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_SRVHeap;
+
+    // Texture resources, temporarily we don't hold it in separate places
+    // and only one texture is supported
+    ComPtr<ID3D12Resource> m_texture = nullptr;
+    ComPtr<ID3D12Resource> m_textureUploadHeap = nullptr;
 
     D3D12_VIEWPORT m_Viewport;
     D3D12_RECT m_ScissorRect;

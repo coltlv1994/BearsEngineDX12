@@ -40,8 +40,6 @@ ComPtr<ID3D12PipelineState> Shader::GetPipelineState()
 void Shader::CreateRootSignitureAndPipelineStream(D3D12_INPUT_ELEMENT_DESC* inputLayout_p, size_t inputLayoutCount)
 {
     auto device = Application::Get().GetDevice();
-    auto commandQueue = Application::Get().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
-    auto commandList = commandQueue->GetCommandList();
 
     // Create a root signature.
     D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
@@ -116,13 +114,15 @@ void Shader::CreateRootSignitureAndPipelineStream(D3D12_INPUT_ELEMENT_DESC* inpu
     pipelineStateStream.DSVFormat = DXGI_FORMAT_D32_FLOAT;
     pipelineStateStream.RTVFormats = rtvFormats;
     CD3DX12_RASTERIZER_DESC l_cWireframeRasterizer(D3D12_DEFAULT);
-    l_cWireframeRasterizer.FillMode = D3D12_FILL_MODE_WIREFRAME;
-	l_cWireframeRasterizer.CullMode = D3D12_CULL_MODE_FRONT;
+    l_cWireframeRasterizer.FillMode = D3D12_FILL_MODE_SOLID;
+	l_cWireframeRasterizer.CullMode = D3D12_CULL_MODE_NONE;
 	pipelineStateStream.rasterizerState = l_cWireframeRasterizer;
 
     D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
         sizeof(PipelineStateStream), &pipelineStateStream
     };
 
-    ThrowIfFailed(device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_PipelineState)));
+    HRESULT result = device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_PipelineState));
+
+    ThrowIfFailed(result);
 }

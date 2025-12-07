@@ -13,7 +13,7 @@ class Mesh
 {
 public:
 	~Mesh();
-	bool Initialize(const wchar_t* p_objFilePath, const wchar_t* p_textureFilePath = L"textures\\2k_earth_daymap.jpg");
+	bool Initialize(const wchar_t* p_objFilePath);
 	void LoadOBJFile(const wchar_t* p_objFilePath);
 	void UseShader(Shader* shader_p);
 	void LoadDataToGPU();
@@ -25,7 +25,7 @@ public:
 	// Render work
 	void PopulateCommandList(ComPtr<ID3D12GraphicsCommandList2> p_commandList);
 
-	void RenderInstances(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix);
+	void RenderInstances(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix, D3D12_GPU_DESCRIPTOR_HANDLE textureHandle);
 
 	// Instance management
 	Instance* AddInstance();
@@ -60,18 +60,15 @@ private:
 	// Descriptor heap for depth buffer.
 	ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
 
-	// Texture resources
-	ComPtr<ID3D12Resource> m_texture;
-
 	Shader* m_shader_p;
 
-	const wchar_t* m_textureFilePath = nullptr;
+	// replaced with descriptor heap offset
+	//const wchar_t* m_textureFilePath = nullptr;
+	int m_textureLocation = 0; // 0 can be used for default texture, e.g. pure white
 
 	// Create a GPU buffer.
 	void UpdateBufferResource(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList,
 		ID3D12Resource** pDestinationResource, ID3D12Resource** pIntermediateResource,
 		size_t numElements, size_t elementSize, const void* bufferData,
 		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
-
-	unsigned char* ReadAndUploadTexture();
 };

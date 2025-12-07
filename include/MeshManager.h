@@ -21,7 +21,7 @@ public:
 	bool RemoveMesh(const std::wstring& meshName);
 	void ClearMeshes();
 
-	void RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix);
+	void RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix, D3D12_GPU_DESCRIPTOR_HANDLE textureHandle);
 
 	// for DEBUG
 	void AddOneInstanceToMesh_DEBUG();

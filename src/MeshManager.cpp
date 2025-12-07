@@ -41,14 +41,7 @@ bool MeshManager::AddMesh(const wchar_t* meshName, Shader* p_shader_p, const wch
 	{
 		Mesh* newMesh = new Mesh();
 		bool createResult = false;
-		if (texturePath == nullptr)
-		{
-			createResult = newMesh->Initialize(meshFullPath);
-		}
-		else
-		{
-			createResult = newMesh->Initialize(meshFullPath, texturePath);
-		}
+		createResult = newMesh->Initialize(meshFullPath);
 
 		if (createResult)
 		{
@@ -111,11 +104,11 @@ std::wstring MeshManager::_generateMeshName(const std::wstring& meshPath)
 	return fileNameWithoutDot;
 }
 
-void MeshManager::RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix)
+void MeshManager::RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix, D3D12_GPU_DESCRIPTOR_HANDLE textureHandle)
 {
 	for (auto meshClass : m_meshes)
 	{
-		meshClass.second->RenderInstances(p_commandList, p_vpMatrix);
+		meshClass.second->RenderInstances(p_commandList, p_vpMatrix, textureHandle);
 	}
 }
 
