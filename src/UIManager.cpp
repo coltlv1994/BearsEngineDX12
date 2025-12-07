@@ -22,8 +22,14 @@ static char camTableID[3][4][128] =
 	{"2,0", "##2,1", "##2,2","##2,3"} };
 static float cameraFOV = 90.0f;
 
-static float camParam[2][3] = { {0.0f, 0.0f, -10.0f}, {0.0f, 0.0f, 0.0f} };
-static float instanceParam[2][3] = { {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} };
+static char instanceTable[4][4][128] =
+{ {"Instance", "IX", "IY","IZ"},
+	{"Position", "##IPX", "##IPY", "##IPZ"},
+	{"Rotation", "##IRX", "##IRY", "##IRZ"},
+	{"Scale", "##ISX", "##ISY", "##ISZ"} };
+static float camParam[2][3] = { {0.0f, 0.0f, -10.0f}, {0.0f, 0.0f, 0.0f} }; // position, rotation
+static float instanceParam[3][3] = { {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} , {1.0f, 1.0f, 1.0f} }; // position, rotation, scale
+
 
 static ImGuiTableFlags flags = ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_ContextMenuInBody;
 
@@ -100,7 +106,7 @@ void UIManager::NewFrame()
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	ImGui::ShowDemoWindow();
+	//ImGui::ShowDemoWindow();
 }
 
 void UIManager::CreateImGuiWindowContent()
@@ -216,13 +222,40 @@ void UIManager::CreateImGuiWindowContent()
 			std::advance(it, selectedInstanceIndex);
 			Instance* selectedInstance = it->second;
 			ImGui::Text("Selected Instance Transform:");
-			ImGui::InputFloat3("Position", instanceParam[0], "%.3f");
-			//ImGui::InputFloat3("Rotation", instanceParam[1], "%.3f");
-			if (ImGui::Button("Apply Transform"))
+			XMVECTOR pos = selectedInstance->GetPosition();
+			XMStoreFloat3((XMFLOAT3*)instanceParam[0], pos);
+			XMVECTOR rotAxis;
+			float rotAngle;
+			selectedInstance->GetRotation(rotAxis, rotAngle);
+			XMVECTOR scale = selectedInstance->GetScale();
+			XMStoreFloat3((XMFLOAT3*)instanceParam[2], scale);
+
+			if (ImGui::BeginTable("Instance", 4, flags))
 			{
-				selectedInstance->SetPosition(instanceParam[0][0], instanceParam[0][1], instanceParam[0][2]);
-				//selectedInstance->SetRotation(XMLoadFloat3((XMFLOAT3*)rotation));
+				for (int row = 0; row < 4; row++)
+				{
+					ImGui::TableNextRow();
+					for (int column = 0; column < 4; column++)
+					{
+						ImGui::TableSetColumnIndex(column);
+						if (row == 0 || column == 0)
+						{
+							// header
+							ImGui::Text(instanceTable[row][column]);
+						}
+						else
+						{
+							ImGui::SetNextItemWidth(-1.0f);
+							ImGui::InputFloat(instanceTable[row][column], &instanceParam[row - 1][column - 1], 0.1f, 1.0f, "%.3f");
+						}
+					}
+				}
+				ImGui::EndTable();
 			}
+
+			selectedInstance->SetPosition(instanceParam[0][0], instanceParam[0][1], instanceParam[0][2]);
+			selectedInstance->SetRotation(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), instanceParam[1][1]); // Yaw only for simplicity
+			selectedInstance->SetScale(XMVectorSet(instanceParam[2][0], instanceParam[2][1], instanceParam[2][2], 0.0f));
 		}
 	}
 

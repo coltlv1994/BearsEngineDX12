@@ -164,7 +164,7 @@ void Window::RegisterCallbacks(std::shared_ptr<Game> pGame)
     return;
 }
 
-void Window::OnUpdate(UpdateEventArgs&)
+void Window::OnUpdate()
 {
     m_UpdateClock.Tick();
 
@@ -177,7 +177,7 @@ void Window::OnUpdate(UpdateEventArgs&)
     }
 }
 
-void Window::OnRender(RenderEventArgs&)
+void Window::OnRender()
 {
     m_RenderClock.Tick();
 

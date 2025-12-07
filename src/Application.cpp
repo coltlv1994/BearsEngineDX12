@@ -2,6 +2,7 @@
 #include <Application.h>
 #include "resource.h"
 #include <UIManager.h>
+#include <thread>
 
 #include <Game.h>
 #include <CommandQueue.h>
@@ -303,8 +304,6 @@ int Application::Run(std::shared_ptr<Game> pGame)
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
-
-		UIManager::Get().CreateImGuiWindowContent();
 	}
 
 	// Flush any commands in the commands queues before quiting.
@@ -447,11 +446,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 		case WM_PAINT:
 		{
 			// Delta time will be filled in by the Window.
-			UpdateEventArgs updateEventArgs(0.0f, 0.0f);
-			pWindow->OnUpdate(updateEventArgs);
-			RenderEventArgs renderEventArgs(0.0f, 0.0f);
-			// Delta time will be filled in by the Window.
-			pWindow->OnRender(renderEventArgs);
+			pWindow->OnUpdate();
+			pWindow->OnRender();
 		}
 		break;
 		case WM_SIZE:

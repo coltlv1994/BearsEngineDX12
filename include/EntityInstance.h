@@ -27,6 +27,17 @@ public:
 		return m_position;
 	}
 
+	void GetRotation(XMVECTOR& outRotationAxis, float& outRotationAngle) const
+	{
+		outRotationAxis = m_rotationAxis;
+		outRotationAngle = m_rotationAngle;
+	}
+
+	XMVECTOR& GetScale()
+	{
+		return m_scale;
+	}
+
 	XMMATRIX GetModelMatrix() const
 	{
 		return m_modelMatrix;

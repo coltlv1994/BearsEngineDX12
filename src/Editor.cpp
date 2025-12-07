@@ -8,6 +8,7 @@
 #include <UIManager.h>
 #include <MeshManager.h>
 #include <MessageQueue.h>
+#include <thread>
 
 #include <wrl.h>
 using namespace Microsoft::WRL;
@@ -227,9 +228,14 @@ void Editor::OnRender(RenderEventArgs& e)
 
 	XMMATRIX vpMatrix = m_mainCamera.GetViewProjectionMatrix();
 
-	MeshManager::Get().RenderAllMeshes(commandList, vpMatrix);
+	UIManager::Get().CreateImGuiWindowContent();
 
-	// Draw ImGui on backbuffer
+	// Render all meshes in a separate thread
+	// NOTE: for now, mutex is not required since CreateImGuiWindowContent() do not write anything to commandlist
+	std::thread meshRenderThread(&MeshManager::RenderAllMeshes, &MeshManager::Get(), commandList, vpMatrix);
+
+	// Wait mesh rendering to be finished, then draw ImGui on backbuffer
+	meshRenderThread.join();
 	UIManager::Get().Draw(commandList);
 
 	// Present

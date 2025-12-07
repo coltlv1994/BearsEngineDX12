@@ -104,8 +104,8 @@ protected:
     void RegisterCallbacks( std::shared_ptr<Game> pGame );
 
     // Update and Draw can only be called by the application.
-    virtual void OnUpdate(UpdateEventArgs& e);
-    virtual void OnRender(RenderEventArgs& e);
+    virtual void OnUpdate();
+    virtual void OnRender();
 
     // A keyboard key was pressed
     virtual void OnKeyPressed(KeyEventArgs& e);
