@@ -22,6 +22,11 @@ public:
 		m_name = name;
 	}
 
+	XMVECTOR& GetPosition()
+	{
+		return m_position;
+	}
+
 	XMMATRIX GetModelMatrix() const
 	{
 		return m_modelMatrix;
@@ -30,6 +35,12 @@ public:
 	void SetPosition(const XMVECTOR& position)
 	{
 		m_position = position;
+		_updateModelMatrix();
+	}
+
+	void SetPosition(float x, float y, float z)
+	{
+		m_position = XMVectorSet(x, y, z, 0.0f);
 		_updateModelMatrix();
 	}
 

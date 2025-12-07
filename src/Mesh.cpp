@@ -15,22 +15,24 @@ using namespace DirectX;
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-Mesh::Mesh(const wchar_t* p_objFilePath)
+bool Mesh::Initialize(const wchar_t* p_objFilePath, const wchar_t* p_textureFilePath)
 {
-	// read file
-	LoadOBJFile(p_objFilePath);
-	// default name
-	m_meshClassName = p_objFilePath;
-}
+	// check if file exists
+	std::ifstream objFile(p_objFilePath);
+	if (!objFile.is_open())
+	{
+		// open failed
+		return false;
+	}
 
-Mesh::Mesh(const wchar_t* p_objFilePath, const wchar_t* p_textureFilePath)
-{
 	// load texture file
 	m_textureFilePath = p_textureFilePath;
 	// read file
 	LoadOBJFile(p_objFilePath);
 	// default name
 	m_meshClassName = p_objFilePath;
+
+	return true;
 }
 
 Mesh::~Mesh()
@@ -47,26 +49,6 @@ void Mesh::SetMeshClassName(const std::wstring& meshClassName)
 const std::wstring& Mesh::GetMeshClassName()
 {
 	return m_meshClassName;
-}
-
-void Mesh::SetModelMatrix(XMMATRIX& p_modelMatrix)
-{
-	m_modelMatrix = p_modelMatrix;
-}
-
-void Mesh::SetViewMatrix(XMMATRIX& p_viewMatrix)
-{
-	m_viewMatrix = p_viewMatrix;
-}
-
-void Mesh::SetProjectionMatrix(XMMATRIX& p_projectionMatrix)
-{
-	m_projectionMatrix = p_projectionMatrix;
-}
-
-void Mesh::SetFOV(float p_fov)
-{
-	m_fov = p_fov;
 }
 
 void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
@@ -432,30 +414,31 @@ void Mesh::RenderInstances(ComPtr<ID3D12GraphicsCommandList2> p_commandList, con
 }
 
 // Instance management
-bool Mesh::AddInstance()
+Instance* Mesh::AddInstance()
 {
 	std::wstring name = m_meshClassName + L"_instance_" + std::to_wstring(m_instances.size());
 	Instance* instance_p = new Instance(name);
 	if (!instance_p)
 	{
-		return false;
+		return nullptr;
 	}
 	m_instances.push_back(instance_p);
-	return true;
+	return instance_p;
 }
 
-bool Mesh::RemoveInstance(const std::wstring& instanceName)
+bool Mesh::RemoveInstance(Instance* instance_p)
 {
-	for (auto iter = m_instances.begin(); iter != m_instances.end(); ++iter)
+	auto result = std::find(m_instances.begin(), m_instances.end(), instance_p);
+	if (result != m_instances.end())
 	{
-		if ((*iter)->GetName() == instanceName)
-		{
-			delete *iter;
-			m_instances.erase(iter);
-			return true;
-		}
+		delete *result;
+		m_instances.erase(result);
+		return true;
 	}
-	return false;
+	else
+	{
+		return false;
+	}
 }
 
 void Mesh::ClearInstances()

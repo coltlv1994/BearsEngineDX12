@@ -10,8 +10,10 @@ public:
 	~Camera();
 
 	void SetPosition(const XMVECTOR& position);
+	void SetPosition(float x, float y, float z);
 
 	void SetRotation(const XMVECTOR& rotationAxis, const float degrees);
+	void SetRotation(float x, float y, float z, float degrees);
 
 	void SetFOV(float fov);
 
@@ -21,9 +23,7 @@ public:
 
 	void SetFarPlane(float farPlane);
 
-	XMMATRIX GetViewMatrix() const;
-
-	XMMATRIX GetProjectionMatrix() const;
+	XMMATRIX GetViewProjectionMatrix() const;
 
 private:
 	XMVECTOR m_position;
@@ -33,4 +33,26 @@ private:
 	float m_aspectRatio;
 	float m_nearPlane;
 	float m_farPlane;
+
+	// 3D matrices
+/*
+* (Explanation keeps here for reference)
+* The "model" matrix is one that takes your object from it's "local" space,
+  and positions it in the "world" you are viewing. Generally it just
+  modifies it's position, rotation and scale.
+
+  The "view" matrix is the position and orientation of your camera that views
+  the world. The inverse of this is used to take objects that are in the world,
+  and move everything such that the camera is at the origin, looking down
+  the Z (or -Z depending on convention) axis. This is done so that the the next steps are easier and simpler.
+
+  The "projection" matrix is a bit special, in that it is no longer
+  a simple rotate/translate, but also scales objects based on distance,
+  and "pulls in" objects so that everything in the frustum is contained inside a unit-cube of space.
+
+  NOTE: this camera class only handles the view and projection matrices; model matrices belong to individual instances.
+*/
+
+	XMMATRIX m_viewProjectionMatrix;
+	void _updateVPMatrix();
 };

@@ -5,6 +5,7 @@
 #include <Application.h>
 #include <Editor.h>
 #include <Helpers.h>
+#include <MeshManager.h>
 
 #include <dxgidebug.h>
 
@@ -48,8 +49,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 
         std::shared_ptr<Editor> editor = std::make_shared<Editor>(L"BearsEngine in D3D12", 2560, 1440);
 
-        editor->AddMesh(L"meshes\\sphere.obj", &demoShader, L"textures\\2k_earth_daymap.jpg");
-		editor->AddInstanceToMesh_DEBUG(L"sphere");
+		MeshManager::Get().SetDefaultShader(&demoShader);
 
         retCode = Application::Get().Run(editor);
     }

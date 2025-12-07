@@ -9,6 +9,7 @@ Camera::Camera()
 	, m_nearPlane(0.1f)
 	, m_farPlane(1000.0f)
 {
+	_updateVPMatrix();
 }
 
 Camera::~Camera()
@@ -18,22 +19,39 @@ Camera::~Camera()
 void Camera::SetPosition(const XMVECTOR& position)
 {
 	m_position = position;
+	_updateVPMatrix();
+}
+
+void Camera::SetPosition(float x, float y, float z)
+{
+	m_position = XMVectorSet(x, y, z, 0.0f);
+	_updateVPMatrix();
 }
 
 void Camera::SetRotation(const XMVECTOR& rotationAxis, const float degrees)
 {
 	m_rotationAxis = rotationAxis;
 	m_rotationAngle = degrees;
+	_updateVPMatrix();
+}
+
+void Camera::SetRotation(float x, float y, float z, float degrees)
+{
+	m_rotationAxis = XMVectorSet(x, y, z, 0.0f);
+	m_rotationAngle = degrees;
+	_updateVPMatrix();
 }
 
 void Camera::SetFOV(float fov)
 {
 	m_fov = fov;
+	_updateVPMatrix();
 }
 
 void Camera::SetAspectRatio(float aspectRatio)
 {
 	m_aspectRatio = aspectRatio;
+	_updateVPMatrix();
 }
 
 void Camera::SetNearPlane(float nearPlane)
@@ -46,7 +64,7 @@ void Camera::SetFarPlane(float farPlane)
 	m_farPlane = farPlane;
 }
 
-XMMATRIX Camera::GetViewMatrix() const
+void Camera::_updateVPMatrix()
 {
 	XMMATRIX rotationMatrix = XMMatrixRotationAxis(m_rotationAxis, XMConvertToRadians(m_rotationAngle));
 	XMVECTOR lookAt = XMVector3TransformCoord(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), rotationMatrix);
@@ -54,11 +72,15 @@ XMMATRIX Camera::GetViewMatrix() const
 	XMVECTOR upDirection = XMVector3TransformCoord(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), rotationMatrix);
 	upDirection = XMVector3Normalize(upDirection);
 	XMVECTOR focusPoint = m_position + lookAt;
-	return XMMatrixLookAtLH(m_position, focusPoint, upDirection);
+
+	XMMATRIX viewMatrix = XMMatrixLookAtLH(m_position, focusPoint, upDirection);
+	XMMATRIX projectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(m_fov), m_aspectRatio, m_nearPlane, m_farPlane);
+
+	m_viewProjectionMatrix = XMMatrixMultiply(viewMatrix, projectionMatrix);
 }
 
-XMMATRIX Camera::GetProjectionMatrix() const
+XMMATRIX Camera::GetViewProjectionMatrix() const
 {
-	return XMMatrixPerspectiveFovLH(XMConvertToRadians(m_fov), m_aspectRatio, m_nearPlane, m_farPlane);
+	return m_viewProjectionMatrix;
 }
 

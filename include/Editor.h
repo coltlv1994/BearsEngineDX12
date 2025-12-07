@@ -2,6 +2,7 @@
 
 #include <Game.h>
 #include <Window.h>
+#include <Camera.h>
 
 #include <DirectXMath.h>
 
@@ -90,4 +91,6 @@ private:
     D3D12_RECT m_ScissorRect;
 
     bool m_ContentLoaded;
+
+    Camera m_mainCamera;
 };

@@ -1,12 +1,18 @@
 #pragma once
 #include <queue>
+#include <mutex>
+#include <iostream>
 
 enum MessageType : uint32_t
 {
 	MSG_TYPE_NONE = 0x0,
-	MSG_TYPE_REQUIRE = 0x1,
-	MSG_TYPE_REPLY = 0x2,
+	MSG_TYPE_LOAD_MESH = 0x1, // content is mesh name, for example, sphere
+	MSG_TYPE_LOAD_SUCCESS = 0x2, // reply from MeshManager to UIManager, content is mesh name
+	MSG_TYPE_CREATE_INSTANCE = 0x3, // request to create instance of a mesh, content is mesh name
+	MSG_TYPE_INSTANCE_REPLY = 0x4, // reply from MeshManager to UIManager, content is instance name + pointer
 };
+
+constexpr size_t POINTER_SIZE = sizeof(void*);
 
 class Message
 {
@@ -15,9 +21,18 @@ public:
 
 	Message() = default;
 
+	Message& operator=(const Message& other)
+	{
+		type = other.type;
+		data = other.data;
+		size = other.size;
+		return *this;
+	}
+
 	~Message()
 	{
-		delete[] data;
+		// DEBUG
+		std::cout << "DELETED MESSAGE" << std::endl;
 	}
 
 	size_t GetSize() const { return size; }
@@ -37,20 +52,17 @@ public:
 		return size;
 	}
 
-	void GetData(void* outData, size_t outSize) const
+	void* GetData()
 	{
-		if (outSize < size)
-		{
-			return;
-			// Could use some error handling here.
-		}
-
-		std::memcpy(outData, data, size);
+		return data;
 	}
 
 	void Release()
 	{
-		delete[] data;
+		if (data)
+		{
+			delete[] data;
+		}
 		data = nullptr;
 		size = 0;
 	}
@@ -66,29 +78,47 @@ public:
 
 	~MessageQueue()
 	{
-		while (!m_messageQueue.empty())
-		{
-			Message& msg = m_messageQueue.front();
-			msg.Release();
-			m_messageQueue.pop();
-		}
 	}
 
-	void PushMessage(const Message& message)
+	void PushMessage(Message* message)
 	{
+		LockMutex();
+		// critical region
 		m_messageQueue.push(message);
+		UnlockMutex();
 	}
 
 	bool PopMessage(Message& message)
 	{
+		LockMutex();
+		// critical region
+
 		if (m_messageQueue.empty())
 		{
+			UnlockMutex();
 			return false;
 		}
-		message = m_messageQueue.front();
+
+		message = *(m_messageQueue.front());
+
+		delete m_messageQueue.front();
 		m_messageQueue.pop();
+
+		UnlockMutex();
 		return true;
 	}
+
+	void LockMutex()
+	{
+		m_mutex.lock();
+	}
+
+	void UnlockMutex()
+	{
+		m_mutex.unlock();
+	}
+
 private:
-	std::queue<Message> m_messageQueue;
+	std::queue<Message*> m_messageQueue;
+	std::mutex m_mutex;
 };

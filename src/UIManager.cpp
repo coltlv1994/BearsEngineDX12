@@ -1,6 +1,7 @@
 #include <UIManager.h>
 #include <exception>
 #include <vector>
+#include <MeshManager.h>
 
 // UIManager singleton instance
 static UIManager* gs_pSingleton = nullptr;
@@ -9,30 +10,26 @@ static UIManager* gs_pSingleton = nullptr;
 static ExampleDescriptorHeapAllocator g_pd3dSrvDescHeapAlloc;
 
 // persistent datas
-static float cameraPosition[3] = { 1.0f, 1.0f, 1.0f };
+static float cameraPosition[3] = { 0.0f, 0.0f, -10.0f };
 static float cameraRotation[3] = { 0.0f, 0.0f, 0.0f };
 static char camTable[3][4][128] =
 { {"MainCam", "X", "Y","Z"},
-	{"Position", "", "", ""},
-	{"Rotation"} };
+	{"Position", "0.0", "0.0", "-10.0"},
+	{"Rotation", "0.0", "0.0", "0.0"} };
 static char camTableID[3][4][128] =
 { {"0,0", "0,1", "0,2","0,3"},
 	{"1,0", "##1,1", "##1,2","##1,3"},
 	{"2,0", "##2,1", "##2,2","##2,3"} };
 static float cameraFOV = 90.0f;
 
+static float camParam[2][3] = { {0.0f, 0.0f, -10.0f}, {0.0f, 0.0f, 0.0f} };
+static float instanceParam[2][3] = { {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} };
+
 static ImGuiTableFlags flags = ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_ContextMenuInBody;
 
-static std::vector<std::string> listOfMeshes;
 static char meshObjectToLoad[128] = "";
-
-inline void ThrowIfFailed(HRESULT hr)
-{
-	if (FAILED(hr))
-	{
-		throw std::exception();
-	}
-}
+static int selectedMeshIndex = 0;
+static int selectedInstanceIndex = -1;
 
 UIManager::~UIManager()
 {
@@ -108,6 +105,8 @@ void UIManager::NewFrame()
 
 void UIManager::CreateImGuiWindowContent()
 {
+	NewFrame();
+
 	// all window content creation goes here
 	// for demo purposes, we just show the demo window
 	// Main body of the Demo window starts here.
@@ -135,25 +134,97 @@ void UIManager::CreateImGuiWindowContent()
 				}
 				else
 				{
-					ImGui::InputText(camTableID[row][column], camTable[row][column], 128);
+					ImGui::SetNextItemWidth(-1.0f);
+					ImGui::InputFloat(camTableID[row][column], &camParam[row - 1][column - 1], 0.1f, 1.0f, "%.3f");
 				}
 			}
 		}
 		ImGui::EndTable();
 	}
 
-	ImGui::Text("Meshes");
-	ImGui::InputText("MeshName", meshObjectToLoad, 128);
-	if (ImGui::Button("Load"))
+	if (m_mainCamRef != nullptr)
 	{
-		// send message to load mesh
-		// NOTE: IMGUI only works with char and string
-		// conversion between char-wchar_t and string-wstring
-		// happens solely on other part of code
+		m_mainCamRef->SetPosition(XMLoadFloat3((XMFLOAT3*)camParam[0]));
 	}
 
-	
+	// change main camera status via reference
 
+	ImGui::Text("Meshes");
+	ImGui::InputText("##MeshName", meshObjectToLoad, 128);
+	if (ImGui::Button("Load"))
+	{
+		// send message to mesh manager
+		Message* msg = new Message();
+		msg->type = MSG_TYPE_LOAD_MESH;
+		msg->SetData(meshObjectToLoad, strlen(meshObjectToLoad) + 1);
+		MeshManager::Get().ReceiveMessage(msg);
+	}
+
+	// Populate mesh list
+	if (listOfMeshes.size() > 0)
+	{
+		ImGui::Text("Loaded Meshes:");
+		if (ImGui::BeginListBox("##listbox meshes"))
+		{
+			for (int n = 0; n < listOfMeshes.size(); n++)
+			{
+				const bool is_selected = (selectedMeshIndex == n);
+				if (ImGui::Selectable(listOfMeshes[n].c_str(), is_selected))
+					selectedMeshIndex = n;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (is_selected)
+					ImGui::SetItemDefaultFocus();
+			}
+			ImGui::EndListBox();
+		}
+		if (ImGui::Button("Create Instance"))
+		{
+			// send message to mesh manager to create instance
+			if (selectedMeshIndex >= 0 && selectedMeshIndex < listOfMeshes.size())
+			{
+				Message* msg = new Message();
+				msg->type = MSG_TYPE_CREATE_INSTANCE;
+				msg->SetData(listOfMeshes[selectedMeshIndex].c_str(), listOfMeshes[selectedMeshIndex].size() + 1);
+				MeshManager::Get().ReceiveMessage(msg);
+			}
+		}
+	}
+
+	if (instanceMap.size() > 0)
+	{
+		ImGui::Text("Instances:");
+		if (ImGui::BeginListBox("##listbox instances"))
+		{
+			int idx = 0;
+			for (const auto& pair : instanceMap)
+			{
+				const bool is_selected = (selectedInstanceIndex == idx);
+				if (ImGui::Selectable(pair.first.c_str(), is_selected))
+					selectedInstanceIndex = idx;
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (is_selected)
+					ImGui::SetItemDefaultFocus();
+				idx++;
+			}
+			ImGui::EndListBox();
+		}
+
+		if (selectedInstanceIndex >= 0 && selectedInstanceIndex < instanceMap.size())
+		{
+			auto it = instanceMap.begin();
+			std::advance(it, selectedInstanceIndex);
+			Instance* selectedInstance = it->second;
+			ImGui::Text("Selected Instance Transform:");
+			ImGui::InputFloat3("Position", instanceParam[0], "%.3f");
+			//ImGui::InputFloat3("Rotation", instanceParam[1], "%.3f");
+			if (ImGui::Button("Apply Transform"))
+			{
+				selectedInstance->SetPosition(instanceParam[0][0], instanceParam[0][1], instanceParam[0][2]);
+				//selectedInstance->SetRotation(XMLoadFloat3((XMFLOAT3*)rotation));
+			}
+		}
+	}
 
 	ImGui::End();
 
@@ -164,4 +235,71 @@ void UIManager::CreateImGuiWindowContent()
 void UIManager::Draw(ComPtr<ID3D12GraphicsCommandList2> commandList)
 {
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList.Get());
+}
+
+void UIManager::StartListeningThread()
+{
+	std::thread listenerThread(&UIManager::_listen, this);
+	listenerThread.detach();
+}
+
+void UIManager::ReceiveMessage(Message* msg)
+{
+	m_messageQueue.PushMessage(msg);
+}
+
+void UIManager::_listen()
+{
+	while (true)
+	{
+		Message msg;
+		if (m_messageQueue.PopMessage(msg))
+		{
+			// Process message
+			_processMessage(msg);
+			continue;
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Avoid busy waiting
+	}
+}
+
+void UIManager::_processMessage(Message& msg)
+{
+	switch (msg.type)
+	{
+	case MSG_TYPE_LOAD_SUCCESS:
+	{
+		// add mesh name to list
+		size_t dataSize = msg.GetSize();
+		if (dataSize != 0)
+		{
+			char* msgData = (char*)msg.GetData();
+			std::string meshNameStr(msgData);
+			listOfMeshes.push_back(meshNameStr);
+		}
+		break;
+	}
+	case MSG_TYPE_INSTANCE_REPLY:
+	{
+		// add instance to list
+		size_t dataSize = msg.GetSize();
+		if (dataSize < 1 + POINTER_SIZE)
+		{
+			// ill-formated message, ignore
+			break;
+		}
+		else
+		{
+			char* msgData = (char*)msg.GetData();
+			size_t nameLength = dataSize - POINTER_SIZE;
+			std::string name = std::string((char*)msgData, nameLength);
+			Instance* instancePtr = *(Instance**)(msgData + nameLength);
+			instanceMap[std::string((char*)msgData, nameLength)] = instancePtr;
+		}
+		break;
+	}
+	default:
+		break;
+	}
+	msg.Release();
 }

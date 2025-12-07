@@ -74,6 +74,13 @@ bool Editor::LoadContent()
 	// Setup ImGui binding for DirectX 12
 	UIManager::Get().InitializeD3D12(device, commandQueue, m_SRVHeap, Window::BufferCount);
 
+	// Setup the main camera.
+	m_mainCamera.SetPosition(0.0f, 0.0f, -10.0f);
+	UIManager::Get().SetMainCamera(&m_mainCamera);
+
+	UIManager::Get().StartListeningThread();
+	MeshManager::Get().StartListeningThread();
+
 	return true;
 }
 
@@ -129,6 +136,8 @@ void Editor::OnResize(ResizeEventArgs& e)
 		m_Viewport = CD3DX12_VIEWPORT(0.0f, 0.0f,
 			static_cast<float>(e.Width), static_cast<float>(e.Height));
 
+		m_mainCamera.SetAspectRatio(static_cast<float>(e.Width) / static_cast<float>(e.Height));
+
 		ResizeDepthBuffer(e.Width, e.Height);
 	}
 }
@@ -159,9 +168,6 @@ void Editor::OnUpdate(UpdateEventArgs& e)
 		frameCount = 0;
 		totalTime = 0.0;
 	}
-
-	// update
-	//m_EntityManager.Update(e.ElapsedTime);
 }
 
 // Transition a resource
@@ -219,16 +225,7 @@ void Editor::OnRender(RenderEventArgs& e)
 
 	commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
 
-	// for debug, these two matrices should be acquired from main camera
-	const XMVECTOR eyePosition = XMVectorSet(0, 0, -40, 1);
-	const XMVECTOR focusPoint = XMVectorSet(0, 0, 0, 1);
-	const XMVECTOR upDirection = XMVectorSet(0, 1, 0, 0);
-	const float aspectRatio = 2560.0 / 1440.0;
-	const float fov = 90.0;
-
-	XMMATRIX viewMatrix = XMMatrixLookAtLH(eyePosition, focusPoint, upDirection);
-	XMMATRIX projectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(fov), aspectRatio, 0.1f, 100.0f);
-	XMMATRIX vpMatrix = XMMatrixMultiply(viewMatrix, projectionMatrix);
+	XMMATRIX vpMatrix = m_mainCamera.GetViewProjectionMatrix();
 
 	MeshManager::Get().RenderAllMeshes(commandList, vpMatrix);
 
@@ -289,12 +286,6 @@ D3D12_VIEWPORT& Editor::GetViewport()
 D3D12_RECT& Editor::GetScissorRect()
 {
 	return m_ScissorRect;
-}
-
-// send message to MeshManager
-bool Editor::AddMesh(const std::wstring& meshPath, Shader* shader_p, const std::wstring& texturePath)
-{
-	return MeshManager::Get().AddMesh(meshPath, shader_p, texturePath);
 }
 
 // for debug purposes

@@ -16,8 +16,7 @@ public:
 	MeshManager() = default;
 	~MeshManager();
 
-	bool AddMesh(const std::wstring& meshName, Mesh* mesh_p);
-	bool AddMesh(std::wstring meshPath, Shader* p_shader_p, const std::wstring& texturePath);
+	bool AddMesh(const wchar_t* meshName, Shader* p_shader_p, const wchar_t* texturePath = nullptr);
 	Mesh* GetMesh(const std::wstring& meshName);
 	bool RemoveMesh(const std::wstring& meshName);
 	void ClearMeshes();
@@ -27,12 +26,27 @@ public:
 	// for DEBUG
 	void AddOneInstanceToMesh_DEBUG();
 
-	// Message Queue access
-	void Listen();
+	void StartListeningThread()
+	{
+		std::thread listenerThread(&MeshManager::Listen, this);
+		listenerThread.detach();
+	}
+
+	// Receive message from other systems
+	void ReceiveMessage(Message* msg);
+
+	void SetDefaultShader(Shader* shader_p)
+	{
+		m_defaultShader_p = shader_p;
+	}
+
 
 private:
 	std::map<std::wstring, Mesh*> m_meshes; // map of mesh name to Mesh pointer
 	std::wstring _generateMeshName(const std::wstring& meshPath);
-	void _processMessage(const Message& msg);
+	void _processMessage(Message& msg);
+	// Message Queue access
+	void Listen();
 	MessageQueue m_messageQueue;
+	Shader* m_defaultShader_p = nullptr;
 };
