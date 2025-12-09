@@ -166,6 +166,39 @@ void UIManager::CreateImGuiWindowContent()
 
 	if (m_mainCamRef != nullptr)
 	{
+		// keyboard input for camera control
+		ImGuiIO& io = ImGui::GetIO();
+		if (io.WantTextInput == false)
+		{
+			// if text input is not wanted, we can handle camera control
+			if (ImGui::IsKeyPressed(ImGuiKey_W))
+				camParam[0][2] += 0.1f; // move forward
+			if (ImGui::IsKeyPressed(ImGuiKey_S))
+				camParam[0][2] -= 0.1f; // move backward
+			if (ImGui::IsKeyPressed(ImGuiKey_A))
+				camParam[0][0] -= 0.1f; // move left
+			if (ImGui::IsKeyPressed(ImGuiKey_D))
+				camParam[0][0] += 0.1f; // move right
+			if (ImGui::IsKeyPressed(ImGuiKey_Q))
+				camParam[0][1] -= 0.1f; // move down
+			if (ImGui::IsKeyPressed(ImGuiKey_E))
+				camParam[0][1] += 0.1f; // move up
+
+			//x - axis(pitch), then y - axis(yaw), and then z - axis(roll)
+			if (ImGui::IsKeyPressed(ImGuiKey_U))
+				camParam[1][0] += 0.1f; // PITCH UP
+			if (ImGui::IsKeyPressed(ImGuiKey_J))
+				camParam[1][0] -= 0.1f; // PITCH DOWN
+			if (ImGui::IsKeyPressed(ImGuiKey_I))
+				camParam[1][1] += 0.1f; // YAW UP
+			if (ImGui::IsKeyPressed(ImGuiKey_K))
+				camParam[1][1] -= 0.1f; // YAW DOWN
+			if (ImGui::IsKeyPressed(ImGuiKey_O))
+				camParam[1][2] += 0.1f; // ROLL UP
+			if (ImGui::IsKeyPressed(ImGuiKey_L))
+				camParam[1][2] -= 0.1f; // ROLL DOWN
+		}
+
 		m_mainCamRef->SetPosition(XMLoadFloat3((XMFLOAT3*)camParam[0]));
 		_clampRotation(camParam[1]);
 		m_mainCamRef->SetRotation(XMVectorSet(camParam[1][0], camParam[1][1], camParam[1][2], 0.0f) * PI_DIV_180);
