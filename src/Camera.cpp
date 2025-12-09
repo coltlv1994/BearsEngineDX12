@@ -2,8 +2,7 @@
 
 Camera::Camera()
 	: m_position(XMVectorZero())
-	, m_rotationAxis(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f))
-	, m_rotationAngle(0.0f)
+	, m_rotation(XMVectorZero())
 	, m_fov(45.0f)
 	, m_aspectRatio(16.0f / 9.0f)
 	, m_nearPlane(0.1f)
@@ -28,17 +27,15 @@ void Camera::SetPosition(float x, float y, float z)
 	_updateVPMatrix();
 }
 
-void Camera::SetRotation(const XMVECTOR& rotationAxis, const float degrees)
+void Camera::SetRotation(const XMVECTOR& rotationDegrees)
 {
-	m_rotationAxis = rotationAxis;
-	m_rotationAngle = degrees;
+	m_rotation = rotationDegrees;
 	_updateVPMatrix();
 }
 
-void Camera::SetRotation(float x, float y, float z, float degrees)
+void Camera::SetRotation(float xDegree, float yDegree, float zDegree)
 {
-	m_rotationAxis = XMVectorSet(x, y, z, 0.0f);
-	m_rotationAngle = degrees;
+	m_rotation = XMVectorSet(xDegree, yDegree, zDegree, 0.0f);
 	_updateVPMatrix();
 }
 
@@ -64,9 +61,20 @@ void Camera::SetFarPlane(float farPlane)
 	m_farPlane = farPlane;
 }
 
+XMVECTOR Camera::GetPosition() const
+{
+	return m_position;
+}
+
+XMVECTOR Camera::GetRotation() const
+{
+	return m_rotation;
+}
+
 void Camera::_updateVPMatrix()
 {
-	XMMATRIX rotationMatrix = XMMatrixRotationAxis(m_rotationAxis, XMConvertToRadians(m_rotationAngle));
+	//x - axis(pitch), then y - axis(yaw), and then z - axis(roll)
+	XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYawFromVector(m_rotation);
 	XMVECTOR lookAt = XMVector3TransformCoord(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), rotationMatrix);
 	lookAt = XMVector3Normalize(lookAt);
 	XMVECTOR upDirection = XMVector3TransformCoord(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), rotationMatrix);
@@ -82,5 +90,20 @@ void Camera::_updateVPMatrix()
 XMMATRIX Camera::GetViewProjectionMatrix() const
 {
 	return m_viewProjectionMatrix;
+}
+
+Camera& Camera::operator=(const Camera& other)
+{
+	if (this != &other)
+	{
+		m_position = other.m_position;
+		m_rotation = other.m_rotation;
+		m_fov = other.m_fov;
+		m_aspectRatio = other.m_aspectRatio;
+		m_nearPlane = other.m_nearPlane;
+		m_farPlane = other.m_farPlane;
+		m_viewProjectionMatrix = other.m_viewProjectionMatrix;
+	}
+	return *this;
 }
 

@@ -10,9 +10,25 @@ enum MessageType : uint32_t
 	MSG_TYPE_LOAD_SUCCESS = 0x2, // reply from MeshManager to UIManager, content is mesh name
 	MSG_TYPE_CREATE_INSTANCE = 0x3, // request to create instance of a mesh, content is mesh name
 	MSG_TYPE_INSTANCE_REPLY = 0x4, // reply from MeshManager to UIManager, content is instance name + pointer
+	MSG_TYPE_RELOAD_MESH = 0x5, // request to reload mesh with new instance data, content is ReloadInfo struct
+	MSG_TYPE_CLEAN_MESHES = 0x6, // request to clean all meshes, no content
 };
 
 constexpr size_t POINTER_SIZE = sizeof(void*);
+
+struct InstanceInfo
+{
+	float position[3];
+	float rotation[3]; // in degrees
+	float scale[3];
+};
+
+struct ReloadInfo
+{
+	char meshName[128];
+	size_t numOfInstances;
+	InstanceInfo instanceInfos; // this can have variable length/size but lease one is required
+};
 
 class Message
 {

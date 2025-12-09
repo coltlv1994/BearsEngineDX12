@@ -64,12 +64,12 @@ void Shader::CreateRootSignitureAndPipelineStream(D3D12_INPUT_ELEMENT_DESC* inpu
     rootParameters[1].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
     D3D12_STATIC_SAMPLER_DESC sampler = {};
-    sampler.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+    sampler.Filter = D3D12_FILTER_ANISOTROPIC;
     sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
     sampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
     sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
     sampler.MipLODBias = 0;
-    sampler.MaxAnisotropy = 0;
+    sampler.MaxAnisotropy = 8;
     sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
     sampler.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
     sampler.MinLOD = 0.0f;
@@ -90,39 +90,26 @@ void Shader::CreateRootSignitureAndPipelineStream(D3D12_INPUT_ELEMENT_DESC* inpu
     ThrowIfFailed(device->CreateRootSignature(0, rootSignatureBlob->GetBufferPointer(),
         rootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&m_RootSignature)));
 
-    struct PipelineStateStream
-    {
-        CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
-        CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT InputLayout;
-        CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
-        CD3DX12_PIPELINE_STATE_STREAM_VS VS;
-        CD3DX12_PIPELINE_STATE_STREAM_PS PS;
-        CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
-        CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
-		CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER rasterizerState;
-    } pipelineStateStream;
-
     D3D12_RT_FORMAT_ARRAY rtvFormats = {};
     rtvFormats.NumRenderTargets = 1;
     rtvFormats.RTFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 
-    pipelineStateStream.pRootSignature = m_RootSignature.Get();
-    pipelineStateStream.InputLayout = { inputLayout_p, static_cast<UINT>(inputLayoutCount) };
-    pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    pipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(m_vertexShaderBlob.Get());
-    pipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(m_pixelShaderBlob.Get());
-    pipelineStateStream.DSVFormat = DXGI_FORMAT_D32_FLOAT;
-    pipelineStateStream.RTVFormats = rtvFormats;
-    CD3DX12_RASTERIZER_DESC l_cWireframeRasterizer(D3D12_DEFAULT);
-    l_cWireframeRasterizer.FillMode = D3D12_FILL_MODE_SOLID;
-	l_cWireframeRasterizer.CullMode = D3D12_CULL_MODE_NONE;
-	pipelineStateStream.rasterizerState = l_cWireframeRasterizer;
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineState;
+    memset(&graphicsPipelineState, 0, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+    graphicsPipelineState.InputLayout = { inputLayout_p, static_cast<UINT>(inputLayoutCount) };
+    graphicsPipelineState.pRootSignature = m_RootSignature.Get();
+    graphicsPipelineState.VS = CD3DX12_SHADER_BYTECODE(m_vertexShaderBlob.Get());
+    graphicsPipelineState.PS = CD3DX12_SHADER_BYTECODE(m_pixelShaderBlob.Get());
+    graphicsPipelineState.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+    graphicsPipelineState.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+    graphicsPipelineState.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+    graphicsPipelineState.SampleMask = UINT_MAX;
+    graphicsPipelineState.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    graphicsPipelineState.NumRenderTargets = 1;
+    graphicsPipelineState.RTVFormats[0] = rtvFormats.RTFormats[0];
+    graphicsPipelineState.SampleDesc.Count = 1;
+    graphicsPipelineState.SampleDesc.Quality = 0;
+    graphicsPipelineState.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+    ThrowIfFailed(device->CreateGraphicsPipelineState(&graphicsPipelineState, IID_PPV_ARGS(&m_PipelineState)));
 
-    D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
-        sizeof(PipelineStateStream), &pipelineStateStream
-    };
-
-    HRESULT result = device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_PipelineState));
-
-    ThrowIfFailed(result);
 }

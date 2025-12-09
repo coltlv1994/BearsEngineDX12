@@ -87,4 +87,8 @@ private:
 	void _processMessage(Message& msg);
 	std::vector<std::string> listOfMeshes;
 	std::map<std::string, Instance*> instanceMap;
+	void _saveMap();
+	bool _loadMap();
+	void _clampRotation(float* rotation_p);
+	void _clampScale(float* scale_p);
 };

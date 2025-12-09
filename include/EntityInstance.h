@@ -22,18 +22,17 @@ public:
 		m_name = name;
 	}
 
-	XMVECTOR& GetPosition()
+	XMVECTOR GetPosition() const
 	{
 		return m_position;
 	}
 
-	void GetRotation(XMVECTOR& outRotationAxis, float& outRotationAngle) const
+	XMVECTOR GetRotation() const
 	{
-		outRotationAxis = m_rotationAxis;
-		outRotationAngle = m_rotationAngle;
+		return m_rotation;
 	}
 
-	XMVECTOR& GetScale()
+	XMVECTOR GetScale() const
 	{
 		return m_scale;
 	}
@@ -55,10 +54,15 @@ public:
 		_updateModelMatrix();
 	}
 
-	void SetRotation(const XMVECTOR& rotationAxis, const float degrees)
+	void SetRotation(const XMVECTOR& rotation)
 	{
-		m_rotationAxis = rotationAxis;
-		m_rotationAngle = degrees;
+		m_rotation = rotation;
+		_updateModelMatrix();
+	}
+
+	void SetRotation(float xDegree, float yDegree, float zDegree)
+	{
+		m_rotation = XMVectorSet(xDegree, yDegree, zDegree, 0.0f);
 		_updateModelMatrix();
 	}
 
@@ -68,11 +72,27 @@ public:
 		_updateModelMatrix();
 	}
 
+	void SetScale(float x, float y, float z)
+	{
+		m_scale = XMVectorSet(x, y, z, 0.0f);
+		_updateModelMatrix();
+	}
+
+	void SetMeshClassName(const wchar_t* p_meshClassName)
+	{
+		wcscpy_s(m_meshClassName, 128, p_meshClassName);
+	}
+
+	const wchar_t* GetMeshClassName() const
+	{
+		return m_meshClassName;
+	}
+
 private:
 	std::wstring m_name;
+	wchar_t m_meshClassName[128];
 	XMVECTOR m_position = XMVectorZero();
-	XMVECTOR m_rotationAxis = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-	float m_rotationAngle = 0.0f; // in degrees
+	XMVECTOR m_rotation = XMVectorZero();
 	XMVECTOR m_scale = XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f);
 	XMMATRIX m_modelMatrix = XMMatrixIdentity(); // position, rotaion, scale in *world* space
 	void _updateModelMatrix();

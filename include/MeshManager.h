@@ -40,6 +40,7 @@ public:
 		m_defaultShader_p = shader_p;
 	}
 
+	void CleanForLoad();
 
 private:
 	std::map<std::wstring, Mesh*> m_meshes; // map of mesh name to Mesh pointer
@@ -49,4 +50,6 @@ private:
 	void Listen();
 	MessageQueue m_messageQueue;
 	Shader* m_defaultShader_p = nullptr;
+	void _sendMeshLoadSuccessMessage(const char* meshName, size_t nameLength);
+	void _sendInstanceReplyMessage(Instance* createdInstance);
 };

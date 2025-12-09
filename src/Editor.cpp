@@ -67,16 +67,12 @@ bool Editor::LoadContent()
 	// (current version of the backend will only allocate one descriptor, future versions will need to allocate more)
 	D3D12_DESCRIPTOR_HEAP_DESC desHeapDesc = {};
 	desHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	desHeapDesc.NumDescriptors = 1;
+	desHeapDesc.NumDescriptors = 2;
 	desHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	ThrowIfFailed(device->CreateDescriptorHeap(&desHeapDesc, IID_PPV_ARGS(&m_SRVHeap)));
 
 	// one texture for now, later update will support multiple textures with texture selector/manager
-	unsigned char* data = ReadAndUploadTexture(L"textures\\2k_earth_daymap.jpg");
-	//ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(
-	//	device.Get(), Application::Get().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT)->GetCommandList().Get(),
-	//	L"textures\\2k_earth_daymap.dds",
-	//	m_texture, m_textureUploadHeap));
+	ReadAndUploadTexture(L"textures\\2k_earth_daymap.jpg");
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -85,18 +81,18 @@ bool Editor::LoadContent()
 	srvDesc.Texture2D.MostDetailedMip = 0;
 	srvDesc.Texture2D.MipLevels = m_texture->GetDesc().MipLevels;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-	device->CreateShaderResourceView(m_texture.Get(), &srvDesc, m_SRVHeap->GetCPUDescriptorHandleForHeapStart());
+	// store in 2nd heap to avoid error with imgui
+	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(m_SRVHeap->GetCPUDescriptorHandleForHeapStart());
+	hDescriptor.Offset(1, Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+	device->CreateShaderResourceView(m_texture.Get(), &srvDesc, hDescriptor);
+
+	// Setup ImGui binding for DirectX 12
+	UIManager::Get().InitializeD3D12(device, commandQueue, m_SRVHeap, Window::BufferCount);
 
 	m_ContentLoaded = true;
 
 	// Resize/Create the depth buffer.
 	ResizeDepthBuffer(GetClientWidth(), GetClientHeight());
-
-	// after resize(), the command list is executed.
-	stbi_image_free(data);
-
-	// Setup ImGui binding for DirectX 12
-	UIManager::Get().InitializeD3D12(device, commandQueue, m_SRVHeap, Window::BufferCount);
 
 	// Setup the main camera.
 	m_mainCamera.SetPosition(0.0f, 0.0f, -10.0f);
@@ -236,7 +232,7 @@ void Editor::OnRender(RenderEventArgs& e)
 		TransitionResource(commandList, backBuffer,
 			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-		FLOAT clearColor[] = { 1.0f, 0.0f, 0.0f, 1.0f };
+		FLOAT clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 		ClearRTV(commandList, rtv, clearColor);
 		ClearDepth(commandList, dsv);
@@ -248,9 +244,9 @@ void Editor::OnRender(RenderEventArgs& e)
 	commandList->RSSetScissorRects(1, &m_ScissorRect);
 
 	commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
+	// don't use imgui texture
 	CD3DX12_GPU_DESCRIPTOR_HANDLE textureHandle(m_SRVHeap->GetGPUDescriptorHandleForHeapStart());
-	//auto mCbvSrvDescriptorSize = Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	//textureHandle.Offset(1, mCbvSrvDescriptorSize);
+	textureHandle.Offset(1, Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
 
 	XMMATRIX vpMatrix = m_mainCamera.GetViewProjectionMatrix();
 
@@ -258,6 +254,7 @@ void Editor::OnRender(RenderEventArgs& e)
 
 	// Render all meshes in a separate thread
 	// NOTE: for now, mutex is not required since CreateImGuiWindowContent() do not write anything to commandlist
+
 	std::thread meshRenderThread(&MeshManager::RenderAllMeshes, &MeshManager::Get(), commandList, vpMatrix, textureHandle);
 
 	// Wait mesh rendering to be finished, then draw ImGui on backbuffer
@@ -320,13 +317,11 @@ D3D12_RECT& Editor::GetScissorRect()
 	return m_ScissorRect;
 }
 
-unsigned char* Editor::ReadAndUploadTexture(const wchar_t* textureFilePath)
+void Editor::ReadAndUploadTexture(const wchar_t* textureFilePath)
 {
 	auto device = Application::Get().GetDevice();
 	auto commandQueue = Application::Get().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 	auto commandList = commandQueue->GetCommandList();
-
-	ComPtr<ID3D12Resource> textureUploadHeap;
 
 	static CD3DX12_HEAP_PROPERTIES heap_default = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 
@@ -360,6 +355,7 @@ unsigned char* Editor::ReadAndUploadTexture(const wchar_t* textureFilePath)
 
 	static CD3DX12_HEAP_PROPERTIES heap_upload = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
 	CD3DX12_RESOURCE_DESC buffer_default_size = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
+	ComPtr<ID3D12Resource> textureUploadHeap = nullptr;
 
 	// Create the GPU upload buffer.
 	ThrowIfFailed(device->CreateCommittedResource(
@@ -371,11 +367,16 @@ unsigned char* Editor::ReadAndUploadTexture(const wchar_t* textureFilePath)
 		IID_PPV_ARGS(&textureUploadHeap)));
 
 	D3D12_SUBRESOURCE_DATA textureData = {};
-	textureData.pData = &imageData[0];
+	textureData.pData = imageData;
 	textureData.RowPitch = width * 4;
 	textureData.SlicePitch = textureData.RowPitch * height;
 
 	UpdateSubresources(commandList.Get(), m_texture.Get(), textureUploadHeap.Get(), 0, 0, 1, &textureData);
 
-	return imageData;
+	// wait until upload is complete
+	auto fenceValue = commandQueue->ExecuteCommandList(commandList);
+	commandQueue->WaitForFenceValue(fenceValue);
+
+	// The data is guaranteed to be uploaded after WaitForFenceValue()
+	stbi_image_free(imageData);
 }

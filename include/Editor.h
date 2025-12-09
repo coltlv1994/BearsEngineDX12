@@ -30,11 +30,6 @@ public:
     D3D12_VIEWPORT& GetViewport();
 
     D3D12_RECT& GetScissorRect();
-
-	bool AddMesh(const std::wstring& meshPath, Shader* shader_p, const std::wstring& texturePath);
-
-	// for debug purposes
-	bool AddInstanceToMesh_DEBUG(const std::wstring& meshName);
 protected:
     /**
      *  Update the game logic.
@@ -78,7 +73,7 @@ private:
     // Resize the depth buffer to match the size of the client area.
     void ResizeDepthBuffer(int width, int height);
 
-    unsigned char* ReadAndUploadTexture(const wchar_t* textureFilePath);
+    void ReadAndUploadTexture(const wchar_t* textureFilePath);
     
     uint64_t m_FenceValues[Window::BufferCount] = {};
 
@@ -92,7 +87,6 @@ private:
     // Texture resources, temporarily we don't hold it in separate places
     // and only one texture is supported
     ComPtr<ID3D12Resource> m_texture = nullptr;
-    ComPtr<ID3D12Resource> m_textureUploadHeap = nullptr;
 
     D3D12_VIEWPORT m_Viewport;
     D3D12_RECT m_ScissorRect;

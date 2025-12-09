@@ -12,8 +12,8 @@ public:
 	void SetPosition(const XMVECTOR& position);
 	void SetPosition(float x, float y, float z);
 
-	void SetRotation(const XMVECTOR& rotationAxis, const float degrees);
-	void SetRotation(float x, float y, float z, float degrees);
+	void SetRotation(const XMVECTOR& rotationDegree);
+	void SetRotation(float xDegree, float yDegree, float zDegree);
 
 	void SetFOV(float fov);
 
@@ -25,10 +25,14 @@ public:
 
 	XMMATRIX GetViewProjectionMatrix() const;
 
+	Camera& operator=(const Camera& other);
+
+	XMVECTOR GetPosition() const;
+	XMVECTOR GetRotation() const;
+
 private:
 	XMVECTOR m_position;
-	XMVECTOR m_rotationAxis;
-	float m_rotationAngle; // in degrees
+	XMVECTOR m_rotation;
 	float m_fov; // in degrees
 	float m_aspectRatio;
 	float m_nearPlane;

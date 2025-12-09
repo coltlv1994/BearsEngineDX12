@@ -3,15 +3,18 @@
 #include <vector>
 #include <MeshManager.h>
 
+#include <iostream>
+#include <fstream>
+
 // UIManager singleton instance
 static UIManager* gs_pSingleton = nullptr;
+
+constexpr float PI_DIV_180 = 0.01745329; // PI / 180.0f
 
 // copy-paste, no idea
 static ExampleDescriptorHeapAllocator g_pd3dSrvDescHeapAlloc;
 
 // persistent datas
-static float cameraPosition[3] = { 0.0f, 0.0f, -10.0f };
-static float cameraRotation[3] = { 0.0f, 0.0f, 0.0f };
 static char camTable[3][4][128] =
 { {"MainCam", "X", "Y","Z"},
 	{"Position", "0.0", "0.0", "-10.0"},
@@ -28,14 +31,15 @@ static char instanceTable[4][4][128] =
 	{"Rotation", "##IRX", "##IRY", "##IRZ"},
 	{"Scale", "##ISX", "##ISY", "##ISZ"} };
 static float camParam[2][3] = { {0.0f, 0.0f, -10.0f}, {0.0f, 0.0f, 0.0f} }; // position, rotation
-static float instanceParam[3][3] = { {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} , {1.0f, 1.0f, 1.0f} }; // position, rotation, scale
-
+static float instanceParam[3][3] = { {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} , {1.0f, 1.0f, 1.0f} }; // position, rotation in degree, scale
 
 static ImGuiTableFlags flags = ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_ContextMenuInBody;
 
 static char meshObjectToLoad[128] = "";
 static int selectedMeshIndex = 0;
 static int selectedInstanceIndex = -1;
+
+static char mapNameToLoad[128] = "default";
 
 UIManager::~UIManager()
 {
@@ -124,6 +128,18 @@ void UIManager::CreateImGuiWindowContent()
 	}
 
 	// Window contents
+	ImGui::InputText("mapName", mapNameToLoad, 128);
+	if (ImGui::Button("Load Map"))
+	{
+		// load map
+		_loadMap();
+	}
+
+	if (ImGui::Button("Save Map"))
+	{
+		// save map
+		_saveMap();
+	}
 
 	if (ImGui::BeginTable("MainCam", 4, flags))
 	{
@@ -151,6 +167,8 @@ void UIManager::CreateImGuiWindowContent()
 	if (m_mainCamRef != nullptr)
 	{
 		m_mainCamRef->SetPosition(XMLoadFloat3((XMFLOAT3*)camParam[0]));
+		_clampRotation(camParam[1]);
+		m_mainCamRef->SetRotation(XMVectorSet(camParam[1][0], camParam[1][1], camParam[1][2], 0.0f) * PI_DIV_180);
 	}
 
 	// change main camera status via reference
@@ -224,9 +242,8 @@ void UIManager::CreateImGuiWindowContent()
 			ImGui::Text("Selected Instance Transform:");
 			XMVECTOR pos = selectedInstance->GetPosition();
 			XMStoreFloat3((XMFLOAT3*)instanceParam[0], pos);
-			XMVECTOR rotAxis;
-			float rotAngle;
-			selectedInstance->GetRotation(rotAxis, rotAngle);
+			XMVECTOR rot = selectedInstance->GetRotation() / PI_DIV_180;
+			XMStoreFloat3((XMFLOAT3*)instanceParam[1], rot);
 			XMVECTOR scale = selectedInstance->GetScale();
 			XMStoreFloat3((XMFLOAT3*)instanceParam[2], scale);
 
@@ -254,7 +271,9 @@ void UIManager::CreateImGuiWindowContent()
 			}
 
 			selectedInstance->SetPosition(instanceParam[0][0], instanceParam[0][1], instanceParam[0][2]);
-			selectedInstance->SetRotation(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), instanceParam[1][1]); // Yaw only for simplicity
+			_clampRotation(instanceParam[1]);
+			selectedInstance->SetRotation(XMVectorSet(instanceParam[1][0], instanceParam[1][1], instanceParam[1][2], 0.0f) * PI_DIV_180);
+			_clampScale(instanceParam[2]);
 			selectedInstance->SetScale(XMVectorSet(instanceParam[2][0], instanceParam[2][1], instanceParam[2][2], 0.0f));
 		}
 	}
@@ -335,4 +354,185 @@ void UIManager::_processMessage(Message& msg)
 		break;
 	}
 	msg.Release();
+}
+
+void UIManager::_saveMap()
+{
+	char mapFileName[256];
+	sprintf_s(mapFileName, 256, "saved_maps\\%s.bmap", mapNameToLoad);
+
+	std::ofstream mapFile(mapFileName, std::ios::binary | std::ios::out);
+
+	if (!mapFile.is_open())
+	{
+		std::cerr << "Failed to open map file for saving: " << mapFileName << std::endl;
+		return;
+	}
+
+	size_t sizeOfCameraClass = sizeof(Camera);
+	mapFile << "camera,";
+	char* cameraData = new char[sizeOfCameraClass];
+	memcpy(cameraData, m_mainCamRef, sizeOfCameraClass);
+	mapFile.write(cameraData, sizeOfCameraClass);
+	delete[] cameraData;
+
+	// Save instances
+	//std::vector<std::string> listOfMeshes;
+	//std::map<std::string, Instance*> instanceMap;
+
+	std::map<std::string, std::vector<Instance*>> instancesByMesh;
+
+	for (const auto meshName : listOfMeshes)
+	{
+		instancesByMesh[meshName] = std::vector<Instance*>();
+	}
+
+	for (const auto& pair : instanceMap)
+	{
+		Instance* instance = pair.second;
+		const wchar_t* meshClassNameWChar = instance->GetMeshClassName();
+		size_t convertedChars = 0;
+		char meshClassNameChar[128];
+		wcstombs_s(&convertedChars, meshClassNameChar, 128, meshClassNameWChar, _TRUNCATE);
+		std::string meshClassNameStr(meshClassNameChar);
+		instancesByMesh[meshClassNameStr].push_back(instance);
+	}
+
+	for (const auto& meshPair : instancesByMesh)
+	{
+		mapFile << "mesh,";
+		const std::string& meshName = meshPair.first;
+		const std::vector<Instance*>& instances = meshPair.second;
+
+		size_t totalRequiredSize = sizeof(ReloadInfo);
+		if (instances.size() > 1)
+		{
+			totalRequiredSize += sizeof(InstanceInfo) * (instances.size() - 1);
+		} // one is already included in ReloadInfo
+
+		char* buffer = new char[totalRequiredSize];
+		ReloadInfo& reloadInfo = *(ReloadInfo*)buffer;
+
+		strcpy_s(reloadInfo.meshName, meshName.c_str());
+		reloadInfo.numOfInstances = instances.size();
+
+		// To the start of potential array
+		InstanceInfo* instanceInfo_ptr = &reloadInfo.instanceInfos;
+
+		for (size_t i = 0; i < reloadInfo.numOfInstances; i++)
+		{
+			Instance* instance = instances[i];
+
+			XMVECTOR pos = instance->GetPosition();
+			XMStoreFloat3((XMFLOAT3*)instanceInfo_ptr[i].position, pos);
+			XMVECTOR rot = instance->GetRotation(); // use radians to avoid calculation in mesh manager
+			XMStoreFloat3((XMFLOAT3*)instanceInfo_ptr[i].rotation, rot);
+			XMVECTOR scale = instance->GetScale();
+			XMStoreFloat3((XMFLOAT3*)instanceInfo_ptr[i].scale, scale);
+		}
+
+		mapFile.write(reinterpret_cast<char*>(&reloadInfo), totalRequiredSize);
+	}
+
+	mapFile.close();
+}
+
+bool UIManager::_loadMap()
+{
+	char mapFileName[256];
+	sprintf_s(mapFileName, 256, "saved_maps\\%s.bmap", mapNameToLoad);
+
+	std::ifstream mapFile(mapFileName, std::ios::binary | std::ios::ate);
+
+	if (!mapFile.is_open())
+	{
+		std::cerr << "Failed to open map file for saving: " << mapFileName << std::endl;
+		return false;
+	}
+
+	// read until end of file
+	std::streamsize size = mapFile.tellg();
+	mapFile.seekg(0, std::ios::beg);
+
+	char* mapData = new char[size];
+	if (!mapFile.read(mapData, size))
+	{
+		std::cerr << "Failed to read map file: " << mapFileName << std::endl;
+		delete[] mapData;
+		return false;
+	}
+
+	if (size < sizeof(Camera) || m_mainCamRef == nullptr)
+	{
+		std::cerr << "Map file too small to contain camera data." << std::endl;
+		delete[] mapData;
+		mapFile.close();
+		return false;
+	}
+
+	// send message to MesnhManager to clear current meshes
+	// UIManager does not own these pointers
+	listOfMeshes.clear();
+	instanceMap.clear();
+	Message* message = new Message();
+	message->type = MSG_TYPE_CLEAN_MESHES;
+	MeshManager::Get().ReceiveMessage(message);
+
+	// Camera class has fixed size
+	size_t offset = 7; // "camera," take 7 bytes
+	Camera tempCam;
+	memcpy_s(&tempCam, sizeof(Camera), mapData + offset, sizeof(Camera));
+	*m_mainCamRef = tempCam;
+	XMVECTOR mainCamRot = m_mainCamRef->GetRotation() / PI_DIV_180; // to degrees
+	XMStoreFloat3((XMFLOAT3*)camParam[0], m_mainCamRef->GetPosition());
+	XMStoreFloat3((XMFLOAT3*)camParam[1], mainCamRot);
+
+	offset += sizeof(Camera) + 5; // "mesh," take 5 bytes
+
+	while (offset < size)
+	{
+		// copy data to buffer
+		ReloadInfo& reloadInfo = *(ReloadInfo*)(mapData + offset);
+		size_t messageSize = sizeof(ReloadInfo);
+		if (reloadInfo.numOfInstances > 1)
+		{
+			messageSize += sizeof(InstanceInfo) * (reloadInfo.numOfInstances - 1);
+		}
+		
+		Message* message = new Message();
+		message->type = MSG_TYPE_RELOAD_MESH;
+		message->SetData(&reloadInfo, messageSize);
+		MeshManager::Get().ReceiveMessage(message);
+		offset += messageSize + 5;// "mesh," take 5 bytes
+	}
+	
+	mapFile.close();
+
+	return true;
+}
+
+void UIManager::_clampRotation(float* rotation_p)
+{
+	float& rotX = rotation_p[0];
+	float& rotY = rotation_p[1];
+	float& rotZ = rotation_p[2];
+
+	// Clamp rotation values to -180 to 180 degrees
+	if (rotX < -180.0f) rotX += 360.0f;
+	else if (rotX > 180.0f) rotX -= 360.0f;
+	if (rotY <= -90.0f) rotY = -89.9f;
+	else if (rotY >= 90.0f) rotY = 89.9f;
+	if (rotZ < -180.0f) rotZ += 360.0f;
+	else if (rotZ > 180.0f) rotZ -= 360.0f;
+}
+
+void UIManager::_clampScale(float* rotation_p)
+{
+	float& scaleX = rotation_p[0];
+	float& scaleY = rotation_p[1];
+	float& scaleZ = rotation_p[2];
+
+	if (scaleX < 0.0f) scaleX = 0.0f;
+	if (scaleY < 0.0f) scaleY = 0.0f;
+	if (scaleZ < 0.0f) scaleZ = 0.0f;
 }
