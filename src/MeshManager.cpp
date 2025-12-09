@@ -113,17 +113,6 @@ void MeshManager::RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandLi
 	}
 }
 
-void MeshManager::AddOneInstanceToMesh_DEBUG()
-{
-	for (auto& item : m_meshes)
-	{
-		if (item.second->AddInstance())
-		{
-			return;
-		}
-	}
-}
-
 void MeshManager::Listen()
 {
 	while (true)
@@ -174,6 +163,12 @@ void MeshManager::_processMessage(Message& msg)
 			// Send back load success message
 			_sendMeshLoadSuccessMessage(meshName, convertedChars);
 		}
+		else
+		{
+			// Failed to add mesh, send error message
+			_sendMeshLoadFailedMessage(meshName, convertedChars);
+
+		}
 		delete[] meshNameWChar;
 
 		break;
@@ -198,6 +193,11 @@ void MeshManager::_processMessage(Message& msg)
 
 				_sendInstanceReplyMessage(createdInstance);
 			}
+			else
+			{
+				// Failed to add instance, send error message
+				_sendInstanceFailedMessage(meshName, convertedChars);
+			}
 		}
 		delete[] meshNameWChar;
 		break;
@@ -221,6 +221,7 @@ void MeshManager::_processMessage(Message& msg)
 			if (!result)
 			{
 				// Failed to add mesh, send error message
+				_sendMeshLoadFailedMessage(reloadInfo.meshName, convertedChars);
 				delete[] buffer;
 				break;
 			}
@@ -241,6 +242,11 @@ void MeshManager::_processMessage(Message& msg)
 				instance_p->SetMeshClassName(meshNameWChar);
 
 				_sendInstanceReplyMessage(instance_p);
+			}
+			else
+			{
+				// Failed to add instance, send error message
+				_sendInstanceFailedMessage(reloadInfo.meshName, convertedChars);
 			}
 		}
 
@@ -311,4 +317,20 @@ void MeshManager::CleanForLoad()
 	//	delete meshIter->second;
 	//	m_meshes.erase(meshIter);
 	//}
+}
+
+void MeshManager::_sendMeshLoadFailedMessage(const char* meshName, size_t nameLength)
+{
+	Message* msgReply = new Message();
+	msgReply->type = MSG_TYPE_MESH_LOAD_FAILED;
+	msgReply->SetData(meshName, nameLength); // SetData is always copying
+	UIManager::Get().ReceiveMessage(msgReply);
+}
+
+void MeshManager::_sendInstanceFailedMessage(const char* meshName, size_t nameLength)
+{
+	Message* msgReply = new Message();
+	msgReply->type = MSG_TYPE_INSTANCE_FAILED;
+	msgReply->SetData(meshName, nameLength); // SetData is always copying
+	UIManager::Get().ReceiveMessage(msgReply);
 }

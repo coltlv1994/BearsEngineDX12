@@ -44,12 +44,15 @@ public:
 
 private:
 	std::map<std::wstring, Mesh*> m_meshes; // map of mesh name to Mesh pointer
+	MessageQueue m_messageQueue;
+	Shader* m_defaultShader_p = nullptr;
+
 	std::wstring _generateMeshName(const std::wstring& meshPath);
 	void _processMessage(Message& msg);
 	// Message Queue access
 	void Listen();
-	MessageQueue m_messageQueue;
-	Shader* m_defaultShader_p = nullptr;
 	void _sendMeshLoadSuccessMessage(const char* meshName, size_t nameLength);
 	void _sendInstanceReplyMessage(Instance* createdInstance);
+	void _sendMeshLoadFailedMessage(const char* meshName, size_t nameLength);
+	void _sendInstanceFailedMessage(const char* meshName, size_t nameLength);
 };

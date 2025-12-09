@@ -12,6 +12,8 @@ enum MessageType : uint32_t
 	MSG_TYPE_INSTANCE_REPLY = 0x4, // reply from MeshManager to UIManager, content is instance name + pointer
 	MSG_TYPE_RELOAD_MESH = 0x5, // request to reload mesh with new instance data, content is ReloadInfo struct
 	MSG_TYPE_CLEAN_MESHES = 0x6, // request to clean all meshes, no content
+	MSG_TYPE_MESH_LOAD_FAILED = 0x7, // reply from MeshManager to UIManager, content is mesh name
+	MSG_TYPE_INSTANCE_FAILED = 0x8, // reply from MeshManager to UIManager, content is mesh name
 };
 
 constexpr size_t POINTER_SIZE = sizeof(void*);
@@ -106,22 +108,20 @@ public:
 
 	bool PopMessage(Message& message)
 	{
-		LockMutex();
-		// critical region
-
-		if (m_messageQueue.empty())
+		if (!m_messageQueue.empty())
 		{
+			// critical region
+			LockMutex();
+			message = *(m_messageQueue.front());
+
+			delete m_messageQueue.front();
+			m_messageQueue.pop();
+
 			UnlockMutex();
-			return false;
+			return true;
 		}
 
-		message = *(m_messageQueue.front());
-
-		delete m_messageQueue.front();
-		m_messageQueue.pop();
-
-		UnlockMutex();
-		return true;
+		return false;
 	}
 
 	void LockMutex()

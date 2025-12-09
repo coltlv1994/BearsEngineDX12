@@ -127,6 +127,22 @@ void UIManager::CreateImGuiWindowContent()
 		return;
 	}
 
+	if (errorMessage)
+	{
+		ImGui::OpenPopup("Error");
+	}
+
+	if (ImGui::BeginPopupModal("Error", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		ImGui::Text("%s", errorMessageBuffer);
+		if (ImGui::Button("OK"))
+		{
+			errorMessage = false;
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::EndPopup();
+	}
+
 	// Window contents
 	ImGui::InputText("mapName", mapNameToLoad, 128);
 	if (ImGui::Button("Load Map"))
@@ -380,6 +396,32 @@ void UIManager::_processMessage(Message& msg)
 			std::string name = std::string((char*)msgData, nameLength);
 			Instance* instancePtr = *(Instance**)(msgData + nameLength);
 			instanceMap[std::string((char*)msgData, nameLength)] = instancePtr;
+		}
+		break;
+	}
+	case MSG_TYPE_MESH_LOAD_FAILED:
+	{
+		// show error message
+		size_t dataSize = msg.GetSize();
+		if (dataSize != 0)
+		{
+			char* msgData = (char*)msg.GetData();
+			std::string meshNameStr(msgData);
+			sprintf_s(errorMessageBuffer, 256, "Failed to load mesh: %s", meshNameStr.c_str());
+			errorMessage = true;
+		}
+		break;
+	}
+	case MSG_TYPE_INSTANCE_FAILED:
+	{
+		// show error message
+		size_t dataSize = msg.GetSize();
+		if (dataSize != 0)
+		{
+			char* msgData = (char*)msg.GetData();
+			std::string meshNameStr(msgData);
+			sprintf_s(errorMessageBuffer, 256, "Failed to create instance for mesh: %s", meshNameStr.c_str());
+			errorMessage = true;
 		}
 		break;
 	}

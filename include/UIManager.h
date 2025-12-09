@@ -83,10 +83,13 @@ public:
 private:
 	Camera* m_mainCamRef = nullptr;
 	MessageQueue m_messageQueue;
-	void _listen();
-	void _processMessage(Message& msg);
 	std::vector<std::string> listOfMeshes;
 	std::map<std::string, Instance*> instanceMap;
+	bool errorMessage = false; // to trigger error message popup
+	char errorMessageBuffer[256] = { 0 };
+
+	void _listen();
+	void _processMessage(Message& msg);
 	void _saveMap();
 	bool _loadMap();
 	void _clampRotation(float* rotation_p);
