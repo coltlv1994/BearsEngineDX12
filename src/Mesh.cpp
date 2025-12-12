@@ -192,6 +192,14 @@ void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 		}
 		objFile.close();
 
+		// integrity check
+		size_t numOfVertices = m_vertices.size() / 3;
+		size_t numOfNormals = m_normals.size() / 3;
+		size_t numOfTexcoords = m_texcoords.size() / 2;
+		unsigned int maxVertexIndex = *std::max_element(m_triangles.begin(), m_triangles.end());
+		unsigned int maxNormalIndex = *std::max_element(m_triangleNormalIndex.begin(), m_triangleNormalIndex.end());
+		unsigned int maxTexcoordIndex = *std::max_element(m_triangleTexcoordIndex.begin(), m_triangleTexcoordIndex.end());
+
 		// combine buffers
 		auto noOfVertices = m_vertices.size() / 3;
 		auto noOfTriangles = m_triangles.size() / 3;
@@ -239,7 +247,7 @@ void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 		m_triangleTexcoordIndex.clear();
 
 		// write to binary file for future use
-		WriteToBinaryFile(binFilePathStr.c_str());
+		//WriteToBinaryFile(binFilePathStr.c_str());
 	}
 
 	LoadDataToGPU();
