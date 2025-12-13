@@ -79,6 +79,11 @@ void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 
 		std::string line;
 		std::regex delimiter(" ");
+		// buffers for faces
+		int v[128];
+		int vt[128];
+		int vn[128];
+		int noOfVerticesInFace = 0;
 
 		while (std::getline(objFile, line))
 		{
@@ -90,10 +95,6 @@ void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 
 			std::sregex_token_iterator iter(line.begin(), line.end(), delimiter, -1);
 			std::sregex_token_iterator end;
-			int v[4];
-			int vt[4];
-			int vn[4];
-			int i = 0;
 
 			switch (line[0])
 			{
@@ -131,57 +132,42 @@ void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 			case 'f':
 				// read faces
 				// currently only work with polygons without vt, i.e. we expect "xxxx/yyyy/zzzz" and only three vertices per line
-				i = 0;
+				noOfVerticesInFace = 0;
 				while (iter != end)
 				{
 					std::string vertexDef = *iter;
 					if (vertexDef.size() > 0 && vertexDef[0] != 'f')
 					{
-						sscanf_s(vertexDef.c_str(), "%d/%d/%d", &v[i], &vt[i], &vn[i]);
-						i++;
+						sscanf_s(vertexDef.c_str(), "%d/%d/%d", &v[noOfVerticesInFace], &vt[noOfVerticesInFace], &vn[noOfVerticesInFace]);
+						noOfVerticesInFace++;
 					}
 					++iter;
 				}
-				if (i == 3)
+				if (noOfVerticesInFace < 3 || noOfVerticesInFace > 128)
 				{
-					// triangle
-					m_triangles.push_back(v[0] - 1);
-					m_triangles.push_back(v[1] - 1);
-					m_triangles.push_back(v[2] - 1);
-					m_triangleNormalIndex.push_back(vn[0] - 1);
-					m_triangleNormalIndex.push_back(vn[1] - 1);
-					m_triangleNormalIndex.push_back(vn[2] - 1);
-					m_triangleTexcoordIndex.push_back(vt[0] - 1);
-					m_triangleTexcoordIndex.push_back(vt[1] - 1);
-					m_triangleTexcoordIndex.push_back(vt[2] - 1);
-					break;
-				}
-				else if (i == 4)
-				{
-					// quad, need to split into two triangles
-					m_triangles.push_back(v[0] - 1);
-					m_triangles.push_back(v[1] - 1);
-					m_triangles.push_back(v[2] - 1);
-					m_triangleNormalIndex.push_back(vn[0] - 1);
-					m_triangleNormalIndex.push_back(vn[1] - 1);
-					m_triangleNormalIndex.push_back(vn[2] - 1);
-					m_triangleTexcoordIndex.push_back(vt[0] - 1);
-					m_triangleTexcoordIndex.push_back(vt[1] - 1);
-					m_triangleTexcoordIndex.push_back(vt[2] - 1);
-					m_triangles.push_back(v[0] - 1);
-					m_triangles.push_back(v[2] - 1);
-					m_triangles.push_back(v[3] - 1);
-					m_triangleNormalIndex.push_back(vn[0] - 1);
-					m_triangleNormalIndex.push_back(vn[2] - 1);
-					m_triangleNormalIndex.push_back(vn[3] - 1);
-					m_triangleTexcoordIndex.push_back(vt[0] - 1);
-					m_triangleTexcoordIndex.push_back(vt[2] - 1);
-					m_triangleTexcoordIndex.push_back(vt[3] - 1);
+					// invalid face definition, ignore
 					break;
 				}
 				else
 				{
-					// unsupported polygon, ignore
+					//break them into triangles
+					int startIndex = 0;
+					int currentIndex = 1;
+					int currentIndexPlusOne = 2;
+					while (currentIndexPlusOne < noOfVerticesInFace)
+					{
+						m_triangles.push_back(v[startIndex] - 1);
+						m_triangles.push_back(v[currentIndex] - 1);
+						m_triangles.push_back(v[currentIndexPlusOne] - 1);
+						m_triangleNormalIndex.push_back(vn[startIndex] - 1);
+						m_triangleNormalIndex.push_back(vn[currentIndex] - 1);
+						m_triangleNormalIndex.push_back(vn[currentIndexPlusOne] - 1);
+						m_triangleTexcoordIndex.push_back(vt[startIndex] - 1);
+						m_triangleTexcoordIndex.push_back(vt[currentIndex] - 1);
+						m_triangleTexcoordIndex.push_back(vt[currentIndexPlusOne] - 1);
+						currentIndex++;
+						currentIndexPlusOne++;
+					}
 				}
 				break;
 			case 'm': // TODO
@@ -247,7 +233,7 @@ void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 		m_triangleTexcoordIndex.clear();
 
 		// write to binary file for future use
-		//WriteToBinaryFile(binFilePathStr.c_str());
+		WriteToBinaryFile(binFilePathStr.c_str());
 	}
 
 	LoadDataToGPU();
