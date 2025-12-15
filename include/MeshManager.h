@@ -6,6 +6,7 @@
 #include <Shader.h>
 #include <MessageQueue.h>
 #include <EntityInstance.h>
+#include <Texture.h>
 
 class MeshManager
 {
@@ -26,8 +27,8 @@ public:
 
 	void StartListeningThread()
 	{
-		std::thread listenerThread(&MeshManager::Listen, this);
-		listenerThread.detach();
+		std::thread m_listenerThread(&MeshManager::Listen, this);
+		m_listenerThread.detach();
 	}
 
 	// Receive message from other systems
@@ -47,7 +48,7 @@ public:
 
 	void CleanForLoad();
 
-	void ReadAndUploadTexture(const char* textureFilePath = nullptr);
+	bool ReadAndUploadTexture(const char* textureFilePath = nullptr);
 
 private:
 	std::map<std::string, Mesh*> m_meshes; // map of mesh name to Mesh pointer
@@ -55,7 +56,7 @@ private:
 	Shader* m_defaultShader_p = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_SRVHeap; // passed from Editor class, holds textures
 	std::map<std::string, Instance*> m_instanceMap; // map of instance name to Instance pointer
-	std::map<std::string, ComPtr<ID3D12Resource>> m_textureMap; // map of texture file path to texture resource
+	std::map<std::string, Texture> m_textureMap; // map of texture file path to texture resource
 
 	void _processMessage(Message& msg);
 	// Message Queue access

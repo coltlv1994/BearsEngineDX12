@@ -84,6 +84,7 @@ private:
 	Camera* m_mainCamRef = nullptr;
 	MessageQueue m_messageQueue;
 	std::vector<std::string> listOfMeshes;
+	std::vector<std::string> listOfTextures;
 	std::map<std::string, Instance*> instanceMap;
 	bool errorMessage = false; // to trigger error message popup
 	char errorMessageBuffer[256] = { 0 };

@@ -112,7 +112,7 @@ void MeshManager::RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandLi
 		Instance* instance_p = instancePair.second;
 
 		CD3DX12_GPU_DESCRIPTOR_HANDLE textureHandle(m_SRVHeap->GetGPUDescriptorHandleForHeapStart());
-		
+
 		// call mesh class to render it
 		instance_p->Render(p_commandList, p_vpMatrix, textureHandle);
 	}
@@ -236,6 +236,38 @@ void MeshManager::_processMessage(Message& msg)
 		// TODO: clean up unused mesh
 		break;
 	}
+	case MSG_TYPE_LOAD_TEXTURE:
+	{
+		std::string textureName = std::string((char*)msg.GetData());
+		bool result = false;
+		// check if texture already loaded
+
+		auto texture = m_textureMap.find(textureName);
+		if (texture != m_textureMap.end())
+		{
+			// texture with the same name already exists
+			result = false;
+		}
+		else
+		{
+			result = ReadAndUploadTexture(textureName.c_str());
+		}
+
+		// send back texture load message
+		Message* msgReply = new Message();
+		if (result)
+		{
+			msgReply->type = MSG_TYPE_TEXTURE_SUCCESS;
+		}
+		else
+		{
+			// failed to load texture, send back default texture name
+			msgReply->type = MSG_TYPE_TEXTURE_FAILED;
+		}
+		msgReply->SetData(textureName.c_str(), textureName.length() + 1); // SetData is always copying
+		UIManager::Get().ReceiveMessage(msgReply);
+		break;
+	}
 	case MSG_TYPE_CLEAN_MESHES:
 	{
 		// Clean all meshes
@@ -323,19 +355,8 @@ void MeshManager::CreateDefaultTexture()
 	ReadAndUploadTexture();
 }
 
-void MeshManager::ReadAndUploadTexture(const char* textureName)
+bool MeshManager::ReadAndUploadTexture(const char* textureName)
 {
-	// check if texture already loaded
-	if (textureName != nullptr)
-	{
-		auto result = m_textureMap.find(textureName);
-		if (result != m_textureMap.end())
-		{
-			// texture with the same name already exists
-			return;
-		}
-	}
-
 	ComPtr<ID3D12Resource> texture = nullptr;
 
 	auto device = Application::Get().GetDevice();
@@ -360,7 +381,7 @@ void MeshManager::ReadAndUploadTexture(const char* textureName)
 		// load default white texture
 		textureDesc.Width = 128;
 		textureDesc.Height = 128;
-		
+
 		size_t bufferSize = textureDesc.Width * textureDesc.Height * 4; // 4 channels RGBA
 
 		imageData = new unsigned char[bufferSize];
@@ -374,6 +395,12 @@ void MeshManager::ReadAndUploadTexture(const char* textureName)
 
 		int width, height, channels;
 		imageData = stbi_load(texturePath, &width, &height, &channels, STBI_rgb_alpha); // force 4 channels
+
+		if (imageData == nullptr)
+		{
+			// Failed to load image
+			return false;
+		}
 
 		// Describe and create a Texture2D.
 		textureDesc.Width = width;
@@ -439,5 +466,8 @@ void MeshManager::ReadAndUploadTexture(const char* textureName)
 	device->CreateShaderResourceView(texture.Get(), &srvDesc, hDescriptor);
 
 	// store texture in map
-	m_textureMap[textureName ? textureName : "default_white"] = texture;
+	textureName = textureName ? textureName : "default_white";
+	m_textureMap[textureName] = Texture(textureName, texture, descriptorIndex);
+
+	return true;
 }

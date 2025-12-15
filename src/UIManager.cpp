@@ -36,7 +36,9 @@ static float instanceParam[3][3] = { {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} , {1
 static ImGuiTableFlags flags = ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_ContextMenuInBody;
 
 static char meshObjectToLoad[128] = "";
+static char textureObjectToLoad[128] = "";
 static int selectedMeshIndex = 0;
+static int selectedTextureIndex = 0;
 static int selectedInstanceIndex = -1;
 
 static char mapNameToLoad[128] = "default";
@@ -102,6 +104,8 @@ void UIManager::InitializeD3D12(ComPtr<ID3D12Device>device, ComPtr<ID3D12Command
 	init_info.SrvDescriptorFreeFn = [](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle) { return g_pd3dSrvDescHeapAlloc.Free(cpu_handle, gpu_handle); };
 
 	ImGui_ImplDX12_Init(&init_info);
+
+	listOfTextures.push_back("default_white");
 }
 
 void UIManager::NewFrame()
@@ -238,12 +242,12 @@ void UIManager::CreateImGuiWindowContent()
 		ImGui::EndTabItem();
 	}
 
-	if (ImGui::BeginTabItem("Meshes"))
+	if (ImGui::BeginTabItem("Mesh & Texture"))
 	{
 		// Window contents
 		ImGui::Text("Meshes");
 		ImGui::InputText("##MeshName", meshObjectToLoad, 128);
-		if (ImGui::Button("Load"))
+		if (ImGui::Button("Load##mesh"))
 		{
 			// send message to mesh manager
 			Message* msg = new Message();
@@ -281,6 +285,33 @@ void UIManager::CreateImGuiWindowContent()
 					MeshManager::Get().ReceiveMessage(msg);
 				}
 			}
+		}
+
+		ImGui::Text("Textures");
+		ImGui::InputText("##TextureName", textureObjectToLoad, 128);
+		if (ImGui::Button("Load##texture"))
+		{
+			// send message to mesh manager
+			Message* msg = new Message();
+			msg->type = MSG_TYPE_LOAD_TEXTURE;
+			msg->SetData(textureObjectToLoad, strlen(textureObjectToLoad) + 1);
+			MeshManager::Get().ReceiveMessage(msg);
+		}
+
+		ImGui::Text("Loaded Textures:");
+		if (ImGui::BeginListBox("##listbox textures"))
+		{
+			for (int n = 0; n < listOfTextures.size(); n++)
+			{
+				const bool is_selected = (selectedTextureIndex == n);
+				if (ImGui::Selectable(listOfTextures[n].c_str(), is_selected))
+					selectedTextureIndex = n;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (is_selected)
+					ImGui::SetItemDefaultFocus();
+			}
+			ImGui::EndListBox();
 		}
 
 		ImGui::EndTabItem();
@@ -371,8 +402,8 @@ void UIManager::Draw(ComPtr<ID3D12GraphicsCommandList2> commandList)
 
 void UIManager::StartListeningThread()
 {
-	std::thread listenerThread(&UIManager::_listen, this);
-	listenerThread.detach();
+	std::thread m_listenerThread(&UIManager::_listen, this);
+	m_listenerThread.detach();
 }
 
 void UIManager::ReceiveMessage(Message* msg)
@@ -452,6 +483,31 @@ void UIManager::_processMessage(Message& msg)
 			char* msgData = (char*)msg.GetData();
 			std::string meshNameStr(msgData);
 			sprintf_s(errorMessageBuffer, 256, "Failed to create instance for mesh: %s", meshNameStr.c_str());
+			errorMessage = true;
+		}
+		break;
+	}
+	case MSG_TYPE_TEXTURE_SUCCESS:
+	{
+		// add mesh name to list
+		size_t dataSize = msg.GetSize();
+		if (dataSize != 0)
+		{
+			char* msgData = (char*)msg.GetData();
+			std::string meshNameStr(msgData);
+			listOfTextures.push_back(meshNameStr);
+		}
+		break;
+	}
+	case MSG_TYPE_TEXTURE_FAILED:
+	{
+		// show error message
+		size_t dataSize = msg.GetSize();
+		if (dataSize != 0)
+		{
+			char* msgData = (char*)msg.GetData();
+			std::string textureNameStr(msgData);
+			sprintf_s(errorMessageBuffer, 256, "Failed to load texture: %s", textureNameStr.c_str());
 			errorMessage = true;
 		}
 		break;

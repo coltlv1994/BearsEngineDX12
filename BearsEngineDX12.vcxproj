@@ -226,6 +226,7 @@
     <ClInclude Include="include\resource.h" />
     <ClInclude Include="include\Editor.h" />
     <ClInclude Include="include\Shader.h" />
+    <ClInclude Include="include\Texture.h" />
     <ClInclude Include="include\UIManager.h" />
     <ClInclude Include="include\Window.h" />
   </ItemGroup>

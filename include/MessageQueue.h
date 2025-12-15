@@ -14,6 +14,10 @@ enum MessageType : uint32_t
 	MSG_TYPE_CLEAN_MESHES = 0x6, // request to clean all meshes, no content
 	MSG_TYPE_MESH_LOAD_FAILED = 0x7, // reply from MeshManager to UIManager, content is mesh name
 	MSG_TYPE_INSTANCE_FAILED = 0x8, // reply from MeshManager to UIManager, content is mesh name
+	MSG_TYPE_EDITOR_QUIT = 0x9, // request from UIManager to MeshManager to quit listening thread, no content
+	MSG_TYPE_LOAD_TEXTURE = 0xA, // request to load texture, content is texture file name
+	MSG_TYPE_TEXTURE_SUCCESS = 0xB, // reply from MeshManager to UIManager, content is texture file name
+	MSG_TYPE_TEXTURE_FAILED = 0xC, // reply from MeshManager to UIManager, content is texture file name
 };
 
 constexpr size_t POINTER_SIZE = sizeof(void*);

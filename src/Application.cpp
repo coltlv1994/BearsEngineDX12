@@ -2,6 +2,8 @@
 #include <Application.h>
 #include "resource.h"
 #include <UIManager.h>
+#include <MeshManager.h>
+#include <MessageQueue.h>
 #include <thread>
 
 #include <Game.h>
@@ -310,7 +312,12 @@ int Application::Run(std::shared_ptr<Game> pGame)
 	Flush();
 
 	// Cleanup
-	UIManager::Get().Destroy();
+	//Message* msgMM = new Message();
+	//Message* msgUM = new Message();
+	//msgMM->type = MSG_TYPE_EDITOR_QUIT;
+	//msgUM->type = MSG_TYPE_EDITOR_QUIT;
+	//MeshManager::Get().ReceiveMessage(msgMM);
+	//UIManager::Get().ReceiveMessage(msgUM);
 
 	pGame->UnloadContent();
 	pGame->Destroy();
