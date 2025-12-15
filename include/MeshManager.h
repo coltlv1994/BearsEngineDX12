@@ -5,6 +5,7 @@
 #include <string>
 #include <Shader.h>
 #include <MessageQueue.h>
+#include <EntityInstance.h>
 
 class MeshManager
 {
@@ -16,15 +17,12 @@ public:
 	MeshManager() = default;
 	~MeshManager();
 
-	bool AddMesh(const wchar_t* meshName, Shader* p_shader_p, const wchar_t* texturePath = nullptr);
-	Mesh* GetMesh(const std::wstring& meshName);
-	bool RemoveMesh(const std::wstring& meshName);
+	bool AddMesh(const std::string& meshName, Shader* p_shader_p);
+	Mesh* GetMesh(const std::string& meshName);
+	bool RemoveMesh(const std::string& meshName);
 	void ClearMeshes();
 
-	void RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix, D3D12_GPU_DESCRIPTOR_HANDLE textureHandle);
-
-	// for DEBUG
-	void AddOneInstanceToMesh_DEBUG();
+	void RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix);
 
 	void StartListeningThread()
 	{
@@ -40,19 +38,30 @@ public:
 		m_defaultShader_p = shader_p;
 	}
 
+	void SetSRVHeap(Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> srvHeap)
+	{
+		m_SRVHeap = srvHeap;
+	}
+
+	void CreateDefaultTexture();
+
 	void CleanForLoad();
 
+	void ReadAndUploadTexture(const char* textureFilePath = nullptr);
+
 private:
-	std::map<std::wstring, Mesh*> m_meshes; // map of mesh name to Mesh pointer
+	std::map<std::string, Mesh*> m_meshes; // map of mesh name to Mesh pointer
 	MessageQueue m_messageQueue;
 	Shader* m_defaultShader_p = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_SRVHeap; // passed from Editor class, holds textures
+	std::map<std::string, Instance*> m_instanceMap; // map of instance name to Instance pointer
+	std::map<std::string, ComPtr<ID3D12Resource>> m_textureMap; // map of texture file path to texture resource
 
-	std::wstring _generateMeshName(const std::wstring& meshPath);
 	void _processMessage(Message& msg);
 	// Message Queue access
 	void Listen();
-	void _sendMeshLoadSuccessMessage(const char* meshName, size_t nameLength);
+	void _sendMeshLoadSuccessMessage(const std::string& meshName);
 	void _sendInstanceReplyMessage(Instance* createdInstance);
-	void _sendMeshLoadFailedMessage(const char* meshName, size_t nameLength);
-	void _sendInstanceFailedMessage(const char* meshName, size_t nameLength);
+	void _sendMeshLoadFailedMessage(const std::string& meshName);
+	void _sendInstanceFailedMessage(const std::string& meshName);
 };

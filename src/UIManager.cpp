@@ -117,10 +117,17 @@ void UIManager::CreateImGuiWindowContent()
 {
 	NewFrame();
 
-	// all window content creation goes here
-	// for demo purposes, we just show the demo window
+	//ImGuiIO& io = ImGui::GetIO();
+	//float displayX = io.DisplaySize.x;
+	//float displayY = io.DisplaySize.y;
+	//ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, io.DisplaySize.y), ImGuiCond_Once);
+	//ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Once);
+
+	ImGuiWindowFlags window_flags = ImGuiWindowFlags_None;
+	window_flags |= ImGuiWindowFlags_NoCollapse;
+
 	// Main body of the Demo window starts here.
-	if (!ImGui::Begin("Control Panel"))
+	if (!ImGui::Begin("Control Panel", nullptr, window_flags))
 	{
 		// Early out if the window is collapsed, as an optimization.
 		ImGui::End();
@@ -143,189 +150,213 @@ void UIManager::CreateImGuiWindowContent()
 		ImGui::EndPopup();
 	}
 
-	// Window contents
-	ImGui::InputText("mapName", mapNameToLoad, 128);
-	if (ImGui::Button("Load Map"))
-	{
-		// load map
-		_loadMap();
-	}
+	// multi-tab window
+	ImGui::BeginTabBar("Options");
 
-	if (ImGui::Button("Save Map"))
+	if (ImGui::BeginTabItem("Map"))
 	{
-		// save map
-		_saveMap();
-	}
-
-	if (ImGui::BeginTable("MainCam", 4, flags))
-	{
-		for (int row = 0; row < 3; row++)
+		// Window contents
+		ImGui::InputText("mapName", mapNameToLoad, 128);
+		if (ImGui::Button("Load Map"))
 		{
-			ImGui::TableNextRow();
-			for (int column = 0; column < 4; column++)
+			// load map
+			_loadMap();
+		}
+
+		if (ImGui::Button("Save Map"))
+		{
+			// save map
+			_saveMap();
+		}
+		ImGui::EndTabItem();
+	}
+
+	if (ImGui::BeginTabItem("Camera"))
+	{
+		if (ImGui::BeginTable("MainCam", 4, flags))
+		{
+			for (int row = 0; row < 3; row++)
 			{
-				ImGui::TableSetColumnIndex(column);
-				if (row == 0 || column == 0)
+				ImGui::TableNextRow();
+				for (int column = 0; column < 4; column++)
 				{
-					// header
-					ImGui::Text(camTable[row][column]);
+					ImGui::TableSetColumnIndex(column);
+					if (row == 0 || column == 0)
+					{
+						// header
+						ImGui::Text(camTable[row][column]);
+					}
+					else
+					{
+						ImGui::SetNextItemWidth(-1.0f);
+						ImGui::InputFloat(camTableID[row][column], &camParam[row - 1][column - 1], 0.1f, 1.0f, "%.3f");
+					}
 				}
-				else
+			}
+			ImGui::EndTable();
+		}
+
+		if (m_mainCamRef != nullptr)
+		{
+			// keyboard input for camera control
+			ImGuiIO& io = ImGui::GetIO();
+			if (io.WantTextInput == false)
+			{
+				// if text input is not wanted, we can handle camera control
+				if (ImGui::IsKeyPressed(ImGuiKey_W))
+					camParam[0][2] += 0.1f; // move forward
+				if (ImGui::IsKeyPressed(ImGuiKey_S))
+					camParam[0][2] -= 0.1f; // move backward
+				if (ImGui::IsKeyPressed(ImGuiKey_A))
+					camParam[0][0] -= 0.1f; // move left
+				if (ImGui::IsKeyPressed(ImGuiKey_D))
+					camParam[0][0] += 0.1f; // move right
+				if (ImGui::IsKeyPressed(ImGuiKey_Q))
+					camParam[0][1] -= 0.1f; // move down
+				if (ImGui::IsKeyPressed(ImGuiKey_E))
+					camParam[0][1] += 0.1f; // move up
+
+				//x - axis(pitch), then y - axis(yaw), and then z - axis(roll)
+				if (ImGui::IsKeyPressed(ImGuiKey_U))
+					camParam[1][0] += 0.1f; // PITCH UP
+				if (ImGui::IsKeyPressed(ImGuiKey_J))
+					camParam[1][0] -= 0.1f; // PITCH DOWN
+				if (ImGui::IsKeyPressed(ImGuiKey_I))
+					camParam[1][1] += 0.1f; // YAW UP
+				if (ImGui::IsKeyPressed(ImGuiKey_K))
+					camParam[1][1] -= 0.1f; // YAW DOWN
+				if (ImGui::IsKeyPressed(ImGuiKey_O))
+					camParam[1][2] += 0.1f; // ROLL UP
+				if (ImGui::IsKeyPressed(ImGuiKey_L))
+					camParam[1][2] -= 0.1f; // ROLL DOWN
+			}
+
+			m_mainCamRef->SetPosition(XMLoadFloat3((XMFLOAT3*)camParam[0]));
+			_clampRotation(camParam[1]);
+			m_mainCamRef->SetRotation(XMVectorSet(camParam[1][0], camParam[1][1], camParam[1][2], 0.0f) * PI_DIV_180);
+		}
+		ImGui::EndTabItem();
+	}
+
+	if (ImGui::BeginTabItem("Meshes"))
+	{
+		// Window contents
+		ImGui::Text("Meshes");
+		ImGui::InputText("##MeshName", meshObjectToLoad, 128);
+		if (ImGui::Button("Load"))
+		{
+			// send message to mesh manager
+			Message* msg = new Message();
+			msg->type = MSG_TYPE_LOAD_MESH;
+			msg->SetData(meshObjectToLoad, strlen(meshObjectToLoad) + 1);
+			MeshManager::Get().ReceiveMessage(msg);
+		}
+
+		// Populate mesh list
+		if (listOfMeshes.size() > 0)
+		{
+			ImGui::Text("Loaded Meshes:");
+			if (ImGui::BeginListBox("##listbox meshes"))
+			{
+				for (int n = 0; n < listOfMeshes.size(); n++)
 				{
-					ImGui::SetNextItemWidth(-1.0f);
-					ImGui::InputFloat(camTableID[row][column], &camParam[row - 1][column - 1], 0.1f, 1.0f, "%.3f");
+					const bool is_selected = (selectedMeshIndex == n);
+					if (ImGui::Selectable(listOfMeshes[n].c_str(), is_selected))
+						selectedMeshIndex = n;
+
+					// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+					if (is_selected)
+						ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndListBox();
+			}
+			if (ImGui::Button("Create Instance"))
+			{
+				// send message to mesh manager to create instance
+				if (selectedMeshIndex >= 0 && selectedMeshIndex < listOfMeshes.size())
+				{
+					Message* msg = new Message();
+					msg->type = MSG_TYPE_CREATE_INSTANCE;
+					msg->SetData(listOfMeshes[selectedMeshIndex].c_str(), listOfMeshes[selectedMeshIndex].size() + 1);
+					MeshManager::Get().ReceiveMessage(msg);
 				}
 			}
 		}
-		ImGui::EndTable();
-	}
 
-	if (m_mainCamRef != nullptr)
-	{
-		// keyboard input for camera control
-		ImGuiIO& io = ImGui::GetIO();
-		if (io.WantTextInput == false)
-		{
-			// if text input is not wanted, we can handle camera control
-			if (ImGui::IsKeyPressed(ImGuiKey_W))
-				camParam[0][2] += 0.1f; // move forward
-			if (ImGui::IsKeyPressed(ImGuiKey_S))
-				camParam[0][2] -= 0.1f; // move backward
-			if (ImGui::IsKeyPressed(ImGuiKey_A))
-				camParam[0][0] -= 0.1f; // move left
-			if (ImGui::IsKeyPressed(ImGuiKey_D))
-				camParam[0][0] += 0.1f; // move right
-			if (ImGui::IsKeyPressed(ImGuiKey_Q))
-				camParam[0][1] -= 0.1f; // move down
-			if (ImGui::IsKeyPressed(ImGuiKey_E))
-				camParam[0][1] += 0.1f; // move up
-
-			//x - axis(pitch), then y - axis(yaw), and then z - axis(roll)
-			if (ImGui::IsKeyPressed(ImGuiKey_U))
-				camParam[1][0] += 0.1f; // PITCH UP
-			if (ImGui::IsKeyPressed(ImGuiKey_J))
-				camParam[1][0] -= 0.1f; // PITCH DOWN
-			if (ImGui::IsKeyPressed(ImGuiKey_I))
-				camParam[1][1] += 0.1f; // YAW UP
-			if (ImGui::IsKeyPressed(ImGuiKey_K))
-				camParam[1][1] -= 0.1f; // YAW DOWN
-			if (ImGui::IsKeyPressed(ImGuiKey_O))
-				camParam[1][2] += 0.1f; // ROLL UP
-			if (ImGui::IsKeyPressed(ImGuiKey_L))
-				camParam[1][2] -= 0.1f; // ROLL DOWN
-		}
-
-		m_mainCamRef->SetPosition(XMLoadFloat3((XMFLOAT3*)camParam[0]));
-		_clampRotation(camParam[1]);
-		m_mainCamRef->SetRotation(XMVectorSet(camParam[1][0], camParam[1][1], camParam[1][2], 0.0f) * PI_DIV_180);
-	}
-
-	// change main camera status via reference
-
-	ImGui::Text("Meshes");
-	ImGui::InputText("##MeshName", meshObjectToLoad, 128);
-	if (ImGui::Button("Load"))
-	{
-		// send message to mesh manager
-		Message* msg = new Message();
-		msg->type = MSG_TYPE_LOAD_MESH;
-		msg->SetData(meshObjectToLoad, strlen(meshObjectToLoad) + 1);
-		MeshManager::Get().ReceiveMessage(msg);
-	}
-
-	// Populate mesh list
-	if (listOfMeshes.size() > 0)
-	{
-		ImGui::Text("Loaded Meshes:");
-		if (ImGui::BeginListBox("##listbox meshes"))
-		{
-			for (int n = 0; n < listOfMeshes.size(); n++)
-			{
-				const bool is_selected = (selectedMeshIndex == n);
-				if (ImGui::Selectable(listOfMeshes[n].c_str(), is_selected))
-					selectedMeshIndex = n;
-
-				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-				if (is_selected)
-					ImGui::SetItemDefaultFocus();
-			}
-			ImGui::EndListBox();
-		}
-		if (ImGui::Button("Create Instance"))
-		{
-			// send message to mesh manager to create instance
-			if (selectedMeshIndex >= 0 && selectedMeshIndex < listOfMeshes.size())
-			{
-				Message* msg = new Message();
-				msg->type = MSG_TYPE_CREATE_INSTANCE;
-				msg->SetData(listOfMeshes[selectedMeshIndex].c_str(), listOfMeshes[selectedMeshIndex].size() + 1);
-				MeshManager::Get().ReceiveMessage(msg);
-			}
-		}
+		ImGui::EndTabItem();
 	}
 
 	if (instanceMap.size() > 0)
 	{
-		ImGui::Text("Instances:");
-		if (ImGui::BeginListBox("##listbox instances"))
+		if (ImGui::BeginTabItem("Instance"))
 		{
-			int idx = 0;
-			for (const auto& pair : instanceMap)
+			ImGui::Text("Instances:");
+			if (ImGui::BeginListBox("##listbox instances"))
 			{
-				const bool is_selected = (selectedInstanceIndex == idx);
-				if (ImGui::Selectable(pair.first.c_str(), is_selected))
-					selectedInstanceIndex = idx;
-				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-				if (is_selected)
-					ImGui::SetItemDefaultFocus();
-				idx++;
-			}
-			ImGui::EndListBox();
-		}
-
-		if (selectedInstanceIndex >= 0 && selectedInstanceIndex < instanceMap.size())
-		{
-			auto it = instanceMap.begin();
-			std::advance(it, selectedInstanceIndex);
-			Instance* selectedInstance = it->second;
-			ImGui::Text("Selected Instance Transform:");
-			XMVECTOR pos = selectedInstance->GetPosition();
-			XMStoreFloat3((XMFLOAT3*)instanceParam[0], pos);
-			XMVECTOR rot = selectedInstance->GetRotation() / PI_DIV_180;
-			XMStoreFloat3((XMFLOAT3*)instanceParam[1], rot);
-			XMVECTOR scale = selectedInstance->GetScale();
-			XMStoreFloat3((XMFLOAT3*)instanceParam[2], scale);
-
-			if (ImGui::BeginTable("Instance", 4, flags))
-			{
-				for (int row = 0; row < 4; row++)
+				int idx = 0;
+				for (const auto& pair : instanceMap)
 				{
-					ImGui::TableNextRow();
-					for (int column = 0; column < 4; column++)
+					const bool is_selected = (selectedInstanceIndex == idx);
+					if (ImGui::Selectable(pair.first.c_str(), is_selected))
+						selectedInstanceIndex = idx;
+					// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+					if (is_selected)
+						ImGui::SetItemDefaultFocus();
+					idx++;
+				}
+				ImGui::EndListBox();
+			}
+
+			if (selectedInstanceIndex >= 0 && selectedInstanceIndex < instanceMap.size())
+			{
+				auto it = instanceMap.begin();
+				std::advance(it, selectedInstanceIndex);
+				Instance* selectedInstance = it->second;
+				ImGui::Text("Selected Instance Transform:");
+				XMVECTOR pos = selectedInstance->GetPosition();
+				XMStoreFloat3((XMFLOAT3*)instanceParam[0], pos);
+				XMVECTOR rot = selectedInstance->GetRotation() / PI_DIV_180;
+				XMStoreFloat3((XMFLOAT3*)instanceParam[1], rot);
+				XMVECTOR scale = selectedInstance->GetScale();
+				XMStoreFloat3((XMFLOAT3*)instanceParam[2], scale);
+
+				if (ImGui::BeginTable("Instance", 4, flags))
+				{
+					for (int row = 0; row < 4; row++)
 					{
-						ImGui::TableSetColumnIndex(column);
-						if (row == 0 || column == 0)
+						ImGui::TableNextRow();
+						for (int column = 0; column < 4; column++)
 						{
-							// header
-							ImGui::Text(instanceTable[row][column]);
-						}
-						else
-						{
-							ImGui::SetNextItemWidth(-1.0f);
-							ImGui::InputFloat(instanceTable[row][column], &instanceParam[row - 1][column - 1], 0.1f, 1.0f, "%.3f");
+							ImGui::TableSetColumnIndex(column);
+							if (row == 0 || column == 0)
+							{
+								// header
+								ImGui::Text(instanceTable[row][column]);
+							}
+							else
+							{
+								ImGui::SetNextItemWidth(-1.0f);
+								ImGui::InputFloat(instanceTable[row][column], &instanceParam[row - 1][column - 1], 0.1f, 1.0f, "%.3f");
+							}
 						}
 					}
+					ImGui::EndTable();
 				}
-				ImGui::EndTable();
+
+				selectedInstance->SetPosition(instanceParam[0][0], instanceParam[0][1], instanceParam[0][2]);
+				_clampRotation(instanceParam[1]);
+				selectedInstance->SetRotation(XMVectorSet(instanceParam[1][0], instanceParam[1][1], instanceParam[1][2], 0.0f) * PI_DIV_180);
+				_clampScale(instanceParam[2]);
+				selectedInstance->SetScale(XMVectorSet(instanceParam[2][0], instanceParam[2][1], instanceParam[2][2], 0.0f));
 			}
 
-			selectedInstance->SetPosition(instanceParam[0][0], instanceParam[0][1], instanceParam[0][2]);
-			_clampRotation(instanceParam[1]);
-			selectedInstance->SetRotation(XMVectorSet(instanceParam[1][0], instanceParam[1][1], instanceParam[1][2], 0.0f) * PI_DIV_180);
-			_clampScale(instanceParam[2]);
-			selectedInstance->SetScale(XMVectorSet(instanceParam[2][0], instanceParam[2][1], instanceParam[2][2], 0.0f));
+			ImGui::EndTabItem();
 		}
 	}
+
+	ImGui::EndTabBar();
+
+	// change main camera status via reference
 
 	ImGui::End();
 
@@ -465,12 +496,8 @@ void UIManager::_saveMap()
 	for (const auto& pair : instanceMap)
 	{
 		Instance* instance = pair.second;
-		const wchar_t* meshClassNameWChar = instance->GetMeshClassName();
-		size_t convertedChars = 0;
-		char meshClassNameChar[128];
-		wcstombs_s(&convertedChars, meshClassNameChar, 128, meshClassNameWChar, _TRUNCATE);
-		std::string meshClassNameStr(meshClassNameChar);
-		instancesByMesh[meshClassNameStr].push_back(instance);
+		std::string meshClassName = instance->GetMeshName();
+		instancesByMesh[meshClassName].push_back(instance);
 	}
 
 	for (const auto& meshPair : instancesByMesh)

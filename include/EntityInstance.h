@@ -3,23 +3,31 @@
 using namespace DirectX;
 
 #include <string>
+#include <Mesh.h>
 
 class Instance
 {
 public:
-	Instance(const std::wstring& name)
-		: m_name(name)
-	{
-	}
+	Instance(std::string& p_name, Mesh* p_mesh, unsigned int p_textureId = 1);
 
-	const std::wstring& GetName() const
+	const std::string& GetName() const
 	{
 		return m_name;
 	}
 
-	void SetName(const std::wstring& name)
+	void SetName(const std::string& name)
 	{
 		m_name = name;
+	}
+
+	Mesh* GetMeshClassPointer()
+	{
+		return m_mesh_p;
+	}
+
+	void SetMeshClassPointer(Mesh* mesh_p)
+	{
+		m_mesh_p = mesh_p;
 	}
 
 	XMVECTOR GetPosition() const
@@ -78,22 +86,26 @@ public:
 		_updateModelMatrix();
 	}
 
-	void SetMeshClassName(const wchar_t* p_meshClassName)
+	unsigned int GetTextureId() const
 	{
-		wcscpy_s(m_meshClassName, 128, p_meshClassName);
+		return m_textureId;
 	}
 
-	const wchar_t* GetMeshClassName() const
+	const std::string& GetMeshName()
 	{
-		return m_meshClassName;
+		return m_mesh_p->GetMeshClassName();
 	}
+
+	void Render(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix, CD3DX12_GPU_DESCRIPTOR_HANDLE textureHandle);
 
 private:
-	std::wstring m_name;
-	wchar_t m_meshClassName[128];
+	std::string m_name;
 	XMVECTOR m_position = XMVectorZero();
 	XMVECTOR m_rotation = XMVectorZero();
 	XMVECTOR m_scale = XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f);
 	XMMATRIX m_modelMatrix = XMMatrixIdentity(); // position, rotaion, scale in *world* space
+	Mesh* m_mesh_p = nullptr;
+	unsigned int m_textureId = 1; // 0 is for IMGUI textures, 1 will be pure white texture
+
 	void _updateModelMatrix();
 };

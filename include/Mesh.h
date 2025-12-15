@@ -3,7 +3,7 @@
 #include <vector>
 #include <Helpers.h>
 #include <map>
-#include <EntityInstance.h>
+#include <string>
 
 using namespace DirectX;
 
@@ -12,28 +12,20 @@ using namespace DirectX;
 class Mesh
 {
 public:
-	~Mesh();
 	bool Initialize(const wchar_t* p_objFilePath);
 	void LoadOBJFile(const wchar_t* p_objFilePath);
 	void UseShader(Shader* shader_p);
 	void LoadDataToGPU();
 	void ReadFromBinaryFile(const wchar_t* p_binFilePath);
 	void WriteToBinaryFile(const wchar_t* p_binFilePath);
-	void SetMeshClassName(const std::wstring& meshClassName);
-	const std::wstring& GetMeshClassName();
+	void SetMeshClassName(const std::string& meshClassName);
+	const std::string& GetMeshClassName();
 
 	// Render work
-	void PopulateCommandList(ComPtr<ID3D12GraphicsCommandList2> p_commandList);
-
-	void RenderInstances(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix, D3D12_GPU_DESCRIPTOR_HANDLE textureHandle);
-
-	// Instance management
-	Instance* AddInstance();
-	bool RemoveInstance(Instance* instance_p);
-	void ClearInstances();
+	void RenderInstance(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_mvpMatrix, D3D12_GPU_DESCRIPTOR_HANDLE textureHandle);
 
 private:
-	std::wstring m_meshClassName;
+	std::string m_meshClassName;
 	std::vector<float> m_vertices;
 	std::vector<float> m_normals;
 	std::vector<float> m_texcoords;
@@ -44,8 +36,6 @@ private:
 
 	std::vector<VertexPosColor> combinedBuffer;
 
-	std::vector<Instance*> m_instances;
-
 	UINT m_triangleCount = 0;
 
 	// Vertex buffer for the mesh.
@@ -55,16 +45,7 @@ private:
 	ComPtr<ID3D12Resource> m_indexBuffer;
 	D3D12_INDEX_BUFFER_VIEW m_indexBufferView;
 
-	// Depth buffer.
-	ComPtr<ID3D12Resource> m_depthBuffer;
-	// Descriptor heap for depth buffer.
-	ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
-
 	Shader* m_shader_p;
-
-	// replaced with descriptor heap offset
-	//const wchar_t* m_textureFilePath = nullptr;
-	int m_textureLocation = 0; // 0 can be used for default texture, e.g. pure white
 
 	// Create a GPU buffer.
 	void UpdateBufferResource(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList,

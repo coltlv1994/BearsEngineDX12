@@ -2,8 +2,11 @@
 #include <chrono>
 #include <thread>
 #include <UIManager.h>
-#include <EntityInstance.h>
 #include <Application.h>
+#include <CommandQueue.h>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 // UIManager singleton instance
 static MeshManager* gs_pSingleton = nullptr;
@@ -27,11 +30,8 @@ MeshManager::~MeshManager()
 	ClearMeshes();
 }
 
-bool MeshManager::AddMesh(const wchar_t* meshName, Shader* p_shader_p, const wchar_t* texturePath)
+bool MeshManager::AddMesh(const std::string& meshName, Shader* p_shader_p)
 {
-	wchar_t meshFullPath[128];
-	swprintf_s(meshFullPath, L"meshes\\%s.obj", meshName);
-
 	auto result = m_meshes.find(meshName);
 	if (result != m_meshes.end())
 	{
@@ -41,6 +41,13 @@ bool MeshManager::AddMesh(const wchar_t* meshName, Shader* p_shader_p, const wch
 	else
 	{
 		Mesh* newMesh = new Mesh();
+
+		wchar_t meshNameWChar[128];
+		mbstowcs_s(nullptr, meshNameWChar, 128, meshName.c_str(), _TRUNCATE);
+
+		wchar_t meshFullPath[128];
+		swprintf_s(meshFullPath, L"meshes\\%s.obj", meshNameWChar);
+
 		bool createResult = false;
 		createResult = newMesh->Initialize(meshFullPath);
 
@@ -57,7 +64,7 @@ bool MeshManager::AddMesh(const wchar_t* meshName, Shader* p_shader_p, const wch
 	}
 }
 
-Mesh* MeshManager::GetMesh(const std::wstring& meshName)
+Mesh* MeshManager::GetMesh(const std::string& meshName)
 {
 	auto result = m_meshes.find(meshName);
 	if (result != m_meshes.end())
@@ -71,7 +78,7 @@ Mesh* MeshManager::GetMesh(const std::wstring& meshName)
 	}
 }
 
-bool MeshManager::RemoveMesh(const std::wstring& meshName)
+bool MeshManager::RemoveMesh(const std::string& meshName)
 {
 	auto result = m_meshes.find(meshName);
 	if (result != m_meshes.end())
@@ -79,6 +86,7 @@ bool MeshManager::RemoveMesh(const std::wstring& meshName)
 		// Mesh with the same name already exists
 		delete result->second;
 		m_meshes.erase(result->first);
+		return true;
 	}
 	else
 	{
@@ -96,20 +104,17 @@ void MeshManager::ClearMeshes()
 	m_meshes.clear();
 }
 
-std::wstring MeshManager::_generateMeshName(const std::wstring& meshPath)
+// TODO: need change
+void MeshManager::RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix)
 {
-	size_t foundBackslash = meshPath.find_last_of(L"\\");
-	std::wstring filename = meshPath.substr(foundBackslash + 1);
-	size_t foundDot = filename.find_first_of(L".");
-	std::wstring fileNameWithoutDot = filename.substr(0, foundDot);
-	return fileNameWithoutDot;
-}
-
-void MeshManager::RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix, D3D12_GPU_DESCRIPTOR_HANDLE textureHandle)
-{
-	for (auto meshClass : m_meshes)
+	for (auto& instancePair : m_instanceMap)
 	{
-		meshClass.second->RenderInstances(p_commandList, p_vpMatrix, textureHandle);
+		Instance* instance_p = instancePair.second;
+
+		CD3DX12_GPU_DESCRIPTOR_HANDLE textureHandle(m_SRVHeap->GetGPUDescriptorHandleForHeapStart());
+		
+		// call mesh class to render it
+		instance_p->Render(p_commandList, p_vpMatrix, textureHandle);
 	}
 }
 
@@ -141,65 +146,44 @@ void MeshManager::_processMessage(Message& msg)
 	{
 	case MSG_TYPE_LOAD_MESH:
 	{
-		char* meshName = (char*)msg.GetData();
-		wchar_t* meshNameWChar = new wchar_t[dataSize];
-		size_t convertedChars = 0;
-		mbstowcs_s(&convertedChars, meshNameWChar, dataSize, meshName, _TRUNCATE);
+		std::string meshName = std::string((char*)msg.GetData());
 
-		Mesh* mesh_p = GetMesh(std::wstring(meshNameWChar));
+		Mesh* mesh_p = GetMesh(meshName);
 		if (mesh_p)
 		{
 			// Mesh already exists, send back load success message
-			_sendMeshLoadSuccessMessage(meshName, convertedChars);
-			delete[] meshNameWChar;
+			_sendMeshLoadSuccessMessage(meshName);
 			break;
 		}
 
 		// TODO: use different shader and texture if specified in message
 		// texturePath is now fixed in Mesh constructor
-		if (AddMesh(meshNameWChar, m_defaultShader_p, nullptr))
+		if (AddMesh(meshName, m_defaultShader_p))
 		{
 			// Successfully added mesh
 			// Send back load success message
-			_sendMeshLoadSuccessMessage(meshName, convertedChars);
+			_sendMeshLoadSuccessMessage(meshName);
 		}
 		else
 		{
 			// Failed to add mesh, send error message
-			_sendMeshLoadFailedMessage(meshName, convertedChars);
+			_sendMeshLoadFailedMessage(meshName);
 
 		}
-		delete[] meshNameWChar;
-
 		break;
 	}
 	case MSG_TYPE_CREATE_INSTANCE:
 	{
-		char* meshName = (char*)msg.GetData();
-		wchar_t* meshNameWChar = new wchar_t[dataSize];
-		size_t convertedChars = 0;
-		mbstowcs_s(&convertedChars, meshNameWChar, dataSize, meshName, _TRUNCATE);
+		std::string meshName = std::string((char*)msg.GetData());
+		std::string instanceName = meshName + "_instance_" + std::to_string(m_instanceMap.size());
 
-		Mesh* mesh_p = GetMesh(std::wstring(meshNameWChar));
+		Mesh* mesh_p = GetMesh(meshName);
 
-		if (mesh_p)
-		{
-			Instance* createdInstance = mesh_p->AddInstance();
-			if (createdInstance != nullptr)
-			{
-				// Successfully added instance
-				// Send back instance reply message
-				createdInstance->SetMeshClassName(meshNameWChar);
+		Instance* createdInstance = new Instance(instanceName, mesh_p);
+		//createdInstance->SetMeshClassPointer(mesh_p);
+		m_instanceMap[instanceName] = createdInstance;
+		_sendInstanceReplyMessage(createdInstance);
 
-				_sendInstanceReplyMessage(createdInstance);
-			}
-			else
-			{
-				// Failed to add instance, send error message
-				_sendInstanceFailedMessage(meshName, convertedChars);
-			}
-		}
-		delete[] meshNameWChar;
 		break;
 	}
 	case MSG_TYPE_RELOAD_MESH:
@@ -208,45 +192,44 @@ void MeshManager::_processMessage(Message& msg)
 		memcpy(buffer, msg.GetData(), dataSize);
 		ReloadInfo& reloadInfo = *(ReloadInfo*)buffer;
 
-		wchar_t meshNameWChar[128];
-		size_t convertedChars = 0;
-		mbstowcs_s(&convertedChars, meshNameWChar, 128, reloadInfo.meshName, _TRUNCATE);
+		std::string meshName(reloadInfo.meshName);
 
 		// try get, then create, if fail, return
-		Mesh* mesh_p = GetMesh(std::wstring(meshNameWChar));
+		Mesh* mesh_p = GetMesh(meshName);
 		bool result = true;
 		if (!mesh_p)
 		{
-			result = AddMesh(meshNameWChar, m_defaultShader_p, nullptr);
+			result = AddMesh(meshName, m_defaultShader_p);
 			if (!result)
 			{
 				// Failed to add mesh, send error message
-				_sendMeshLoadFailedMessage(reloadInfo.meshName, convertedChars);
+				_sendMeshLoadFailedMessage(meshName);
 				delete[] buffer;
 				break;
 			}
-			mesh_p = GetMesh(std::wstring(meshNameWChar));
+			mesh_p = GetMesh(meshName);
 		}
-		_sendMeshLoadSuccessMessage(reloadInfo.meshName, convertedChars);
+		_sendMeshLoadSuccessMessage(meshName);
 
 		InstanceInfo* instanceInfos_p = &reloadInfo.instanceInfos;
 		for (size_t i = 0; i < reloadInfo.numOfInstances; ++i)
 		{
-			Instance* instance_p = mesh_p->AddInstance();
+			std::string instanceName = meshName + "_instance_" + std::to_string(m_instanceMap.size());
+			Instance* instance_p = new Instance(instanceName, mesh_p);
 			if (instance_p)
 			{
 				instance_p->SetPosition(instanceInfos_p[i].position[0], instanceInfos_p[i].position[1], instanceInfos_p[i].position[2]);
 				// rotation is in radians already
 				instance_p->SetRotation(XMVectorSet(instanceInfos_p[i].rotation[0], instanceInfos_p[i].rotation[1], instanceInfos_p[i].rotation[2], 0.0f));
 				instance_p->SetScale(XMVectorSet(instanceInfos_p[i].scale[0], instanceInfos_p[i].scale[1], instanceInfos_p[i].scale[2], 0.0f));
-				instance_p->SetMeshClassName(meshNameWChar);
 
+				m_instanceMap[instanceName] = instance_p;
 				_sendInstanceReplyMessage(instance_p);
 			}
 			else
 			{
 				// Failed to add instance, send error message
-				_sendInstanceFailedMessage(reloadInfo.meshName, convertedChars);
+				_sendInstanceFailedMessage(meshName);
 			}
 		}
 
@@ -272,25 +255,24 @@ void MeshManager::ReceiveMessage(Message* msg)
 	m_messageQueue.PushMessage(msg);
 }
 
-void MeshManager::_sendMeshLoadSuccessMessage(const char* meshName, size_t nameLength)
+void MeshManager::_sendMeshLoadSuccessMessage(const std::string& meshName)
 {
 	Message* msgReply = new Message();
 	msgReply->type = MSG_TYPE_LOAD_SUCCESS;
-	msgReply->SetData(meshName, nameLength); // SetData is always copying
+	msgReply->SetData(meshName.c_str(), meshName.length() + 1); // SetData is always copying
 	UIManager::Get().ReceiveMessage(msgReply);
 }
 
 void MeshManager::_sendInstanceReplyMessage(Instance* createdInstance)
 {
-	std::wstring instanceNameWStr = createdInstance->GetName();
-	char instanceName[128];
-	size_t instanceNameLength = instanceNameWStr.size();
-	wcstombs_s(nullptr, instanceName, 128, instanceNameWStr.c_str(), 128);
+	std::string instanceName = createdInstance->GetName();
+	const char* instanceNameCStr = instanceName.c_str();
+	const size_t instanceNameLength = instanceName.length();
 
-	size_t dataLength = instanceNameLength + 1 + POINTER_SIZE; // one for null terminator
+	size_t dataLength = instanceName.length() + 1 + POINTER_SIZE; // one for null terminator
 
 	unsigned char* replyDataBuffer = new unsigned char[dataLength];
-	memcpy(replyDataBuffer, instanceName, instanceNameLength + 1);
+	memcpy(replyDataBuffer, instanceNameCStr, instanceNameLength + 1);
 	memcpy(replyDataBuffer + instanceNameLength + 1, &createdInstance, POINTER_SIZE);
 
 	Message* msgReply = new Message();
@@ -306,10 +288,11 @@ void MeshManager::CleanForLoad()
 	Application::Get().Flush();
 
 	// clean all instances
-	for (auto& item : m_meshes)
+	for (auto& instancePair : m_instanceMap)
 	{
-		item.second->ClearInstances();
+		delete instancePair.second;
 	}
+	m_instanceMap.clear();
 
 	//while (m_meshes.begin() != m_meshes.end())
 	//{
@@ -319,18 +302,142 @@ void MeshManager::CleanForLoad()
 	//}
 }
 
-void MeshManager::_sendMeshLoadFailedMessage(const char* meshName, size_t nameLength)
+void MeshManager::_sendMeshLoadFailedMessage(const std::string& meshName)
 {
 	Message* msgReply = new Message();
 	msgReply->type = MSG_TYPE_MESH_LOAD_FAILED;
-	msgReply->SetData(meshName, nameLength); // SetData is always copying
+	msgReply->SetData(meshName.c_str(), meshName.length() + 1); // SetData is always copying
 	UIManager::Get().ReceiveMessage(msgReply);
 }
 
-void MeshManager::_sendInstanceFailedMessage(const char* meshName, size_t nameLength)
+void MeshManager::_sendInstanceFailedMessage(const std::string& meshName)
 {
 	Message* msgReply = new Message();
 	msgReply->type = MSG_TYPE_INSTANCE_FAILED;
-	msgReply->SetData(meshName, nameLength); // SetData is always copying
+	msgReply->SetData(meshName.c_str(), meshName.length() + 1); // SetData is always copying
 	UIManager::Get().ReceiveMessage(msgReply);
+}
+
+void MeshManager::CreateDefaultTexture()
+{
+	ReadAndUploadTexture();
+}
+
+void MeshManager::ReadAndUploadTexture(const char* textureName)
+{
+	// check if texture already loaded
+	if (textureName != nullptr)
+	{
+		auto result = m_textureMap.find(textureName);
+		if (result != m_textureMap.end())
+		{
+			// texture with the same name already exists
+			return;
+		}
+	}
+
+	ComPtr<ID3D12Resource> texture = nullptr;
+
+	auto device = Application::Get().GetDevice();
+	auto commandQueue = Application::Get().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
+	auto commandList = commandQueue->GetCommandList();
+
+	static CD3DX12_HEAP_PROPERTIES heap_default = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
+	unsigned char* imageData = nullptr;
+
+	D3D12_RESOURCE_DESC textureDesc = {};
+	textureDesc.MipLevels = 1;
+	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+	textureDesc.DepthOrArraySize = 1;
+	textureDesc.SampleDesc.Count = 1;
+	textureDesc.SampleDesc.Quality = 0;
+	textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+
+	if (textureName == nullptr)
+	{
+		// load default white texture
+		textureDesc.Width = 128;
+		textureDesc.Height = 128;
+		
+		size_t bufferSize = textureDesc.Width * textureDesc.Height * 4; // 4 channels RGBA
+
+		imageData = new unsigned char[bufferSize];
+		memset(imageData, 0xFF, bufferSize); // white texture
+	}
+	else
+	{
+		// get texture path, convert to wchar_t*
+		char texturePath[500];
+		sprintf_s(texturePath, "textures\\%s", textureName);
+
+		int width, height, channels;
+		imageData = stbi_load(texturePath, &width, &height, &channels, STBI_rgb_alpha); // force 4 channels
+
+		// Describe and create a Texture2D.
+		textureDesc.Width = width;
+		textureDesc.Height = height;
+	}
+
+	ThrowIfFailed(device->CreateCommittedResource(
+		&heap_default,
+		D3D12_HEAP_FLAG_NONE,
+		&textureDesc,
+		D3D12_RESOURCE_STATE_COMMON,
+		nullptr,
+		IID_PPV_ARGS(&texture)));
+
+	const UINT64 uploadBufferSize = GetRequiredIntermediateSize(texture.Get(), 0, 1);
+
+	static CD3DX12_HEAP_PROPERTIES heap_upload = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+	CD3DX12_RESOURCE_DESC buffer_default_size = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
+	ComPtr<ID3D12Resource> textureUploadHeap = nullptr;
+
+	// Create the GPU upload buffer.
+	ThrowIfFailed(device->CreateCommittedResource(
+		&heap_upload,
+		D3D12_HEAP_FLAG_NONE,
+		&buffer_default_size,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&textureUploadHeap)));
+
+	D3D12_SUBRESOURCE_DATA textureData = {};
+	textureData.pData = imageData;
+	textureData.RowPitch = textureDesc.Width * 4;
+	textureData.SlicePitch = textureData.RowPitch * textureDesc.Height;
+
+	UpdateSubresources(commandList.Get(), texture.Get(), textureUploadHeap.Get(), 0, 0, 1, &textureData);
+
+	// wait until upload is complete
+	auto fenceValue = commandQueue->ExecuteCommandList(commandList);
+	commandQueue->WaitForFenceValue(fenceValue);
+
+	// The data is guaranteed to be uploaded after WaitForFenceValue()
+	if (textureName == nullptr)
+	{
+		delete[] imageData;
+	}
+	else
+	{
+		stbi_image_free(imageData);
+	}
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Format = texture->GetDesc().Format; // replace with texture
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.MipLevels = texture->GetDesc().MipLevels;
+	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+
+	// store in from 2nd heap to avoid error with imgui
+	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(m_SRVHeap->GetCPUDescriptorHandleForHeapStart());
+	UINT descriptorIndex = m_textureMap.size() + 1;
+	hDescriptor.Offset(descriptorIndex, Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+	device->CreateShaderResourceView(texture.Get(), &srvDesc, hDescriptor);
+
+	// store texture in map
+	m_textureMap[textureName ? textureName : "default_white"] = texture;
 }

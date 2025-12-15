@@ -12,8 +12,6 @@ using namespace DirectX;
 
 #include <sstream>
 
-
-
 bool Mesh::Initialize(const wchar_t* p_objFilePath)
 {
 	// check if file exists
@@ -26,24 +24,23 @@ bool Mesh::Initialize(const wchar_t* p_objFilePath)
 
 	// read file
 	LoadOBJFile(p_objFilePath);
+
 	// default name
-	m_meshClassName = p_objFilePath;
+	char* nameBuffer = new char[wcslen(p_objFilePath) + 1];
+	size_t convertedChars = 0;
+	wcstombs_s(&convertedChars, nameBuffer, wcslen(p_objFilePath) + 1, p_objFilePath, _TRUNCATE);
+	m_meshClassName = nameBuffer;
+	delete[] nameBuffer;
 
 	return true;
 }
 
-Mesh::~Mesh()
-{
-	// release resources
-	ClearInstances();
-}
-
-void Mesh::SetMeshClassName(const std::wstring& meshClassName)
+void Mesh::SetMeshClassName(const std::string& meshClassName)
 {
 	m_meshClassName = meshClassName;
 }
 
-const std::wstring& Mesh::GetMeshClassName()
+const std::string& Mesh::GetMeshClassName()
 {
 	return m_meshClassName;
 }
@@ -334,11 +331,6 @@ void Mesh::UpdateBufferResource(
 	}
 }
 
-void Mesh::PopulateCommandList(ComPtr<ID3D12GraphicsCommandList2> p_commandList)
-{
-
-}
-
 void Mesh::ReadFromBinaryFile(const wchar_t* p_binFilePath)
 {
 	// need to read index list and combined buffer from binary file
@@ -383,7 +375,8 @@ void Mesh::WriteToBinaryFile(const wchar_t* p_binFilePath)
 	binFile.close();
 }
 
-void Mesh::RenderInstances(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix, D3D12_GPU_DESCRIPTOR_HANDLE textureHandle)
+
+void Mesh::RenderInstance(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_mvpMatrix, D3D12_GPU_DESCRIPTOR_HANDLE textureHandle)
 {
 	ComPtr<ID3D12RootSignature> rootSignature = m_shader_p->GetRootSigniture();
 	ComPtr<ID3D12PipelineState> pipelineState = m_shader_p->GetPipelineState();
@@ -396,48 +389,7 @@ void Mesh::RenderInstances(ComPtr<ID3D12GraphicsCommandList2> p_commandList, con
 	p_commandList->IASetIndexBuffer(&m_indexBufferView);
 	p_commandList->SetGraphicsRootDescriptorTable(1, textureHandle);
 
-	for (auto i = 0; i < m_instances.size(); i++)
-	{
-		// set mvp matrix
-		XMMATRIX mvpMatrix = XMMatrixMultiply(m_instances[i]->GetModelMatrix(), p_vpMatrix);
-		p_commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / 4, &mvpMatrix, 0);
-		p_commandList->DrawIndexedInstanced(m_triangleCount, 1, 0, 0, 0);
-	}
-}
-
-// Instance management
-Instance* Mesh::AddInstance()
-{
-	std::wstring name = m_meshClassName + L"_instance_" + std::to_wstring(m_instances.size());
-	Instance* instance_p = new Instance(name);
-	if (!instance_p)
-	{
-		return nullptr;
-	}
-	m_instances.push_back(instance_p);
-	return instance_p;
-}
-
-bool Mesh::RemoveInstance(Instance* instance_p)
-{
-	auto result = std::find(m_instances.begin(), m_instances.end(), instance_p);
-	if (result != m_instances.end())
-	{
-		delete *result;
-		m_instances.erase(result);
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-void Mesh::ClearInstances()
-{
-	for (auto instance : m_instances)
-	{
-		delete instance;
-	}
-	m_instances.clear();
+	// set mvp matrix
+	p_commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / 4, &p_mvpMatrix, 0);
+	p_commandList->DrawIndexedInstanced(m_triangleCount, 1, 0, 0, 0);
 }
