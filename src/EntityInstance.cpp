@@ -1,5 +1,6 @@
 #include <EntityInstance.h>
 #include <Application.h>
+#include <MeshManager.h>
 
 Instance::Instance(std::string& p_name, Texture* p_texture_p, Mesh* p_mesh)
 {
@@ -23,7 +24,29 @@ void Instance::Render(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XM
 		return;
 	}
 
-	textureHandle.Offset(m_textureId, Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+	textureHandle.Offset(m_texture_p->srvDescriptorIndex, Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
 	XMMATRIX mvpMatrix = m_modelMatrix * p_vpMatrix;
 	m_mesh_p->RenderInstance(p_commandList, mvpMatrix, textureHandle);
+}
+
+void Instance::SetMeshByName(const std::string& p_meshName)
+{
+	Mesh* mesh_p = MeshManager::Get().GetMeshByName(p_meshName);
+	if (mesh_p)
+	{
+		m_mesh_p = mesh_p;
+	}
+	else
+	{
+		m_mesh_p = nullptr;
+	}
+}
+
+void Instance::SetTextureByName(const std::string& p_textureName)
+{
+	Texture* texture_p = MeshManager::Get().GetTextureByName(p_textureName);
+	if (texture_p)
+	{
+		m_texture_p = texture_p;
+	}
 }

@@ -64,20 +64,6 @@ bool MeshManager::AddMesh(const std::string& meshName, Shader* p_shader_p)
 	}
 }
 
-Mesh* MeshManager::GetMesh(const std::string& meshName)
-{
-	auto result = m_meshes.find(meshName);
-	if (result != m_meshes.end())
-	{
-		// Mesh with the same name already exists
-		return result->second;
-	}
-	else
-	{
-		return nullptr;
-	}
-}
-
 bool MeshManager::RemoveMesh(const std::string& meshName)
 {
 	auto result = m_meshes.find(meshName);
@@ -142,7 +128,7 @@ void MeshManager::_processMessage(Message& msg)
 	{
 		std::string meshName = std::string((char*)msg.GetData());
 
-		Mesh* mesh_p = GetMesh(meshName);
+		Mesh* mesh_p = GetMeshByName(meshName);
 		if (mesh_p)
 		{
 			// Mesh already exists, send back load success message
@@ -170,7 +156,7 @@ void MeshManager::_processMessage(Message& msg)
 	{
 		std::string instanceName = "instance_" + std::to_string(m_instanceList.size());
 
-		Instance* createdInstance = new Instance(instanceName);
+		Instance* createdInstance = new Instance(instanceName, m_defaultTexture_p);
 		m_instanceList.push_back(createdInstance);
 		_sendInstanceReplyMessage(createdInstance);
 
@@ -185,7 +171,7 @@ void MeshManager::_processMessage(Message& msg)
 		std::string meshName(reloadInfo.meshName);
 
 		// try get, then create, if fail, return
-		Mesh* mesh_p = GetMesh(meshName);
+		Mesh* mesh_p = GetMeshByName(meshName);
 		bool result = true;
 		if (!mesh_p)
 		{
@@ -197,15 +183,15 @@ void MeshManager::_processMessage(Message& msg)
 				delete[] buffer;
 				break;
 			}
-			mesh_p = GetMesh(meshName);
+			mesh_p = GetMeshByName(meshName);
 		}
 		_sendMeshLoadSuccessMessage(meshName);
 
 		InstanceInfo* instanceInfos_p = &reloadInfo.instanceInfos;
 		for (size_t i = 0; i < reloadInfo.numOfInstances; ++i)
 		{
-			std::string instanceName = meshName + "_instance_" + std::to_string(m_instanceList.size());
-			Instance* instance_p = new Instance(instanceName, mesh_p);
+			std::string instanceName = "instance_" + std::to_string(m_instanceList.size());
+			Instance* instance_p = new Instance(instanceName, m_defaultTexture_p);
 			if (instance_p)
 			{
 				instance_p->SetPosition(instanceInfos_p[i].position[0], instanceInfos_p[i].position[1], instanceInfos_p[i].position[2]);
@@ -343,6 +329,7 @@ void MeshManager::_sendInstanceFailedMessage(const std::string& meshName)
 void MeshManager::CreateDefaultTexture()
 {
 	ReadAndUploadTexture();
+	m_defaultTexture_p = m_textureMap["default_white"];
 }
 
 bool MeshManager::ReadAndUploadTexture(const char* textureName)
@@ -457,7 +444,31 @@ bool MeshManager::ReadAndUploadTexture(const char* textureName)
 
 	// store texture in map
 	textureName = textureName ? textureName : "default_white";
-	m_textureMap[textureName] = Texture(textureName, texture, descriptorIndex);
+	m_textureMap[textureName] = new Texture(textureName, texture, descriptorIndex);
 
 	return true;
+}
+
+Texture* MeshManager::GetTextureByName(const std::string& textureName)
+{
+	if (auto textureIter = m_textureMap.find(textureName); textureIter != m_textureMap.end())
+	{
+		return textureIter->second;
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
+Mesh* MeshManager::GetMeshByName(const std::string& meshName)
+{
+	if (auto meshIter = m_meshes.find(meshName); meshIter != m_meshes.end())
+	{
+		return meshIter->second;
+	}
+	else
+	{
+		return nullptr;
+	}
 }

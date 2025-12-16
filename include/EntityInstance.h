@@ -99,13 +99,25 @@ public:
 
 	const std::string& GetMeshName()
 	{
-		return m_mesh_p->GetMeshClassName();
+		if (m_mesh_p == nullptr)
+		{
+			static std::string emptyString = "<null object>";
+			return emptyString;
+		}
+		else
+		{
+			return m_mesh_p->GetMeshClassName();
+		}
 	}
 
 	void SetTexture(Texture* p_texture_p)
 	{
 		m_texture_p = p_texture_p;
 	}
+
+	void SetMeshByName(const std::string& p_meshName);
+
+	void SetTextureByName(const std::string& p_textureName);
 
 	void Render(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix, CD3DX12_GPU_DESCRIPTOR_HANDLE textureHandle);
 

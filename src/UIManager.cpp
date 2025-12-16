@@ -43,6 +43,8 @@ static int selectedInstanceIndex = -1;
 
 static char mapNameToLoad[128] = "default";
 
+static char instanceNameBuffer[128] = "";
+
 UIManager::~UIManager()
 {
 	// Cleanup ImGui
@@ -106,6 +108,7 @@ void UIManager::InitializeD3D12(ComPtr<ID3D12Device>device, ComPtr<ID3D12Command
 	ImGui_ImplDX12_Init(&init_info);
 
 	// always default white texture at first
+	listOfMeshes.push_back("null object");
 	listOfTextures.push_back("default_white");
 }
 
@@ -255,6 +258,7 @@ void UIManager::CreateImGuiWindowContent()
 			msg->type = MSG_TYPE_LOAD_MESH;
 			msg->SetData(meshObjectToLoad, strlen(meshObjectToLoad) + 1);
 			MeshManager::Get().ReceiveMessage(msg);
+			meshObjectToLoad[0] = '\0'; // clear input box
 		}
 
 		// Populate mesh list
@@ -286,6 +290,7 @@ void UIManager::CreateImGuiWindowContent()
 			msg->type = MSG_TYPE_LOAD_TEXTURE;
 			msg->SetData(textureObjectToLoad, strlen(textureObjectToLoad) + 1);
 			MeshManager::Get().ReceiveMessage(msg);
+			textureObjectToLoad[0] = '\0'; // clear input box
 		}
 
 		ImGui::Text("Loaded Textures:");
@@ -374,6 +379,55 @@ void UIManager::CreateImGuiWindowContent()
 			_clampScale(instanceParam[2]);
 			selectedInstance->SetScale(XMVectorSet(instanceParam[2][0], instanceParam[2][1], instanceParam[2][2], 0.0f));
 		}
+
+		// mesh and texture assignment
+		if (selectedInstanceIndex >= 0 && selectedInstanceIndex < listOfInstances.size())
+		{
+			Instance* selectedInstance = listOfInstances[selectedInstanceIndex];
+
+			ImGui::Text("Assign Mesh:");
+
+			if (ImGui::BeginCombo("##combo assign meshes", selectedInstance->GetMeshName().c_str()))
+			{
+				for (int n = 0; n < listOfMeshes.size(); n++)
+				{
+					const bool is_selected = (selectedInstance->GetMeshName() == listOfMeshes[n]);
+					if (ImGui::Selectable(listOfMeshes[n].c_str(), is_selected))
+					{
+						selectedInstance->SetMeshByName(listOfMeshes[n]);
+					}
+					// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+					if (is_selected)
+						ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+			ImGui::Text("Assign Texture:");
+			if (ImGui::BeginCombo("##combo assign textures", selectedInstance->GetTextureName().c_str()))
+			{
+				for (int n = 0; n < listOfTextures.size(); n++)
+				{
+					const bool is_selected = (selectedInstance->GetTextureName() == listOfTextures[n]);
+					if (ImGui::Selectable(listOfTextures[n].c_str(), is_selected))
+					{
+						selectedInstance->SetTextureByName(listOfTextures[n]);
+					}
+					// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+					if (is_selected)
+						ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+
+			ImGui::InputText("##instanceName", instanceNameBuffer, 128);
+			if (ImGui::Button("Rename Instance") && instanceNameBuffer[0] != '\0')
+			{
+				selectedInstance->SetName(std::string(instanceNameBuffer));
+				instanceNameBuffer[0] = '\0'; // clear input box
+			}
+		}
+
+
 
 		ImGui::EndTabItem();
 	}

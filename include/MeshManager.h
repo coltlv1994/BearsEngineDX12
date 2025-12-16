@@ -19,7 +19,6 @@ public:
 	~MeshManager();
 
 	bool AddMesh(const std::string& meshName, Shader* p_shader_p);
-	Mesh* GetMesh(const std::string& meshName);
 	bool RemoveMesh(const std::string& meshName);
 	void ClearMeshes();
 
@@ -50,13 +49,19 @@ public:
 
 	bool ReadAndUploadTexture(const char* textureFilePath = nullptr);
 
+	Texture* GetTextureByName(const std::string& textureName);
+
+	Mesh* GetMeshByName(const std::string& meshName);
+
 private:
 	std::map<std::string, Mesh*> m_meshes; // map of mesh name to Mesh pointer
 	MessageQueue m_messageQueue;
 	Shader* m_defaultShader_p = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_SRVHeap; // passed from Editor class, holds textures
 	std::vector<Instance*> m_instanceList; // map of instance name to Instance pointer
-	std::map<std::string, Texture> m_textureMap; // map of texture file path to texture resource
+	std::map<std::string, Texture*> m_textureMap; // map of texture file path to texture resource
+
+	Texture* m_defaultTexture_p;
 
 	void _processMessage(Message& msg);
 	// Message Queue access
