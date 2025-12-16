@@ -64,7 +64,7 @@ bool Editor::LoadContent()
 	// (current version of the backend will only allocate one descriptor, future versions will need to allocate more)
 	D3D12_DESCRIPTOR_HEAP_DESC desHeapDesc = {};
 	desHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	desHeapDesc.NumDescriptors = 3;
+	desHeapDesc.NumDescriptors = 128; // a fixed number at startup for now. TODO: make it growable if needed.
 	desHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	ThrowIfFailed(device->CreateDescriptorHeap(&desHeapDesc, IID_PPV_ARGS(&m_SRVHeap)));
 

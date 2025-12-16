@@ -105,6 +105,7 @@ void UIManager::InitializeD3D12(ComPtr<ID3D12Device>device, ComPtr<ID3D12Command
 
 	ImGui_ImplDX12_Init(&init_info);
 
+	// always default white texture at first
 	listOfTextures.push_back("default_white");
 }
 
@@ -274,17 +275,6 @@ void UIManager::CreateImGuiWindowContent()
 				}
 				ImGui::EndListBox();
 			}
-			if (ImGui::Button("Create Instance"))
-			{
-				// send message to mesh manager to create instance
-				if (selectedMeshIndex >= 0 && selectedMeshIndex < listOfMeshes.size())
-				{
-					Message* msg = new Message();
-					msg->type = MSG_TYPE_CREATE_INSTANCE;
-					msg->SetData(listOfMeshes[selectedMeshIndex].c_str(), listOfMeshes[selectedMeshIndex].size() + 1);
-					MeshManager::Get().ReceiveMessage(msg);
-				}
-			}
 		}
 
 		ImGui::Text("Textures");
@@ -317,73 +307,77 @@ void UIManager::CreateImGuiWindowContent()
 		ImGui::EndTabItem();
 	}
 
-	if (instanceMap.size() > 0)
+	if (ImGui::BeginTabItem("Instance"))
 	{
-		if (ImGui::BeginTabItem("Instance"))
+		if (ImGui::Button("Create Instance"))
 		{
-			ImGui::Text("Instances:");
-			if (ImGui::BeginListBox("##listbox instances"))
+			Message* msg = new Message();
+			msg->type = MSG_TYPE_CREATE_INSTANCE;
+			MeshManager::Get().ReceiveMessage(msg);
+		}
+
+
+		ImGui::Text("Instances:");
+		if (ImGui::BeginListBox("##listbox instances"))
+		{
+			int idx = 0;
+			for (Instance* instance_p : listOfInstances)
 			{
-				int idx = 0;
-				for (const auto& pair : instanceMap)
-				{
-					const bool is_selected = (selectedInstanceIndex == idx);
-					if (ImGui::Selectable(pair.first.c_str(), is_selected))
-						selectedInstanceIndex = idx;
-					// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-					if (is_selected)
-						ImGui::SetItemDefaultFocus();
-					idx++;
-				}
-				ImGui::EndListBox();
+				const bool is_selected = (selectedInstanceIndex == idx);
+				if (ImGui::Selectable(instance_p->GetName().c_str(), is_selected))
+					selectedInstanceIndex = idx;
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (is_selected)
+					ImGui::SetItemDefaultFocus();
+				idx++;
 			}
+			ImGui::EndListBox();
+		}
 
-			if (selectedInstanceIndex >= 0 && selectedInstanceIndex < instanceMap.size())
+		if (selectedInstanceIndex >= 0 && selectedInstanceIndex < listOfInstances.size())
+		{
+			Instance* selectedInstance = listOfInstances[selectedInstanceIndex];
+			ImGui::Text("Selected Instance Transform:");
+			XMVECTOR pos = selectedInstance->GetPosition();
+			XMStoreFloat3((XMFLOAT3*)instanceParam[0], pos);
+			XMVECTOR rot = selectedInstance->GetRotation() / PI_DIV_180;
+			XMStoreFloat3((XMFLOAT3*)instanceParam[1], rot);
+			XMVECTOR scale = selectedInstance->GetScale();
+			XMStoreFloat3((XMFLOAT3*)instanceParam[2], scale);
+
+			if (ImGui::BeginTable("Instance", 4, flags))
 			{
-				auto it = instanceMap.begin();
-				std::advance(it, selectedInstanceIndex);
-				Instance* selectedInstance = it->second;
-				ImGui::Text("Selected Instance Transform:");
-				XMVECTOR pos = selectedInstance->GetPosition();
-				XMStoreFloat3((XMFLOAT3*)instanceParam[0], pos);
-				XMVECTOR rot = selectedInstance->GetRotation() / PI_DIV_180;
-				XMStoreFloat3((XMFLOAT3*)instanceParam[1], rot);
-				XMVECTOR scale = selectedInstance->GetScale();
-				XMStoreFloat3((XMFLOAT3*)instanceParam[2], scale);
-
-				if (ImGui::BeginTable("Instance", 4, flags))
+				for (int row = 0; row < 4; row++)
 				{
-					for (int row = 0; row < 4; row++)
+					ImGui::TableNextRow();
+					for (int column = 0; column < 4; column++)
 					{
-						ImGui::TableNextRow();
-						for (int column = 0; column < 4; column++)
+						ImGui::TableSetColumnIndex(column);
+						if (row == 0 || column == 0)
 						{
-							ImGui::TableSetColumnIndex(column);
-							if (row == 0 || column == 0)
-							{
-								// header
-								ImGui::Text(instanceTable[row][column]);
-							}
-							else
-							{
-								ImGui::SetNextItemWidth(-1.0f);
-								ImGui::InputFloat(instanceTable[row][column], &instanceParam[row - 1][column - 1], 0.1f, 1.0f, "%.3f");
-							}
+							// header
+							ImGui::Text(instanceTable[row][column]);
+						}
+						else
+						{
+							ImGui::SetNextItemWidth(-1.0f);
+							ImGui::InputFloat(instanceTable[row][column], &instanceParam[row - 1][column - 1], 0.1f, 1.0f, "%.3f");
 						}
 					}
-					ImGui::EndTable();
 				}
-
-				selectedInstance->SetPosition(instanceParam[0][0], instanceParam[0][1], instanceParam[0][2]);
-				_clampRotation(instanceParam[1]);
-				selectedInstance->SetRotation(XMVectorSet(instanceParam[1][0], instanceParam[1][1], instanceParam[1][2], 0.0f) * PI_DIV_180);
-				_clampScale(instanceParam[2]);
-				selectedInstance->SetScale(XMVectorSet(instanceParam[2][0], instanceParam[2][1], instanceParam[2][2], 0.0f));
+				ImGui::EndTable();
 			}
 
-			ImGui::EndTabItem();
+			selectedInstance->SetPosition(instanceParam[0][0], instanceParam[0][1], instanceParam[0][2]);
+			_clampRotation(instanceParam[1]);
+			selectedInstance->SetRotation(XMVectorSet(instanceParam[1][0], instanceParam[1][1], instanceParam[1][2], 0.0f) * PI_DIV_180);
+			_clampScale(instanceParam[2]);
+			selectedInstance->SetScale(XMVectorSet(instanceParam[2][0], instanceParam[2][1], instanceParam[2][2], 0.0f));
 		}
+
+		ImGui::EndTabItem();
 	}
+
 
 	ImGui::EndTabBar();
 
@@ -455,9 +449,8 @@ void UIManager::_processMessage(Message& msg)
 		{
 			char* msgData = (char*)msg.GetData();
 			size_t nameLength = dataSize - POINTER_SIZE;
-			std::string name = std::string((char*)msgData, nameLength);
 			Instance* instancePtr = *(Instance**)(msgData + nameLength);
-			instanceMap[std::string((char*)msgData, nameLength)] = instancePtr;
+			listOfInstances.push_back(instancePtr);
 		}
 		break;
 	}
@@ -549,11 +542,10 @@ void UIManager::_saveMap()
 		instancesByMesh[meshName] = std::vector<Instance*>();
 	}
 
-	for (const auto& pair : instanceMap)
+	for (Instance* instance_p : listOfInstances)
 	{
-		Instance* instance = pair.second;
-		std::string meshClassName = instance->GetMeshName();
-		instancesByMesh[meshClassName].push_back(instance);
+		std::string meshClassName = instance_p->GetMeshName();
+		instancesByMesh[meshClassName].push_back(instance_p);
 	}
 
 	for (const auto& meshPair : instancesByMesh)
@@ -631,7 +623,8 @@ bool UIManager::_loadMap()
 	// send message to MesnhManager to clear current meshes
 	// UIManager does not own these pointers
 	listOfMeshes.clear();
-	instanceMap.clear();
+	listOfTextures.clear();
+	listOfInstances.clear();
 	Message* message = new Message();
 	message->type = MSG_TYPE_CLEAN_MESHES;
 	MeshManager::Get().ReceiveMessage(message);
@@ -656,14 +649,14 @@ bool UIManager::_loadMap()
 		{
 			messageSize += sizeof(InstanceInfo) * (reloadInfo.numOfInstances - 1);
 		}
-		
+
 		Message* message = new Message();
 		message->type = MSG_TYPE_RELOAD_MESH;
 		message->SetData(&reloadInfo, messageSize);
 		MeshManager::Get().ReceiveMessage(message);
 		offset += messageSize + 5;// "mesh," take 5 bytes
 	}
-	
+
 	mapFile.close();
 
 	return true;

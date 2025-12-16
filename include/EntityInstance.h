@@ -4,13 +4,14 @@ using namespace DirectX;
 
 #include <string>
 #include <Mesh.h>
+#include <Texture.h>
 
 class Instance
 {
 public:
-	Instance(std::string& p_name, Mesh* p_mesh, unsigned int p_textureId = 1);
+	Instance(std::string& p_name, Texture* p_texture_p, Mesh* p_mesh = nullptr);
 
-	const std::string& GetName() const
+	const std::string& GetName() 
 	{
 		return m_name;
 	}
@@ -88,12 +89,22 @@ public:
 
 	unsigned int GetTextureId() const
 	{
-		return m_textureId;
+		return m_texture_p->srvDescriptorIndex;
+	}
+
+	std::string& GetTextureName()
+	{
+		return m_texture_p->textureName;
 	}
 
 	const std::string& GetMeshName()
 	{
 		return m_mesh_p->GetMeshClassName();
+	}
+
+	void SetTexture(Texture* p_texture_p)
+	{
+		m_texture_p = p_texture_p;
 	}
 
 	void Render(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix, CD3DX12_GPU_DESCRIPTOR_HANDLE textureHandle);
@@ -105,7 +116,7 @@ private:
 	XMVECTOR m_scale = XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f);
 	XMMATRIX m_modelMatrix = XMMatrixIdentity(); // position, rotaion, scale in *world* space
 	Mesh* m_mesh_p = nullptr;
-	unsigned int m_textureId = 1; // 0 is for IMGUI textures, 1 will be pure white texture
+	Texture* m_texture_p = nullptr;
 
 	void _updateModelMatrix();
 };

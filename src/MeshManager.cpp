@@ -107,10 +107,8 @@ void MeshManager::ClearMeshes()
 // TODO: need change
 void MeshManager::RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix)
 {
-	for (auto& instancePair : m_instanceMap)
+	for (Instance* instance_p : m_instanceList)
 	{
-		Instance* instance_p = instancePair.second;
-
 		CD3DX12_GPU_DESCRIPTOR_HANDLE textureHandle(m_SRVHeap->GetGPUDescriptorHandleForHeapStart());
 
 		// call mesh class to render it
@@ -137,10 +135,6 @@ void MeshManager::_processMessage(Message& msg)
 {
 	// message data is mesh name in char*
 	size_t dataSize = msg.GetSize();
-	if (dataSize == 0 && msg.type != MSG_TYPE_CLEAN_MESHES)
-	{
-		return;
-	}
 
 	switch (msg.type)
 	{
@@ -174,14 +168,10 @@ void MeshManager::_processMessage(Message& msg)
 	}
 	case MSG_TYPE_CREATE_INSTANCE:
 	{
-		std::string meshName = std::string((char*)msg.GetData());
-		std::string instanceName = meshName + "_instance_" + std::to_string(m_instanceMap.size());
+		std::string instanceName = "instance_" + std::to_string(m_instanceList.size());
 
-		Mesh* mesh_p = GetMesh(meshName);
-
-		Instance* createdInstance = new Instance(instanceName, mesh_p);
-		//createdInstance->SetMeshClassPointer(mesh_p);
-		m_instanceMap[instanceName] = createdInstance;
+		Instance* createdInstance = new Instance(instanceName);
+		m_instanceList.push_back(createdInstance);
 		_sendInstanceReplyMessage(createdInstance);
 
 		break;
@@ -214,7 +204,7 @@ void MeshManager::_processMessage(Message& msg)
 		InstanceInfo* instanceInfos_p = &reloadInfo.instanceInfos;
 		for (size_t i = 0; i < reloadInfo.numOfInstances; ++i)
 		{
-			std::string instanceName = meshName + "_instance_" + std::to_string(m_instanceMap.size());
+			std::string instanceName = meshName + "_instance_" + std::to_string(m_instanceList.size());
 			Instance* instance_p = new Instance(instanceName, mesh_p);
 			if (instance_p)
 			{
@@ -223,7 +213,7 @@ void MeshManager::_processMessage(Message& msg)
 				instance_p->SetRotation(XMVectorSet(instanceInfos_p[i].rotation[0], instanceInfos_p[i].rotation[1], instanceInfos_p[i].rotation[2], 0.0f));
 				instance_p->SetScale(XMVectorSet(instanceInfos_p[i].scale[0], instanceInfos_p[i].scale[1], instanceInfos_p[i].scale[2], 0.0f));
 
-				m_instanceMap[instanceName] = instance_p;
+				m_instanceList.push_back(instance_p);
 				_sendInstanceReplyMessage(instance_p);
 			}
 			else
@@ -320,11 +310,11 @@ void MeshManager::CleanForLoad()
 	Application::Get().Flush();
 
 	// clean all instances
-	for (auto& instancePair : m_instanceMap)
+	for (Instance* instance_p : m_instanceList)
 	{
-		delete instancePair.second;
+		delete instance_p;
 	}
-	m_instanceMap.clear();
+	m_instanceList.clear();
 
 	//while (m_meshes.begin() != m_meshes.end())
 	//{
