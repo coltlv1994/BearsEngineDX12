@@ -378,15 +378,9 @@ void UIManager::CreateImGuiWindowContent()
 			selectedInstance->SetRotation(XMVectorSet(instanceParam[1][0], instanceParam[1][1], instanceParam[1][2], 0.0f) * PI_DIV_180);
 			_clampScale(instanceParam[2]);
 			selectedInstance->SetScale(XMVectorSet(instanceParam[2][0], instanceParam[2][1], instanceParam[2][2], 0.0f));
-		}
 
-		// mesh and texture assignment
-		if (selectedInstanceIndex >= 0 && selectedInstanceIndex < listOfInstances.size())
-		{
-			Instance* selectedInstance = listOfInstances[selectedInstanceIndex];
-
+			// mesh and texture assignment
 			ImGui::Text("Assign Mesh:");
-
 			if (ImGui::BeginCombo("##combo assign meshes", selectedInstance->GetMeshName().c_str()))
 			{
 				for (int n = 0; n < listOfMeshes.size(); n++)
@@ -422,12 +416,28 @@ void UIManager::CreateImGuiWindowContent()
 			ImGui::InputText("##instanceName", instanceNameBuffer, 128);
 			if (ImGui::Button("Rename Instance") && instanceNameBuffer[0] != '\0')
 			{
+				// TODO: two instance may have the same name
 				selectedInstance->SetName(std::string(instanceNameBuffer));
 				instanceNameBuffer[0] = '\0'; // clear input box
 			}
+
+			if (ImGui::Button("Delete Instance"))
+			{
+				// send message to Mesh Manager
+				Message* msg = new Message();
+				msg->type = MSG_TYPE_REMOVE_INSTANCE;
+				size_t dataLength = POINTER_SIZE; // only instance pointer is needed
+				msg->SetData((unsigned char*)&selectedInstance, dataLength); // send pointer
+				MeshManager::Get().ReceiveMessage(msg);
+
+				// remove from list
+				listOfInstances.erase(listOfInstances.begin() + selectedInstanceIndex);
+				// delete instance, wait for MeshManager
+				//delete selectedInstance;
+				// reset selection
+				selectedInstanceIndex = -1;
+			}
 		}
-
-
 
 		ImGui::EndTabItem();
 	}

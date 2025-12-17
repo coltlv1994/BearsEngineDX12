@@ -58,8 +58,10 @@ private:
 	MessageQueue m_messageQueue;
 	Shader* m_defaultShader_p = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_SRVHeap; // passed from Editor class, holds textures
-	std::vector<Instance*> m_instanceList; // map of instance name to Instance pointer
+	std::vector<Instance*> m_instanceList; // list of all created instances
 	std::map<std::string, Texture*> m_textureMap; // map of texture file path to texture resource
+
+	unsigned int m_createdInstanceCount = 0; // for unique instance naming, this value should never decrease except map reloading
 
 	Texture* m_defaultTexture_p;
 

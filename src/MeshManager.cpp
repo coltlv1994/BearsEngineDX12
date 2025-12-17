@@ -154,11 +154,13 @@ void MeshManager::_processMessage(Message& msg)
 	}
 	case MSG_TYPE_CREATE_INSTANCE:
 	{
-		std::string instanceName = "instance_" + std::to_string(m_instanceList.size());
+		std::string instanceName = "instance_" + std::to_string(m_createdInstanceCount);
 
 		Instance* createdInstance = new Instance(instanceName, m_defaultTexture_p);
 		m_instanceList.push_back(createdInstance);
 		_sendInstanceReplyMessage(createdInstance);
+
+		m_createdInstanceCount += 1;
 
 		break;
 	}
@@ -242,6 +244,23 @@ void MeshManager::_processMessage(Message& msg)
 		}
 		msgReply->SetData(textureName.c_str(), textureName.length() + 1); // SetData is always copying
 		UIManager::Get().ReceiveMessage(msgReply);
+		break;
+	}
+	case MSG_TYPE_REMOVE_INSTANCE:
+	{
+		// data is instance pointer
+		if (dataSize != POINTER_SIZE)
+		{
+			// invalid data size
+			break;
+		}
+		Instance* instanceToRemove = *(Instance**)(msg.GetData());
+		auto iter = std::find(m_instanceList.begin(), m_instanceList.end(), instanceToRemove);
+		if (iter != m_instanceList.end())
+		{
+			delete *iter;
+			m_instanceList.erase(iter);
+		}
 		break;
 	}
 	case MSG_TYPE_CLEAN_MESHES:
