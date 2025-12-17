@@ -25,13 +25,6 @@ bool Mesh::Initialize(const wchar_t* p_objFilePath)
 	// read file
 	LoadOBJFile(p_objFilePath);
 
-	// default name
-	char* nameBuffer = new char[wcslen(p_objFilePath) + 1];
-	size_t convertedChars = 0;
-	wcstombs_s(&convertedChars, nameBuffer, wcslen(p_objFilePath) + 1, p_objFilePath, _TRUNCATE);
-	m_meshClassName = nameBuffer;
-	delete[] nameBuffer;
-
 	return true;
 }
 

@@ -101,7 +101,7 @@ public:
 	{
 		if (m_mesh_p == nullptr)
 		{
-			static std::string emptyString = "<null object>";
+			static std::string emptyString = "null_object";
 			return emptyString;
 		}
 		else

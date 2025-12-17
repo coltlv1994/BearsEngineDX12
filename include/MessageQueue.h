@@ -25,6 +25,8 @@ constexpr size_t POINTER_SIZE = sizeof(void*);
 
 struct InstanceInfo
 {
+	char instanceName[128];
+	char textureName[128];
 	float position[3];
 	float rotation[3]; // in degrees
 	float scale[3];

@@ -55,6 +55,7 @@ bool MeshManager::AddMesh(const std::string& meshName, Shader* p_shader_p)
 		{
 			m_meshes[meshName] = newMesh;
 			newMesh->UseShader(p_shader_p);
+			newMesh->SetMeshClassName(meshName);
 			return true;
 		}
 		else

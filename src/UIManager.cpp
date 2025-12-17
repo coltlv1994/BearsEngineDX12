@@ -108,7 +108,7 @@ void UIManager::InitializeD3D12(ComPtr<ID3D12Device>device, ComPtr<ID3D12Command
 	ImGui_ImplDX12_Init(&init_info);
 
 	// always default white texture at first
-	listOfMeshes.push_back("null object");
+	listOfMeshes.push_back("null_object");
 	listOfTextures.push_back("default_white");
 }
 
@@ -595,6 +595,16 @@ void UIManager::_saveMap()
 	mapFile.write(cameraData, sizeOfCameraClass);
 	delete[] cameraData;
 
+	// save texture names
+	size_t textureNameDataSize = 128 * listOfTextures.size();
+	char* textureData = new char[textureNameDataSize];
+	for (size_t i = 0; i < listOfTextures.size(); i++)
+	{
+		strcpy_s(textureData + i * 128, 128, listOfTextures[i].c_str());
+	}
+	mapFile.write(textureData, textureNameDataSize);
+	delete[] textureData;
+
 	// Save instances
 	//std::vector<std::string> listOfMeshes;
 	//std::map<std::string, Instance*> instanceMap;
@@ -636,7 +646,9 @@ void UIManager::_saveMap()
 		for (size_t i = 0; i < reloadInfo.numOfInstances; i++)
 		{
 			Instance* instance = instances[i];
-
+			
+			strcpy_s(instanceInfo_ptr[i].instanceName, instance->GetName().c_str());
+			strcpy_s(instanceInfo_ptr[i].textureName, instance->GetTextureName().c_str());
 			XMVECTOR pos = instance->GetPosition();
 			XMStoreFloat3((XMFLOAT3*)instanceInfo_ptr[i].position, pos);
 			XMVECTOR rot = instance->GetRotation(); // use radians to avoid calculation in mesh manager
