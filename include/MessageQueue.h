@@ -35,7 +35,7 @@ struct InstanceInfo
 struct ReloadInfo
 {
 	char meshName[128];
-	size_t numOfInstances;
+	uint32_t numOfInstances;
 	InstanceInfo instanceInfos; // this can have variable length/size but lease one is required
 };
 

@@ -589,13 +589,14 @@ void UIManager::_saveMap()
 	}
 
 	size_t sizeOfCameraClass = sizeof(Camera);
-	mapFile << "camera,";
 	char* cameraData = new char[sizeOfCameraClass];
 	memcpy(cameraData, m_mainCamRef, sizeOfCameraClass);
 	mapFile.write(cameraData, sizeOfCameraClass);
 	delete[] cameraData;
 
 	// save texture names
+	uint32_t numberOfTextures = listOfTextures.size();
+	mapFile.write(reinterpret_cast<char*>(&numberOfTextures), sizeof(uint32_t));
 	size_t textureNameDataSize = 128 * listOfTextures.size();
 	char* textureData = new char[textureNameDataSize];
 	for (size_t i = 0; i < listOfTextures.size(); i++)
@@ -604,10 +605,6 @@ void UIManager::_saveMap()
 	}
 	mapFile.write(textureData, textureNameDataSize);
 	delete[] textureData;
-
-	// Save instances
-	//std::vector<std::string> listOfMeshes;
-	//std::map<std::string, Instance*> instanceMap;
 
 	std::map<std::string, std::vector<Instance*>> instancesByMesh;
 
@@ -624,7 +621,6 @@ void UIManager::_saveMap()
 
 	for (const auto& meshPair : instancesByMesh)
 	{
-		mapFile << "mesh,";
 		const std::string& meshName = meshPair.first;
 		const std::vector<Instance*>& instances = meshPair.second;
 
@@ -687,12 +683,13 @@ bool UIManager::_loadMap()
 		delete[] mapData;
 		return false;
 	}
+	// close anyway since copy is complete
+	mapFile.close();
 
 	if (size < sizeof(Camera) || m_mainCamRef == nullptr)
 	{
 		std::cerr << "Map file too small to contain camera data." << std::endl;
 		delete[] mapData;
-		mapFile.close();
 		return false;
 	}
 
@@ -701,12 +698,18 @@ bool UIManager::_loadMap()
 	listOfMeshes.clear();
 	listOfTextures.clear();
 	listOfInstances.clear();
+	// always default white texture at first
+	listOfMeshes.push_back("null_object");
+	listOfTextures.push_back("default_white");
+
 	Message* message = new Message();
 	message->type = MSG_TYPE_CLEAN_MESHES;
 	MeshManager::Get().ReceiveMessage(message);
 
+	// QUESTION: do we clear textures?
+
 	// Camera class has fixed size
-	size_t offset = 7; // "camera," take 7 bytes
+	size_t offset = 0; // "camera," take 7 bytes
 	Camera tempCam;
 	memcpy_s(&tempCam, sizeof(Camera), mapData + offset, sizeof(Camera));
 	*m_mainCamRef = tempCam;
@@ -714,7 +717,43 @@ bool UIManager::_loadMap()
 	XMStoreFloat3((XMFLOAT3*)camParam[0], m_mainCamRef->GetPosition());
 	XMStoreFloat3((XMFLOAT3*)camParam[1], mainCamRot);
 
-	offset += sizeof(Camera) + 5; // "mesh," take 5 bytes
+	// to read others
+	offset += sizeof(Camera); // "mesh," take 5 bytes
+
+	// read texture names
+	if (offset + sizeof(uint32_t) > size)
+	{
+		std::cerr << "Map file too small to contain texture count." << std::endl;
+		delete[] mapData;
+		return false;
+	}
+	else
+	{
+		uint32_t numberOfTextures = *(uint32_t*)(mapData + offset);
+		size_t textureNameDataSize = 128 * numberOfTextures;
+		if (offset + textureNameDataSize > size)
+		{
+			std::cerr << "Map file too small to contain texture names." << std::endl;
+			delete[] mapData;
+			return false;
+		}
+		else
+		{
+			uint32_t numberOfTextures = *(uint32_t*)(mapData + offset);
+			offset += sizeof(uint32_t);
+			for (size_t i = 1; i < numberOfTextures; i++) // don't have to load default white texture
+			{
+				char textureName[128];
+				memcpy_s(textureName, 128, mapData + offset + i * 128, 128);
+				// send message to load texture
+				Message* msg = new Message();
+				msg->type = MSG_TYPE_LOAD_TEXTURE;
+				msg->SetData((unsigned char*)textureName, strlen(textureName) + 1);
+				MeshManager::Get().ReceiveMessage(msg);
+			}
+			offset += textureNameDataSize;
+		}
+	}
 
 	while (offset < size)
 	{
@@ -730,7 +769,7 @@ bool UIManager::_loadMap()
 		message->type = MSG_TYPE_RELOAD_MESH;
 		message->SetData(&reloadInfo, messageSize);
 		MeshManager::Get().ReceiveMessage(message);
-		offset += messageSize + 5;// "mesh," take 5 bytes
+		offset += messageSize;
 	}
 
 	mapFile.close();

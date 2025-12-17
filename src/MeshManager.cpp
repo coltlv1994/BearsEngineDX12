@@ -174,27 +174,31 @@ void MeshManager::_processMessage(Message& msg)
 		std::string meshName(reloadInfo.meshName);
 
 		// try get, then create, if fail, return
-		Mesh* mesh_p = GetMeshByName(meshName);
-		bool result = true;
-		if (!mesh_p)
+		Mesh* mesh_p = nullptr;
+		if (meshName != "null_object")
 		{
-			result = AddMesh(meshName, m_defaultShader_p);
-			if (!result)
-			{
-				// Failed to add mesh, send error message
-				_sendMeshLoadFailedMessage(meshName);
-				delete[] buffer;
-				break;
-			}
 			mesh_p = GetMeshByName(meshName);
+			if (!mesh_p)
+			{
+				if (!AddMesh(meshName, m_defaultShader_p))
+				{
+					// Failed to add mesh, send error message
+					_sendMeshLoadFailedMessage(meshName);
+					delete[] buffer;
+					break;
+				}
+				mesh_p = GetMeshByName(meshName);
+			}
+			_sendMeshLoadSuccessMessage(meshName);
 		}
-		_sendMeshLoadSuccessMessage(meshName);
 
 		InstanceInfo* instanceInfos_p = &reloadInfo.instanceInfos;
+		m_createdInstanceCount += reloadInfo.numOfInstances;
 		for (size_t i = 0; i < reloadInfo.numOfInstances; ++i)
 		{
-			std::string instanceName = "instance_" + std::to_string(m_instanceList.size());
-			Instance* instance_p = new Instance(instanceName, m_defaultTexture_p);
+			std::string instanceName = instanceInfos_p[i].instanceName;
+			Texture* texture_p = GetTextureByName(std::string(instanceInfos_p[i].textureName));
+			Instance* instance_p = new Instance(instanceName, texture_p, mesh_p);
 			if (instance_p)
 			{
 				instance_p->SetPosition(instanceInfos_p[i].position[0], instanceInfos_p[i].position[1], instanceInfos_p[i].position[2]);
@@ -213,6 +217,7 @@ void MeshManager::_processMessage(Message& msg)
 		}
 
 		// TODO: clean up unused mesh
+		delete[] buffer;
 		break;
 	}
 	case MSG_TYPE_LOAD_TEXTURE:
@@ -321,6 +326,14 @@ void MeshManager::CleanForLoad()
 		delete instance_p;
 	}
 	m_instanceList.clear();
+	m_createdInstanceCount = 0;
+
+	// clean all textures
+	// for now don't touch textures to avoid messing around SRV heap
+	//for (auto texturePair : m_textureMap)
+	//{
+	//	delete texturePair.second;
+	//}
 
 	//while (m_meshes.begin() != m_meshes.end())
 	//{
@@ -477,7 +490,8 @@ Texture* MeshManager::GetTextureByName(const std::string& textureName)
 	}
 	else
 	{
-		return nullptr;
+		// get default texture
+		return m_defaultTexture_p;
 	}
 }
 
