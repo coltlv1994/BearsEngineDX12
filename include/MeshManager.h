@@ -65,6 +65,8 @@ private:
 
 	Texture* m_defaultTexture_p;
 
+	uint64_t m_memInfo[2] = { 0 }; // used and total memory info
+
 	void _processMessage(Message& msg);
 	// Message Queue access
 	void Listen();

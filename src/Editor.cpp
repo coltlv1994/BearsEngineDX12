@@ -159,7 +159,7 @@ void Editor::OnUpdate(UpdateEventArgs& e)
 
 	super::OnUpdate(e);
 
-	totalTime += e.ElapsedTime; // delta time
+	totalTime += e.ElapsedTime; // ElapsedTime: delta time
 	frameCount++;
 
 	if (totalTime > 1.0)
@@ -172,6 +172,23 @@ void Editor::OnUpdate(UpdateEventArgs& e)
 
 		frameCount = 0;
 		totalTime = 0.0;
+
+		MEMORYSTATUSEX memInfo;
+		memInfo.dwLength = sizeof(MEMORYSTATUSEX);
+		GlobalMemoryStatusEx(&memInfo);
+		uint64_t memInfoData[2]; // on 64-bit system, it won't exceed 2^64 bytes
+		memInfoData[1] = memInfo.ullTotalPhys; // in MB
+		memInfoData[0] = memInfo.ullAvailPhys; // in MB
+
+		// send message to UIManager to update memory usage display
+		Message* msgUM = new Message();
+		Message* msgMM = new Message();
+		msgUM->type = MSG_TYPE_CPU_MEMORY_INFO;
+		msgMM->type = MSG_TYPE_CPU_MEMORY_INFO;
+		msgUM->SetData(memInfoData, sizeof(memInfoData));
+		msgMM->SetData(memInfoData, sizeof(memInfoData));
+		UIManager::Get().ReceiveMessage(msgUM);
+		MeshManager::Get().ReceiveMessage(msgMM);
 	}
 }
 

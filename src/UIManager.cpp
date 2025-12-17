@@ -451,7 +451,8 @@ void UIManager::CreateImGuiWindowContent()
 
 	ImGui::EndTabBar();
 
-	// change main camera status via reference
+	// show memory info
+	ImGui::Text("CPU Memory, avail: %llu MB / total: %llu MB", m_memInfo[0] >> 20, m_memInfo[1] >> 20);
 
 	ImGui::End();
 
@@ -574,6 +575,22 @@ void UIManager::_processMessage(Message& msg)
 			errorMessage = true;
 		}
 		break;
+	}
+	case MSG_TYPE_CPU_MEMORY_INFO:
+	{
+		size_t dataSize = msg.GetSize();
+		if (dataSize != sizeof(uint64_t) * 2)
+		{
+			// ill-formated message, ignore
+			break;
+		}
+		else
+		{
+			char* msgData = (char*)msg.GetData();
+			memcpy_s(m_memInfo, sizeof(uint64_t) * 2, msgData, sizeof(uint64_t) * 2);
+		}
+		break;
+
 	}
 	default:
 		break;

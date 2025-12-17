@@ -88,6 +88,7 @@ private:
 	std::vector<Instance*> listOfInstances;
 	bool errorMessage = false; // to trigger error message popup
 	char errorMessageBuffer[256] = { 0 };
+	uint64_t m_memInfo[2] = { 0 }; // used and total memory info
 
 	void _listen();
 	void _processMessage(Message& msg);

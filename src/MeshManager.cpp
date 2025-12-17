@@ -275,6 +275,18 @@ void MeshManager::_processMessage(Message& msg)
 		CleanForLoad();
 		break;
 	}
+	case MSG_TYPE_CPU_MEMORY_INFO:
+	{
+		// data is two size_t values: available memory and total memory
+		if (dataSize != sizeof(uint64_t) * 2)
+		{
+			// invalid data size
+			break;
+		}
+		char* msgData = (char*)msg.GetData();
+		memcpy_s(m_memInfo, sizeof(uint64_t) * 2, msgData, sizeof(uint64_t) * 2);
+		break;
+	}
 	default:
 		break;
 	}
