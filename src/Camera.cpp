@@ -3,7 +3,7 @@
 Camera::Camera()
 	: m_position(XMVectorZero())
 	, m_rotation(XMVectorZero())
-	, m_fov(45.0f)
+	, m_fov(90.0f)
 	, m_aspectRatio(16.0f / 9.0f)
 	, m_nearPlane(0.1f)
 	, m_farPlane(1000.0f)

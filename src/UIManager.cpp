@@ -201,6 +201,11 @@ void UIManager::CreateImGuiWindowContent()
 					}
 				}
 			}
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			ImGui::Text("FOV");
+			ImGui::SetNextItemWidth(-1.0f);
+			ImGui::InputFloat("##FOV", &cameraFOV, 1.0f, 10.0f, "%.1f");
 			ImGui::EndTable();
 		}
 
@@ -242,6 +247,7 @@ void UIManager::CreateImGuiWindowContent()
 			m_mainCamRef->SetPosition(XMLoadFloat3((XMFLOAT3*)camParam[0]));
 			_clampRotation(camParam[1]);
 			m_mainCamRef->SetRotation(XMVectorSet(camParam[1][0], camParam[1][1], camParam[1][2], 0.0f) * PI_DIV_180);
+			m_mainCamRef->SetFOV(cameraFOV);
 		}
 		ImGui::EndTabItem();
 	}
