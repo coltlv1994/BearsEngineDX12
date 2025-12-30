@@ -50,23 +50,15 @@ Editor::Editor(const std::wstring& name, int width, int height, bool vSync)
 
 bool Editor::LoadContent()
 {
-	auto device = Application::Get().GetDevice();
-	auto commandQueue = Application::Get().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT)->GetD3D12CommandQueue();
+	Application& app = Application::Get();
+	auto device = app.GetDevice();
+	auto commandQueue = app.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT)->GetD3D12CommandQueue();
 
 	// Create the descriptor heap for the depth-stencil view.
-	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
-	dsvHeapDesc.NumDescriptors = 1;
-	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	ThrowIfFailed(device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_DSVHeap)));
+	m_DSVHeap = app.CreateDescriptorHeap(1, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
 
-	// Allocating SRV descriptors (for textures) is up to the application, so we provide callbacks.
-	// (current version of the backend will only allocate one descriptor, future versions will need to allocate more)
-	D3D12_DESCRIPTOR_HEAP_DESC desHeapDesc = {};
-	desHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	desHeapDesc.NumDescriptors = 128; // a fixed number at startup for now. TODO: make it growable if needed.
-	desHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	ThrowIfFailed(device->CreateDescriptorHeap(&desHeapDesc, IID_PPV_ARGS(&m_SRVHeap)));
+	// Allocating SRV descriptors (for textures), and set the size to 128
+	m_SRVHeap = app.CreateDescriptorHeap(128, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
 
 	MeshManager::Get().SetSRVHeap(m_SRVHeap);
 	MeshManager::Get().CreateDefaultTexture();
@@ -177,8 +169,8 @@ void Editor::OnUpdate(UpdateEventArgs& e)
 		memInfo.dwLength = sizeof(MEMORYSTATUSEX);
 		GlobalMemoryStatusEx(&memInfo);
 		uint64_t memInfoData[2]; // on 64-bit system, it won't exceed 2^64 bytes
-		memInfoData[1] = memInfo.ullTotalPhys; // in MB
-		memInfoData[0] = memInfo.ullAvailPhys; // in MB
+		memInfoData[1] = memInfo.ullTotalPhys; // in bytes
+		memInfoData[0] = memInfo.ullAvailPhys; // in bytes
 
 		// send message to UIManager to update memory usage display
 		Message* msgUM = new Message();
