@@ -24,9 +24,15 @@ void Instance::Render(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XM
 		return;
 	}
 
-	textureHandle.Offset(m_texture_p->srvDescriptorIndex, Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
-	XMMATRIX mvpMatrix = m_modelMatrix * p_vpMatrix;
-	m_mesh_p->RenderInstance(p_commandList, mvpMatrix, textureHandle);
+	static UINT descriptorSize = Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	textureHandle.Offset(m_texture_p->srvDescriptorIndex, descriptorSize);
+
+	VertexShaderInput vsi = {};
+	vsi.mvpMatrix = m_modelMatrix * p_vpMatrix;
+	vsi.t_i_modelMatrix = XMMatrixTranspose(XMMatrixInverse(nullptr, m_modelMatrix));
+
+	m_mesh_p->RenderInstance(p_commandList, vsi, textureHandle);
 }
 
 void Instance::SetMeshByName(const std::string& p_meshName)

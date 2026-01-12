@@ -22,7 +22,7 @@ public:
 	const std::string& GetMeshClassName();
 
 	// Render work
-	void RenderInstance(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_mvpMatrix, D3D12_GPU_DESCRIPTOR_HANDLE textureHandle);
+	void RenderInstance(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const VertexShaderInput& p_vsi, D3D12_GPU_DESCRIPTOR_HANDLE textureHandle);
 
 private:
 	std::string m_meshClassName;

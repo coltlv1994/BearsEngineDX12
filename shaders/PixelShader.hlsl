@@ -1,6 +1,8 @@
 struct PixelShaderInput
 {
 	float2 TexCoord    : TEXCOORD;
+    // Normal vector is normalized in vertex shader already
+    float3 Normal      : NORMAL;
 };
 
 Texture2D earthTexture : register(t0);

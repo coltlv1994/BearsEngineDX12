@@ -59,3 +59,11 @@ struct VertexPosColor
     XMFLOAT3 Normal;
     XMFLOAT2 TexCoord;
 };
+
+// input structure for the vertex shader.
+// WARNING: must match the structure defined in the shader.
+struct VertexShaderInput
+{
+    XMMATRIX mvpMatrix;
+	XMMATRIX t_i_modelMatrix;
+};

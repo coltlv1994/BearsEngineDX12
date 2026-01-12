@@ -369,7 +369,7 @@ void Mesh::WriteToBinaryFile(const wchar_t* p_binFilePath)
 }
 
 
-void Mesh::RenderInstance(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_mvpMatrix, D3D12_GPU_DESCRIPTOR_HANDLE textureHandle)
+void Mesh::RenderInstance(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const VertexShaderInput& p_vsi, D3D12_GPU_DESCRIPTOR_HANDLE textureHandle)
 {
 	ComPtr<ID3D12RootSignature> rootSignature = m_shader_p->GetRootSigniture();
 	ComPtr<ID3D12PipelineState> pipelineState = m_shader_p->GetPipelineState();
@@ -382,7 +382,8 @@ void Mesh::RenderInstance(ComPtr<ID3D12GraphicsCommandList2> p_commandList, cons
 	p_commandList->IASetIndexBuffer(&m_indexBufferView);
 	p_commandList->SetGraphicsRootDescriptorTable(1, textureHandle);
 
-	// set mvp matrix
-	p_commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / 4, &p_mvpMatrix, 0);
+	// set vertex shader input
+	// sizeof() / 4 because we are setting 32 bit constants
+	p_commandList->SetGraphicsRoot32BitConstants(0, sizeof(p_vsi) / 4, &p_vsi, 0);
 	p_commandList->DrawIndexedInstanced(m_triangleCount, 1, 0, 0, 0);
 }
