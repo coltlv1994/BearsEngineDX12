@@ -380,7 +380,7 @@ void Mesh::RenderInstance(ComPtr<ID3D12GraphicsCommandList2> p_commandList, cons
 	p_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	p_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
 	p_commandList->IASetIndexBuffer(&m_indexBufferView);
-	p_commandList->SetGraphicsRootDescriptorTable(1, textureHandle);
+	p_commandList->SetGraphicsRootDescriptorTable(2, textureHandle);
 
 	// set vertex shader input
 	// sizeof() / 4 because we are setting 32 bit constants

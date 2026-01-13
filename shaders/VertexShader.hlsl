@@ -8,7 +8,17 @@ struct ModelViewProjection
     matrix t_i_model;
 };
 
+struct MaterialConstants
+{
+    float4 DiffuseAlbedo;
+    float3 FresnelR0;
+    float Roughness;
+};
+
+// TODO: define another struct for lighting parameters
+
 ConstantBuffer<ModelViewProjection> ModelViewProjectionCB : register(b0);
+ConstantBuffer<MaterialConstants> MaterialCB : register(b1);
 
 struct VertexPosColor
 {

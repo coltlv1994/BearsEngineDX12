@@ -7,6 +7,7 @@
 #include <MessageQueue.h>
 #include <EntityInstance.h>
 #include <Texture.h>
+#include <Material.h>
 
 class MeshManager
 {

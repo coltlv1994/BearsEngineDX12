@@ -52,6 +52,22 @@ inline void ThrowIfFailed(HRESULT hr)
 #define WSTR(x) WSTR1(x)
 #define NAME_D3D12_OBJECT(x) x->SetName( WSTR(__FILE__ "(" STR(__LINE__) "): " L#x) )
 
+static UINT CalcConstantBufferByteSize(UINT byteSize)
+{
+    // Constant buffers must be a multiple of the minimum hardware
+    // allocation size (usually 256 bytes).  So round up to nearest
+    // multiple of 256.  We do this by adding 255 and then masking off
+    // the lower 2 bytes which store all bits < 256.
+    // Example: Suppose byteSize = 300.
+    // (300 + 255) & ~255
+    // 555 & ~255
+    // 0x022B & ~0x00ff
+    // 0x022B & 0xff00
+    // 0x0200
+    // 512
+    return (byteSize + 255) & ~255;
+}
+
 // Vertex data for a colored cube.
 struct VertexPosColor
 {
@@ -66,4 +82,16 @@ struct VertexShaderInput
 {
     XMMATRIX mvpMatrix;
 	XMMATRIX t_i_modelMatrix;
+};
+
+// used for material constant buffer view
+// NOTE: must match the structure defined in the shader.
+struct MaterialConstants
+{
+    DirectX::XMFLOAT4 DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
+    DirectX::XMFLOAT3 FresnelR0 = { 0.01f, 0.01f, 0.01f };
+    float Roughness = 0.5f;
+
+    // Used in texture mapping.
+    DirectX::XMMATRIX MatTransform = XMMatrixIdentity();
 };
