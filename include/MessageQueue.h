@@ -28,6 +28,7 @@ struct InstanceInfo
 {
 	char instanceName[128];
 	char textureName[128];
+	char materialName[128];
 	float position[3];
 	float rotation[3]; // in degrees
 	float scale[3];

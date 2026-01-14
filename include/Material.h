@@ -68,6 +68,11 @@ public:
 			memcpy(m_mappedData, &m_materialConstants, sizeof(MaterialConstants));
 		}
 
+		D3D12_GPU_VIRTUAL_ADDRESS GetMaterialCBVGPUAddress()
+		{
+			return m_uploadBuffer->GetGPUVirtualAddress();
+		}
+
 private:
 	std::string m_name;
 

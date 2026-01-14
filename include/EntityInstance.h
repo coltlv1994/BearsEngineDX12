@@ -5,11 +5,12 @@ using namespace DirectX;
 #include <string>
 #include <Mesh.h>
 #include <Texture.h>
+#include <Material.h>	
 
 class Instance
 {
 public:
-	Instance(std::string& p_name, Texture* p_texture_p, Mesh* p_mesh = nullptr);
+	Instance(std::string& p_name, Texture* p_texture_p, Material* p_material_p, Mesh* p_mesh = nullptr);
 
 	const std::string& GetName() 
 	{
@@ -115,6 +116,16 @@ public:
 		m_texture_p = p_texture_p;
 	}
 
+	Material* GetMaterial()
+	{
+		return m_material_p;
+	}
+
+	void SetMaterial(Material* p_material_p)
+	{
+		m_material_p = p_material_p;
+	}
+
 	void SetMeshByName(const std::string& p_meshName);
 
 	void SetTextureByName(const std::string& p_textureName);
@@ -129,6 +140,7 @@ private:
 	XMMATRIX m_modelMatrix = XMMatrixIdentity(); // position, rotaion, scale in *world* space
 	Mesh* m_mesh_p = nullptr;
 	Texture* m_texture_p = nullptr;
+	Material* m_material_p = nullptr;
 
 	void _updateModelMatrix();
 };

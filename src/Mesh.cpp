@@ -369,15 +369,10 @@ void Mesh::WriteToBinaryFile(const wchar_t* p_binFilePath)
 }
 
 
-void Mesh::RenderInstance(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const VertexShaderInput& p_vsi, D3D12_GPU_DESCRIPTOR_HANDLE textureHandle)
+void Mesh::RenderInstance(ComPtr<ID3D12GraphicsCommandList2> p_commandList)
 {
 	p_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	p_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
 	p_commandList->IASetIndexBuffer(&m_indexBufferView);
-	p_commandList->SetGraphicsRootDescriptorTable(0, textureHandle);
-
-	// set vertex shader input
-	// sizeof() / 4 because we are setting 32 bit constants
-	p_commandList->SetGraphicsRoot32BitConstants(1, sizeof(p_vsi) / 4, &p_vsi, 0);
 	p_commandList->DrawIndexedInstanced(m_triangleCount, 1, 0, 0, 0);
 }

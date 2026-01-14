@@ -62,6 +62,7 @@ bool Editor::LoadContent()
 
 	MeshManager::Get().SetSRVHeap(m_SRVHeap);
 	MeshManager::Get().CreateDefaultTexture();
+	MeshManager::Get().CreateDefaultMaterial();
 
 	// Setup ImGui binding for DirectX 12
 	UIManager::Get().InitializeD3D12(device, commandQueue, m_SRVHeap, Window::BufferCount);

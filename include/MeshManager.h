@@ -1,7 +1,7 @@
 #pragma once
 #include <Mesh.h>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <string>
 #include <Shader.h>
 #include <MessageQueue.h>
@@ -53,6 +53,8 @@ public:
 
 	Texture* GetTextureByName(const std::string& textureName);
 
+	Material* GetMaterialByName(const std::string& materialName);
+
 	Mesh* GetMeshByName(const std::string& meshName);
 
 	void CreateDefaultMaterial();
@@ -69,18 +71,16 @@ public:
 	}
 
 private:
-	std::map<std::string, Mesh*> m_meshes; // map of mesh name to Mesh pointer
+	std::unordered_map<std::string, Mesh*> m_meshes; // map of mesh name to Mesh pointer
 	MessageQueue m_messageQueue;
 	Shader* m_defaultShader_p = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_SRVHeap; // passed from Editor class, holds textures
 	std::vector<Instance*> m_instanceList; // list of all created instances
-	std::map<std::string, Texture*> m_textureMap; // map of texture file path to texture resource
-	std::map<std::string, Material*> m_materialMap; // map of material name to material
+	std::unordered_map<std::string, Texture*> m_textureMap; // map of texture file path to texture resource
+	std::unordered_map<std::string, Material*> m_materialMap; // map of material name to material
 	LightManager* m_lightManager_p = nullptr;
 
 	unsigned int m_createdInstanceCount = 0; // for unique instance naming, this value should never decrease except map reloading
-
-	Texture* m_defaultTexture_p;
 
 	uint64_t m_memInfo[2] = { 0 }; // used and total memory info
 

@@ -744,7 +744,7 @@ bool UIManager::_loadMap()
 	// QUESTION: do we clear textures?
 
 	// Camera class has fixed size
-	size_t offset = 0; // "camera," take 7 bytes
+	size_t offset = 0;
 	Camera tempCam;
 	memcpy_s(&tempCam, sizeof(Camera), mapData + offset, sizeof(Camera));
 	*m_mainCamRef = tempCam;

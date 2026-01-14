@@ -167,7 +167,7 @@ void MeshManager::_processMessage(Message& msg)
 	{
 		std::string instanceName = "instance_" + std::to_string(m_createdInstanceCount);
 
-		Instance* createdInstance = new Instance(instanceName, m_defaultTexture_p);
+		Instance* createdInstance = new Instance(instanceName, m_textureMap["default_white"], m_materialMap["defaultMaterial"]);
 		m_instanceList.push_back(createdInstance);
 		_sendInstanceReplyMessage(createdInstance);
 
@@ -208,7 +208,8 @@ void MeshManager::_processMessage(Message& msg)
 		{
 			std::string instanceName = instanceInfos_p[i].instanceName;
 			Texture* texture_p = GetTextureByName(std::string(instanceInfos_p[i].textureName));
-			Instance* instance_p = new Instance(instanceName, texture_p, mesh_p);
+			Material* meshMaterial_p = GetMaterialByName(std::string(instanceInfos_p[i].materialName));
+			Instance* instance_p = new Instance(instanceName, texture_p, meshMaterial_p, mesh_p);
 			if (instance_p)
 			{
 				instance_p->SetPosition(instanceInfos_p[i].position[0], instanceInfos_p[i].position[1], instanceInfos_p[i].position[2]);
@@ -384,7 +385,6 @@ void MeshManager::_sendInstanceFailedMessage(const std::string& meshName)
 void MeshManager::CreateDefaultTexture()
 {
 	ReadAndUploadTexture();
-	m_defaultTexture_p = m_textureMap["default_white"];
 }
 
 bool MeshManager::ReadAndUploadTexture(const char* textureName)
@@ -513,7 +513,20 @@ Texture* MeshManager::GetTextureByName(const std::string& textureName)
 	else
 	{
 		// get default texture
-		return m_defaultTexture_p;
+		return m_textureMap["default_white"];
+	}
+}
+
+Material* MeshManager::GetMaterialByName(const std::string& materialName)
+{
+	if (auto materialIter = m_materialMap.find(materialName); materialIter != m_materialMap.end())
+	{
+		return materialIter->second;
+	}
+	else
+	{
+		// get default texture
+		return m_materialMap["defaultMaterial"];
 	}
 }
 
