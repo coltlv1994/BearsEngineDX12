@@ -55,7 +55,6 @@ struct VertexPosColor
 struct VertexShaderOutput
 {
     float2 TexCoord : TEXCOORD;
-    float3 Normal : NORMAL;
     float4 LightColor : LIGHTCOLOR;
     float4 Position : SV_Position;
 };
@@ -180,7 +179,7 @@ float4 ComputeLighting(Light gLights[MaxLights],
 {
     float3 result = 0.0f;
 
-    int i = 0;
+    uint i = 0;
     
     for (i = 0; i < LightCB.NumOfDirectionalLights; ++i)
     {
@@ -205,7 +204,7 @@ VertexShaderOutput main(VertexPosColor IN)
     VertexShaderOutput OUT;
 
     OUT.Position = mul(ModelViewProjectionCB.MVP, float4(IN.Position, 1.0f));
-    OUT.Normal = normalize(mul((float3x3) ModelViewProjectionCB.t_i_model, IN.Normal));
+    float3 normal = normalize(mul((float3x3) ModelViewProjectionCB.t_i_model, IN.Normal));
     OUT.TexCoord = IN.TexCoord;
     
     float3 ToEye = normalize(LightCB.CameraPosition.xyz - OUT.Position.xyz);
@@ -214,7 +213,7 @@ VertexShaderOutput main(VertexPosColor IN)
     
     float4 lighting = ComputeLighting(LightCB.Lights,
                                       OUT.Position.xyz,
-                                      OUT.Normal,
+                                      normal,
                                       ToEye,
                                       float3(1.0f, 1.0f, 1.0f)); // No shadows for now
     

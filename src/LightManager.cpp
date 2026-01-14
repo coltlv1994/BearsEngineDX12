@@ -50,6 +50,6 @@ void LightManager::InitializeLightCBV(XMFLOAT4& p_cameraPosition)
 
 	// DEBUG purpose to have a red light
 	m_lightConstants.AmbientLightColor = XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
-	m_lightConstants.AmbientLightStrength = 0.2f;
+	m_lightConstants.AmbientLightStrength = 0.4f;
 
 }

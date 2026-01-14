@@ -1,8 +1,6 @@
 struct PixelShaderInput
 {
 	float2 TexCoord    : TEXCOORD;
-    // Normal vector is normalized in vertex shader already
-    float3 Normal      : NORMAL;
     float4 LightColor : LIGHTCOLOR;
 };
 
