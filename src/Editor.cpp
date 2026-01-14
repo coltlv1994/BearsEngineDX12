@@ -72,8 +72,11 @@ bool Editor::LoadContent()
 	ResizeDepthBuffer(GetClientWidth(), GetClientHeight());
 
 	// Setup the main camera.
-	m_mainCamera.SetPosition(0.0f, 0.0f, -10.0f);
+	XMFLOAT4 camPosition = XMFLOAT4(0.0f, 0.0f, -10.0f, 1.0f);
+	m_mainCamera.SetPosition(XMLoadFloat4(&camPosition));
+
 	UIManager::Get().SetMainCamera(&m_mainCamera);
+	MeshManager::Get().InitializeLightManager(camPosition);
 
 	UIManager::Get().StartListeningThread();
 	MeshManager::Get().StartListeningThread();
@@ -240,6 +243,7 @@ void Editor::OnRender(RenderEventArgs& e)
 	commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
 
 	XMMATRIX vpMatrix = m_mainCamera.GetViewProjectionMatrix();
+	// TODO: get camera location for lighting calculations
 
 	UIManager::Get().CreateImGuiWindowContent();
 

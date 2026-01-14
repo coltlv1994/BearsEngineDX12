@@ -168,6 +168,7 @@
     <ClCompile Include="src\EntityInstance.cpp" />
     <ClCompile Include="src\Game.cpp" />
     <ClCompile Include="src\HighResolutionClock.cpp" />
+    <ClCompile Include="src\LightManager.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Editor.cpp" />
     <ClCompile Include="src\Mesh.cpp" />
@@ -219,6 +220,7 @@
     <ClInclude Include="include\Helpers.h" />
     <ClInclude Include="include\HighResolutionClock.h" />
     <ClInclude Include="include\KeyCodes.h" />
+    <ClInclude Include="include\LightManager.h" />
     <ClInclude Include="include\Material.h" />
     <ClInclude Include="include\Mesh.h" />
     <ClInclude Include="include\MeshManager.h" />

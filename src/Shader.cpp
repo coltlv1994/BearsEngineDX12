@@ -57,11 +57,12 @@ void Shader::CreateRootSignitureAndPipelineStream(D3D12_INPUT_ELEMENT_DESC* inpu
         D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
     // A single 32-bit constant root parameter that is used by the vertex shader.
-    CD3DX12_ROOT_PARAMETER1 rootParameters[3];
+    CD3DX12_ROOT_PARAMETER1 rootParameters[4];
     CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
-    rootParameters[0].InitAsConstants(sizeof(VertexShaderInput) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
-	rootParameters[1].InitAsConstantBufferView(1);
-    rootParameters[2].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
+    rootParameters[0].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL); // texture
+    rootParameters[1].InitAsConstants(sizeof(VertexShaderInput) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX); // MVP and t_i_model matrices
+	rootParameters[2].InitAsConstantBufferView(1); // Material CB
+	rootParameters[3].InitAsConstantBufferView(2); // Light CB
 
     D3D12_STATIC_SAMPLER_DESC sampler = {};
     sampler.Filter = D3D12_FILTER_ANISOTROPIC;
@@ -79,7 +80,7 @@ void Shader::CreateRootSignitureAndPipelineStream(D3D12_INPUT_ELEMENT_DESC* inpu
     sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
     CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
-    rootSignatureDescription.Init_1_1(3, rootParameters, 1, &sampler, rootSignatureFlags);
+    rootSignatureDescription.Init_1_1(4, rootParameters, 1, &sampler, rootSignatureFlags);
 
     // Serialize the root signature.
     ComPtr<ID3DBlob> rootSignatureBlob;

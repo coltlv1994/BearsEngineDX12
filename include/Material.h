@@ -11,11 +11,11 @@ public:
 		Material(const std::string& name)
 			: m_name(name)
 		{
-			m_materialConstantBufferSize = CalcConstantBufferByteSize(sizeof(MaterialConstants));
+			m_materialCBSize = CalcConstantBufferByteSize(sizeof(MaterialConstants));
 
 			auto device = Application::Get().GetDevice();
 			static CD3DX12_HEAP_PROPERTIES heap_upload = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-			static CD3DX12_RESOURCE_DESC buffer_upload = CD3DX12_RESOURCE_DESC::Buffer(m_materialConstantBufferSize);
+			static CD3DX12_RESOURCE_DESC buffer_upload = CD3DX12_RESOURCE_DESC::Buffer(m_materialCBSize);
 
 			// upload and map
 			ThrowIfFailed(device->CreateCommittedResource(
@@ -33,6 +33,14 @@ public:
 			memcpy(m_mappedData, &defaultData, sizeof(MaterialConstants));
 		}
 
+		~Material()
+		{
+			if (m_uploadBuffer)
+			{
+				m_uploadBuffer->Unmap(0, nullptr);
+				m_mappedData = nullptr;
+			}
+		}
 		const std::string& GetName() const { return m_name; }
 
 		MaterialConstants& GetMaterialConstants()
@@ -68,5 +76,5 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_uploadBuffer;
 	unsigned char* m_mappedData = nullptr;
 
-	UINT m_materialConstantBufferSize = 0;
+	UINT m_materialCBSize = 0;
 };

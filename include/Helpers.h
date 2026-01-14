@@ -36,6 +36,8 @@
 #include <DirectXMath.h>
 using namespace DirectX;
 
+#include <exception>
+
 // From DXSampleHelper.h 
 // Source: https://github.com/Microsoft/DirectX-Graphics-Samples
 inline void ThrowIfFailed(HRESULT hr)
@@ -51,6 +53,7 @@ inline void ThrowIfFailed(HRESULT hr)
 #define WSTR1(x) L##x
 #define WSTR(x) WSTR1(x)
 #define NAME_D3D12_OBJECT(x) x->SetName( WSTR(__FILE__ "(" STR(__LINE__) "): " L#x) )
+#define MaxLights 16
 
 static UINT CalcConstantBufferByteSize(UINT byteSize)
 {
@@ -88,10 +91,29 @@ struct VertexShaderInput
 // NOTE: must match the structure defined in the shader.
 struct MaterialConstants
 {
-    DirectX::XMFLOAT4 DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
-    DirectX::XMFLOAT3 FresnelR0 = { 0.01f, 0.01f, 0.01f };
+    XMFLOAT4 DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
+    XMFLOAT3 FresnelR0 = { 0.01f, 0.01f, 0.01f };
     float Roughness = 0.5f;
+};
 
-    // Used in texture mapping.
-    DirectX::XMMATRIX MatTransform = XMMatrixIdentity();
+struct Light
+{
+    XMFLOAT3 Strength;
+    float FalloffStart; // point/spot light only
+    XMFLOAT3 Direction; // directional/spot light only
+    float FalloffEnd; // point/spot light only
+    XMFLOAT3 Position; // point light only
+    float SpotPower; // spot light only
+};
+
+struct LightConstants
+{
+    XMFLOAT4 CameraPosition;
+    XMFLOAT4 AmbientLightColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+    float AmbientLightStrength = 0.2f;
+    uint32_t NumOfDirectionalLights;
+    uint32_t NumOfPointLights;
+    uint32_t NumOfSpotLights;
+
+    Light Lights[MaxLights];
 };

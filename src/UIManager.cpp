@@ -448,6 +448,18 @@ void UIManager::CreateImGuiWindowContent()
 		ImGui::EndTabItem();
 	}
 
+	if (ImGui::BeginTabItem("Materials"))
+	{
+		// Material editor
+		ImGui::EndTabItem();
+	}
+
+	if (ImGui::BeginTabItem("Lightings"))
+	{
+		// Lighting editor
+		ImGui::EndTabItem();
+	}
+
 
 	ImGui::EndTabBar();
 

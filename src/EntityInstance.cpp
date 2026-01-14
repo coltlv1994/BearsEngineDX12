@@ -32,6 +32,8 @@ void Instance::Render(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XM
 	vsi.mvpMatrix = m_modelMatrix * p_vpMatrix;
 	vsi.t_i_modelMatrix = XMMatrixTranspose(XMMatrixInverse(nullptr, m_modelMatrix));
 
+	// TODO: material
+
 	m_mesh_p->RenderInstance(p_commandList, vsi, textureHandle);
 }
 

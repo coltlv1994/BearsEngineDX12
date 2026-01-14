@@ -28,6 +28,7 @@ void MeshManager::Destroy()
 MeshManager::~MeshManager()
 {
 	ClearMeshes();
+	ClearMaterials();
 }
 
 bool MeshManager::AddMesh(const std::string& meshName, Shader* p_shader_p)
@@ -94,6 +95,15 @@ void MeshManager::ClearMeshes()
 // TODO: need change
 void MeshManager::RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix)
 {
+	ComPtr<ID3D12RootSignature> rootSignature = m_defaultShader_p->GetRootSigniture();
+	ComPtr<ID3D12PipelineState> pipelineState = m_defaultShader_p->GetPipelineState();
+
+	p_commandList->SetPipelineState(pipelineState.Get());
+	p_commandList->SetGraphicsRootSignature(rootSignature.Get());
+
+	// set light info here; model matrices and material CBV is per instance and will set later
+	p_commandList->SetGraphicsRootConstantBufferView(3, m_lightManager_p->GetLightCBVGPUAddress());
+
 	for (Instance* instance_p : m_instanceList)
 	{
 		CD3DX12_GPU_DESCRIPTOR_HANDLE textureHandle(m_SRVHeap->GetGPUDescriptorHandleForHeapStart());
@@ -517,4 +527,15 @@ Mesh* MeshManager::GetMeshByName(const std::string& meshName)
 	{
 		return nullptr;
 	}
+}
+
+void MeshManager::CreateDefaultMaterial()
+{
+	Material* defaultMaterial = new Material("defaultMaterial");
+	m_materialMap["defaultMaterial"] = defaultMaterial;
+}
+
+void MeshManager::InitializeLightManager(XMFLOAT4& p_mainCameraLocation)
+{
+	m_lightManager_p = new LightManager(p_mainCameraLocation);
 }

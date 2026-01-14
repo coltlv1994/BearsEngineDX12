@@ -106,4 +106,3 @@ Camera& Camera::operator=(const Camera& other)
 	}
 	return *this;
 }
-
