@@ -20,6 +20,7 @@ enum MessageType : uint32_t
 	MSG_TYPE_TEXTURE_FAILED = 0xC, // reply from MeshManager to UIManager, content is texture file name
 	MSG_TYPE_REMOVE_INSTANCE = 0xD, // request to remove instance, content is instance pointer
 	MSG_TYPE_CPU_MEMORY_INFO = 0xE, // message to report CPU memory usage, content is values of available and total memory in bytes
+	MSG_TYPE_MODIFY_LIGHT = 0xF, // request to modify light parameters, content is light data
 };
 
 constexpr size_t POINTER_SIZE = sizeof(void*);

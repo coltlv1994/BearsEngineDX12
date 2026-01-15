@@ -45,6 +45,8 @@ static char mapNameToLoad[128] = "default";
 
 static char instanceNameBuffer[128] = "";
 
+static inline bool _checkNumOfLights(LightConstants& p_lightConstant);
+
 UIManager::~UIManager()
 {
 	// Cleanup ImGui
@@ -456,7 +458,146 @@ void UIManager::CreateImGuiWindowContent()
 
 	if (ImGui::BeginTabItem("Lightings"))
 	{
+		if (ImGui::Button("Update Lighting"))
+		{
+			// send message to mesh manager for light modification
+			Message* msg = new Message();
+			msg->type = MSG_TYPE_MODIFY_LIGHT;
+			msg->SetData((unsigned char*)&m_lightConstants, sizeof(LightConstants));
+			MeshManager::Get().ReceiveMessage(msg);
+		}
+
+		ImGui::Separator();
+
 		// Lighting editor
+		ImGui::Text("Ambient lighting strength");
+		ImGui::SliderFloat("##ambientStrength", &m_lightConstants.AmbientLightStrength, 0.0f, 1.0f, "%.3f");
+		ImGui::Text("Ambient lighting color");
+		ImGui::ColorEdit3("##ambientColor", (float*)&m_lightConstants.AmbientLightColor);
+
+		ImGui::Separator();
+
+		if (m_lightConstants.NumOfDirectionalLights < MAX_LIGHTS)
+		{
+			if (ImGui::Button("Add directional light"))
+			{
+				// Reset the slot
+				m_lightConstants.DirectionalLights[m_lightConstants.NumOfDirectionalLights] = defaultDL;
+				m_lightConstants.NumOfDirectionalLights += 1;
+			}
+		}
+
+		if (m_lightConstants.NumOfPointLights < MAX_LIGHTS)
+		{
+			if (ImGui::Button("Add point light"))
+			{
+				// Reset
+				m_lightConstants.PointLights[m_lightConstants.NumOfPointLights] = defaultPL;
+				m_lightConstants.NumOfPointLights += 1;
+			}
+		}
+
+		if (m_lightConstants.NumOfSpotLights < MAX_LIGHTS)
+		{
+			if (ImGui::Button("Add spot light"))
+			{
+				m_lightConstants.SpotLights[m_lightConstants.NumOfSpotLights] = defaultSL;
+				m_lightConstants.NumOfSpotLights += 1;
+			}
+		}
+
+		ImGui::Separator();
+
+		if (m_lightConstants.NumOfDirectionalLights > 0)
+		{
+			const static std::string dLStrengthLabel = "##dlS_";
+			const static std::string dlDirectionLabel = "##dlD_";
+			const static std::string dlColorLabel = "##dlC_";
+			const static std::string dlRemoveButtonLabel = "Remove directional light #";
+			for (uint32_t i = 0; i < m_lightConstants.NumOfDirectionalLights; i++)
+			{
+				ImGui::Text("Directional Light #%lu", i);
+				ImGui::Text("Strength");
+				ImGui::SliderFloat((dLStrengthLabel + std::to_string(i)).c_str(), &m_lightConstants.DirectionalLights[i].Strength, 0.0f, 1.0f, "%.3f");
+				ImGui::Text("Direction");
+				ImGui::InputFloat3((dlDirectionLabel + std::to_string(i)).c_str(), (float*)&m_lightConstants.DirectionalLights[i].Direction);
+				ImGui::Text("Color");
+				ImGui::ColorEdit3((dlColorLabel + std::to_string(i)).c_str(), (float*)&m_lightConstants.DirectionalLights[i].Color);
+				if (ImGui::Button((dlRemoveButtonLabel + std::to_string(i)).c_str()))
+				{
+					// Remove light by memcpy
+					size_t bytesToMove = sizeof(DirectionalLight) * (m_lightConstants.NumOfDirectionalLights - i - 1);
+					memcpy_s(&m_lightConstants.DirectionalLights[i], bytesToMove, &m_lightConstants.DirectionalLights[i + 1], bytesToMove);
+					m_lightConstants.NumOfDirectionalLights -= 1;
+				}
+				ImGui::Separator();
+			}
+		}
+
+		if (m_lightConstants.NumOfPointLights > 0)
+		{
+			const static std::string pLStrengthLabel = "##plS_";
+			const static std::string plPositionLabel = "##plD_";
+			const static std::string plColorLabel = "##plC_";
+			const static std::string plFalloffLabel = "##plF_";
+			const static std::string plRemoveButtonLabel = "Remove point light #";
+			for (uint32_t i = 0; i < m_lightConstants.NumOfPointLights; i++)
+			{
+				ImGui::Text("Point Light #%lu", i);
+				ImGui::Text("Strength");
+				ImGui::SliderFloat((pLStrengthLabel + std::to_string(i)).c_str(), &m_lightConstants.PointLights[i].Strength, 0.0f, 1.0f, "%.3f");
+				ImGui::Text("Direction");
+				ImGui::InputFloat3((plPositionLabel + std::to_string(i)).c_str(), (float*)&m_lightConstants.PointLights[i].Position);
+				ImGui::Text("Color");
+				ImGui::ColorEdit3((plColorLabel + std::to_string(i)).c_str(), (float*)&m_lightConstants.PointLights[i].Color);
+				ImGui::Text("Falloff distance, start/end");
+				ImGui::InputFloat2((plFalloffLabel + std::to_string(i)).c_str(), (float*)&m_lightConstants.PointLights[i].Falloff);
+				if (ImGui::Button((plRemoveButtonLabel + std::to_string(i)).c_str()))
+				{
+					// Remove light by memcpy
+					size_t bytesToMove = sizeof(PointLight) * (m_lightConstants.NumOfPointLights - i - 1);
+					memcpy_s(&m_lightConstants.PointLights[i], bytesToMove, &m_lightConstants.PointLights[i + 1], bytesToMove);
+					m_lightConstants.NumOfPointLights -= 1;
+				}
+				ImGui::Separator();
+			}
+		}
+
+		if (m_lightConstants.NumOfSpotLights > 0)
+		{
+			const static std::string sLStrengthLabel = "##slS_";
+			const static std::string slDirectionLabel = "##slD_";
+			const static std::string slPositionLabel = "##slP_";
+			const static std::string slColorLabel = "##slC_";
+			const static std::string slFalloffLabel = "##slF_";
+			const static std::string slSpotPowerLabel = "##slSP_";
+			const static std::string slRemoveButtonLabel = "Remove spot light #";
+			for (uint32_t i = 0; i < m_lightConstants.NumOfSpotLights; i++)
+			{
+				ImGui::Text("Spot Light #%lu", i);
+				ImGui::Text("Strength");
+				ImGui::SliderFloat((sLStrengthLabel + std::to_string(i)).c_str(), &m_lightConstants.SpotLights[i].Strength, 0.0f, 1.0f, "%.3f");
+				ImGui::Text("Position");
+				ImGui::InputFloat3((slPositionLabel + std::to_string(i)).c_str(), (float*)&m_lightConstants.SpotLights[i].Position);
+				ImGui::Text("Direction");
+				ImGui::InputFloat3((slDirectionLabel + std::to_string(i)).c_str(), (float*)&m_lightConstants.SpotLights[i].Direction);
+				ImGui::Text("Falloff distance, start/end");
+				ImGui::InputFloat2((slFalloffLabel + std::to_string(i)).c_str(), (float*)&m_lightConstants.PointLights[i].Falloff);
+				ImGui::Text("Spot power");
+				ImGui::SliderFloat((slSpotPowerLabel + std::to_string(i)).c_str(), &m_lightConstants.SpotLights[i].SpotPower, 0.0f, 1.0f, "%.3f");
+				ImGui::Text("Color");
+				ImGui::ColorEdit3((slColorLabel + std::to_string(i)).c_str(), (float*)&m_lightConstants.SpotLights[i].Color);
+				if (ImGui::Button((slRemoveButtonLabel + std::to_string(i)).c_str()))
+				{
+					// Remove light by memcpy
+					size_t bytesToMove = sizeof(SpotLight) * (m_lightConstants.NumOfSpotLights - i - 1);
+					memcpy_s(&m_lightConstants.SpotLights[i], bytesToMove, &m_lightConstants.SpotLights[i + 1], bytesToMove);
+					m_lightConstants.NumOfSpotLights -= 1;
+				}
+				ImGui::Separator();
+			}
+		}
+		
 		ImGui::EndTabItem();
 	}
 
@@ -464,6 +605,7 @@ void UIManager::CreateImGuiWindowContent()
 	ImGui::EndTabBar();
 
 	// show memory info
+	ImGui::Separator();
 	ImGui::Text("CPU Memory, avail: %llu MB / total: %llu MB", m_memInfo[0] >> 20, m_memInfo[1] >> 20);
 
 	ImGui::End();
@@ -836,4 +978,15 @@ void UIManager::_clampScale(float* rotation_p)
 	if (scaleX < 0.0f) scaleX = 0.0f;
 	if (scaleY < 0.0f) scaleY = 0.0f;
 	if (scaleZ < 0.0f) scaleZ = 0.0f;
+}
+
+void UIManager::SetMainCamera(Camera* cam)
+{
+	m_mainCamRef = cam;
+	m_lightConstants.CameraPosition = XMFLOAT4(0.0f, 0.0f, -10.0f, 0.0f);
+}
+
+static inline bool _checkNumOfLights(LightConstants& p_lightConstant)
+{
+	return (p_lightConstant.NumOfDirectionalLights + p_lightConstant.NumOfPointLights + p_lightConstant.NumOfSpotLights) < MAX_LIGHTS;
 }

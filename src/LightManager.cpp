@@ -19,7 +19,7 @@ LightManager::LightManager(XMFLOAT4& p_cameraPosition)
 
 	// initialize the data
 	InitializeLightCBV(p_cameraPosition);
-	CopyData();
+	CopyData(&m_lightConstants);
 }
 
 LightManager::~LightManager()
@@ -36,9 +36,9 @@ LightConstants& LightManager::GetLightConstants()
 	return m_lightConstants;
 }
 
-void LightManager::CopyData()
+void LightManager::CopyData(LightConstants* p_lightConstant_p)
 {
-	memcpy(m_mappedData, &m_lightConstants, sizeof(LightConstants));
+	memcpy(m_mappedData, p_lightConstant_p, sizeof(LightConstants));
 }
 
 void LightManager::InitializeLightCBV(XMFLOAT4& p_cameraPosition)

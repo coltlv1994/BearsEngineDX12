@@ -12,6 +12,7 @@ using namespace Microsoft::WRL;
 #include <MessageQueue.h>
 #include <EntityInstance.h>
 #include <map>
+#include <Material.h>
 
 struct ExampleDescriptorHeapAllocator
 {
@@ -75,7 +76,7 @@ public:
 
 	void Draw(ComPtr<ID3D12GraphicsCommandList2> commandList);
 
-	void SetMainCamera(Camera* cam) { m_mainCamRef = cam; }
+	void SetMainCamera(Camera* cam);
 
 	void StartListeningThread();
 
@@ -89,6 +90,7 @@ private:
 	bool errorMessage = false; // to trigger error message popup
 	char errorMessageBuffer[256] = { 0 };
 	uint64_t m_memInfo[2] = { 0 }; // used and total memory info
+	LightConstants m_lightConstants;
 
 	void _listen();
 	void _processMessage(Message& msg);

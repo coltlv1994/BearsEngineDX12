@@ -14,7 +14,7 @@ public:
 
 	LightConstants& GetLightConstants();
 
-	void CopyData();
+	void CopyData(LightConstants* p_lightConstant_p);
 
 	void InitializeLightCBV(XMFLOAT4& p_cameraPosition);
 

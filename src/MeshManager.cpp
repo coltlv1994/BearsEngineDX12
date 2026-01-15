@@ -298,6 +298,18 @@ void MeshManager::_processMessage(Message& msg)
 		memcpy_s(m_memInfo, sizeof(uint64_t) * 2, msgData, sizeof(uint64_t) * 2);
 		break;
 	}
+	case MSG_TYPE_MODIFY_LIGHT:
+	{
+		// data is LightData struct
+		if (dataSize != sizeof(LightConstants))
+		{
+			// invalid data size
+			break;
+		}
+		LightConstants* lightData = (LightConstants*)(msg.GetData());
+		m_lightManager_p->CopyData(lightData);
+		break;
+	}
 	default:
 		break;
 	}

@@ -53,7 +53,7 @@ inline void ThrowIfFailed(HRESULT hr)
 #define WSTR1(x) L##x
 #define WSTR(x) WSTR1(x)
 #define NAME_D3D12_OBJECT(x) x->SetName( WSTR(__FILE__ "(" STR(__LINE__) "): " L#x) )
-#define MaxLights 16
+#define MAX_LIGHTS 16
 
 static UINT CalcConstantBufferByteSize(UINT byteSize)
 {
@@ -96,24 +96,55 @@ struct MaterialConstants
     float Roughness = 0.5f;
 };
 
-struct Light
+struct DirectionalLight
 {
-    XMFLOAT3 Strength;
-    float FalloffStart; // point/spot light only
-    XMFLOAT3 Direction; // directional/spot light only
-    float FalloffEnd; // point/spot light only
-    XMFLOAT3 Position; // point light only
-    float SpotPower; // spot light only
+    float Strength = 0.5f;
+	XMFLOAT3 Direction = XMFLOAT3(1.0f, 0.0f, 0.0f);
+
+    XMFLOAT4 Color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+};
+
+struct PointLight
+{
+    float Strength = 0.5f;
+    XMFLOAT3 Position = XMFLOAT3(0.0f, 0.0f, -10.0f);
+
+    XMFLOAT4 Color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+
+    XMFLOAT2 Falloff = XMFLOAT2(1.0f, 1.0f); // start, end
+    float Padding[2] = {0.0f, 0.0f};
+};
+
+struct SpotLight
+{
+    float Strength = 0.5f;
+	XMFLOAT3 Position = XMFLOAT3(0.0f, 0.0f, -10.0f);
+
+    XMFLOAT4 Color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+
+    XMFLOAT3 Direction = XMFLOAT3(1.0f, 0.0f, 0.0f);
+    float SpotPower = 1.0f;
+
+    XMFLOAT2 Falloff = XMFLOAT2(1.0f, 1.0f); // start, end
+    float Padding[2] = { 0.0f, 0.0f };
 };
 
 struct LightConstants
 {
-    XMFLOAT4 CameraPosition;
+    XMFLOAT4 CameraPosition = XMFLOAT4(0.0f, 0.0f, -10.0f, 0.0f);
     XMFLOAT4 AmbientLightColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
     float AmbientLightStrength = 0.2f;
-    uint32_t NumOfDirectionalLights;
-    uint32_t NumOfPointLights;
-    uint32_t NumOfSpotLights;
+    uint32_t NumOfDirectionalLights = 0;
+    uint32_t NumOfPointLights = 0;
+    uint32_t NumOfSpotLights = 0;
 
-    Light Lights[MaxLights];
+	DirectionalLight DirectionalLights[MAX_LIGHTS];
+	PointLight PointLights[MAX_LIGHTS];
+	SpotLight SpotLights[MAX_LIGHTS];
 };
+
+const static DirectionalLight defaultDL;
+
+const static PointLight defaultPL;
+
+const static SpotLight defaultSL;

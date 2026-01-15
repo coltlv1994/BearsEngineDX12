@@ -1,4 +1,4 @@
-#define MaxLights 16
+#define MAX_LIGHTS 16
 
 // WARNING: upon any changes to this struct, remember to modify accordingly in Helpers.h
 struct ModelViewProjection
@@ -17,16 +17,38 @@ struct MaterialConstants
     float Roughness;
 };
 
-// TODO: define another struct for lighting parameters
-
-struct Light
+struct DirectionalLight
 {
-    float3 Strength;
-    float FalloffStart; // point/spot light only
-    float3 Direction; // directional/spot light only
-    float FalloffEnd; // point/spot light only
-    float3 Position; // point light only
-    float SpotPower; // spot light only
+    float Strength;
+    float3 Direction;
+    
+    float4 Color;
+};
+
+struct PointLight
+{
+    float Strength;
+    float3 Position;
+    
+    float4 Color;
+    
+    float2 Falloff; // start, end
+    float2 Padding;
+};
+
+struct SpotLight
+{
+    float Strength;
+    float3 Position;
+    
+    float4 Color;
+    
+    float3 Direction;
+    float SpotPower;
+    
+    float2 Falloff; // start, end
+    
+    float2 Padding;
 };
 
 struct LightConstants
@@ -38,7 +60,9 @@ struct LightConstants
     uint NumOfPointLights;
     uint NumOfSpotLights;
     
-    Light Lights[MaxLights];
+    DirectionalLight DirectionalLights[MAX_LIGHTS];
+    PointLight PointLights[MAX_LIGHTS];
+    SpotLight SpotLights[MAX_LIGHTS];
 };
 
 ConstantBuffer<ModelViewProjection> ModelViewProjectionCB : register(b0);
@@ -60,10 +84,10 @@ struct VertexShaderOutput
 };
 
 // Move light calculations to vertex shader for performance optimization
-float CalcAttenuation(float d, float falloffStart, float falloffEnd)
+float CalcAttenuation(float d, float2 falloff)
 {
     // Linear falloff.
-    return saturate((falloffEnd - d) / (falloffEnd - falloffStart));
+    return saturate((falloff.y - d) / (falloff.y - falloff.x));
 }
 
 // Schlick gives an approximation to Fresnel reflectance (see pg. 233 "Real-Time Rendering 3rd Ed.").
@@ -99,7 +123,7 @@ float3 BlinnPhong(float3 lightStrength, float3 lightVec, float3 normal, float3 t
 //---------------------------------------------------------------------------------------
 // Evaluates the lighting equation for directional lights.
 //---------------------------------------------------------------------------------------
-float3 ComputeDirectionalLight(Light L, float3 normal, float3 toEye)
+float3 ComputeDirectionalLight(DirectionalLight L, float3 normal, float3 toEye)
 {
     // The light vector aims opposite the direction the light rays travel.
     float3 lightVec = -L.Direction;
@@ -114,7 +138,7 @@ float3 ComputeDirectionalLight(Light L, float3 normal, float3 toEye)
 //---------------------------------------------------------------------------------------
 // Evaluates the lighting equation for point lights.
 //---------------------------------------------------------------------------------------
-float3 ComputePointLight(Light L, float3 pos, float3 normal, float3 toEye)
+float3 ComputePointLight(PointLight L, float3 pos, float3 normal, float3 toEye)
 {
     // The vector from the surface to the light.
     float3 lightVec = L.Position - pos;
@@ -123,7 +147,7 @@ float3 ComputePointLight(Light L, float3 pos, float3 normal, float3 toEye)
     float d = length(lightVec);
 
     // Range test.
-    if (d > L.FalloffEnd)
+    if (d > L.Falloff.y)
         return 0.0f;
 
     // Normalize the light vector.
@@ -134,7 +158,7 @@ float3 ComputePointLight(Light L, float3 pos, float3 normal, float3 toEye)
     float3 lightStrength = L.Strength * ndotl;
 
     // Attenuate light by distance.
-    float att = CalcAttenuation(d, L.FalloffStart, L.FalloffEnd);
+    float att = CalcAttenuation(d, L.Falloff);
     lightStrength *= att;
 
     return BlinnPhong(lightStrength, lightVec, normal, toEye);
@@ -143,7 +167,7 @@ float3 ComputePointLight(Light L, float3 pos, float3 normal, float3 toEye)
 //---------------------------------------------------------------------------------------
 // Evaluates the lighting equation for spot lights.
 //---------------------------------------------------------------------------------------
-float3 ComputeSpotLight(Light L, float3 pos, float3 normal, float3 toEye)
+float3 ComputeSpotLight(SpotLight L, float3 pos, float3 normal, float3 toEye)
 {
     // The vector from the surface to the light.
     float3 lightVec = L.Position - pos;
@@ -152,7 +176,7 @@ float3 ComputeSpotLight(Light L, float3 pos, float3 normal, float3 toEye)
     float d = length(lightVec);
 
     // Range test.
-    if (d > L.FalloffEnd)
+    if (d > L.Falloff.y)
         return 0.0f;
 
     // Normalize the light vector.
@@ -163,7 +187,7 @@ float3 ComputeSpotLight(Light L, float3 pos, float3 normal, float3 toEye)
     float3 lightStrength = L.Strength * ndotl;
 
     // Attenuate light by distance.
-    float att = CalcAttenuation(d, L.FalloffStart, L.FalloffEnd);
+    float att = CalcAttenuation(d, L.Falloff);
     lightStrength *= att;
 
     // Scale by spotlight
@@ -173,27 +197,24 @@ float3 ComputeSpotLight(Light L, float3 pos, float3 normal, float3 toEye)
     return BlinnPhong(lightStrength, lightVec, normal, toEye);
 }
 
-float4 ComputeLighting(Light gLights[MaxLights],
-                       float3 pos, float3 normal, float3 toEye,
+float4 ComputeLighting(float3 pos, float3 normal, float3 toEye,
                        float3 shadowFactor)
 {
     float3 result = 0.0f;
-
-    uint i = 0;
     
-    for (i = 0; i < LightCB.NumOfDirectionalLights; ++i)
+    for (uint i = 0; i < LightCB.NumOfDirectionalLights; i++)
     {
-        result += shadowFactor[i] * ComputeDirectionalLight(LightCB.Lights[i], normal, toEye);
+        result += shadowFactor[i] * ComputeDirectionalLight(LightCB.DirectionalLights[i], normal, toEye);
     }
     
-    for (i = LightCB.NumOfDirectionalLights; i < LightCB.NumOfDirectionalLights + LightCB.NumOfPointLights; ++i)
+    for (uint i = 0; i < LightCB.NumOfPointLights; i++)
     {
-        result += shadowFactor[i] * ComputePointLight(LightCB.Lights[i], pos, normal, toEye);
+        result += shadowFactor[i] * ComputePointLight(LightCB.PointLights[i], pos, normal, toEye);
     }
     
-    for (i = LightCB.NumOfDirectionalLights + LightCB.NumOfPointLights; i < LightCB.NumOfDirectionalLights + LightCB.NumOfPointLights + LightCB.NumOfSpotLights; ++i)
+    for (uint i = 0; i < LightCB.NumOfSpotLights; i++)
     {
-        result += shadowFactor[i] * ComputeSpotLight(LightCB.Lights[i], pos, normal, toEye);
+        result += shadowFactor[i] * ComputeSpotLight(LightCB.SpotLights[i], pos, normal, toEye);
     }
 
     return float4(result, 0.0f);
@@ -211,8 +232,7 @@ VertexShaderOutput main(VertexPosColor IN)
     
     float4 ambientLight = LightCB.AmbientLightStrength * MaterialCB.DiffuseAlbedo * LightCB.AmbientLightColor;
     
-    float4 lighting = ComputeLighting(LightCB.Lights,
-                                      OUT.Position.xyz,
+    float4 lighting = ComputeLighting(OUT.Position.xyz,
                                       normal,
                                       ToEye,
                                       float3(1.0f, 1.0f, 1.0f)); // No shadows for now
