@@ -18,7 +18,6 @@ LightManager::LightManager(XMFLOAT4& p_cameraPosition)
 	ThrowIfFailed(m_uploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_mappedData)));
 
 	// initialize the data
-	InitializeLightCBV(p_cameraPosition);
 	CopyData(&m_lightConstants);
 }
 
@@ -39,17 +38,4 @@ LightConstants& LightManager::GetLightConstants()
 void LightManager::CopyData(LightConstants* p_lightConstant_p)
 {
 	memcpy(m_mappedData, p_lightConstant_p, sizeof(LightConstants));
-}
-
-void LightManager::InitializeLightCBV(XMFLOAT4& p_cameraPosition)
-{
-	// set default light constants
-	m_lightConstants.CameraPosition = p_cameraPosition;
-
-	//m_lightConstants.AmbientLightColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-
-	// DEBUG purpose to have a red light
-	m_lightConstants.AmbientLightColor = XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
-	m_lightConstants.AmbientLightStrength = 0.4f;
-
 }

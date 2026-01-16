@@ -16,8 +16,6 @@ public:
 
 	void CopyData(LightConstants* p_lightConstant_p);
 
-	void InitializeLightCBV(XMFLOAT4& p_cameraPosition);
-
 	void UpdateCameraPosition(XMFLOAT4& p_cameraPosition)
 	{
 		m_lightConstants.CameraPosition = p_cameraPosition;

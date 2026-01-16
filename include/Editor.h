@@ -80,6 +80,7 @@ private:
     // Descriptor heap for depth buffer.
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DSVHeap;
 
+    // textures
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_SRVHeap;
 
     D3D12_VIEWPORT m_Viewport;
