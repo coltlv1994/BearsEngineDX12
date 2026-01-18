@@ -21,6 +21,8 @@ class Window
 public:
     // Number of swapchain back buffers.
     static const UINT BufferCount = 3;
+	static const UINT FirstPassRTVCount = 3;
+	static const UINT TotalOfTwoPassesRTVCount = FirstPassRTVCount + 1; // 3 for first pass, 1 for second pass
 
     /**
     * Get a handle to this window's instance.
@@ -79,6 +81,8 @@ public:
      * Get the render target view for the current back buffer.
      */
     D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentRenderTargetView() const;
+
+    D3D12_CPU_DESCRIPTOR_HANDLE GetFirstPassRenderTargetView() const;
 
     /**
      * Get the back buffer resource for the current back buffer.
@@ -151,8 +155,16 @@ private:
     std::weak_ptr<Game> m_pGame;
 
     Microsoft::WRL::ComPtr<IDXGISwapChain4> m_dxgiSwapChain;
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_d3d12RTVDescriptorHeap;
+	
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_d3d12RTVDescriptorHeap; // only back buffers
+    // backbuffer for final output
     Microsoft::WRL::ComPtr<ID3D12Resource> m_d3d12BackBuffers[BufferCount];
+
+	// Descriptor heap for first pass RTVs
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_firstPassRTVDescriptorHeap; 
+	// RTV for first pass, as G-buffer render targets
+    // NOTE: don't use 2D array
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_firstPassRTVs[FirstPassRTVCount * BufferCount];
 
     UINT m_RTVDescriptorSize;
     UINT m_CurrentBackBufferIndex;

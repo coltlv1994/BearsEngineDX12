@@ -222,39 +222,47 @@ void Editor::OnRender(RenderEventArgs& e)
 
 	UINT currentBackBufferIndex = m_pWindow->GetCurrentBackBufferIndex();
 	auto backBuffer = m_pWindow->GetCurrentBackBuffer();
+	static UINT descriptorSize = Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
 	auto rtv = m_pWindow->GetCurrentRenderTargetView();
+
+	auto firstPassRtv = m_pWindow->GetFirstPassRenderTargetView();
+	CD3DX12_CPU_DESCRIPTOR_HANDLE firstPassRtvHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(firstPassRtv);
+
 	auto dsv = m_DSVHeap->GetCPUDescriptorHandleForHeapStart();
-
-	// Clear the render targets.
-	{
-		TransitionResource(commandList, backBuffer,
-			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-		FLOAT clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-		ClearRTV(commandList, rtv, clearColor);
-		ClearDepth(commandList, dsv);
-		ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap.Get() };
-		commandList->SetDescriptorHeaps(1, ppHeaps);
-	}
 
 	commandList->RSSetViewports(1, &m_Viewport);
 	commandList->RSSetScissorRects(1, &m_ScissorRect);
+	FLOAT clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-	commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
+	// first pass
+	// clear rtv
+	for (UINT i = 0; i < Window::FirstPassRTVCount; i++)
+	{
+		commandList->ClearRenderTargetView(firstPassRtvHandle.Offset(i, descriptorSize), clearColor, 0, nullptr);
+	}
+	// clear dsv
+	ClearDepth(commandList, dsv);
+	ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap.Get() };
+	commandList->SetDescriptorHeaps(1, ppHeaps);
 
+	// bind render targets
+	commandList->OMSetRenderTargets(Window::FirstPassRTVCount, &firstPassRtv, FALSE, &dsv);
 	XMMATRIX vpMatrix = m_mainCamera.GetViewProjectionMatrix();
-	// TODO: get camera location for lighting calculations
 
 	UIManager::Get().CreateImGuiWindowContent();
 
-	// Render all meshes in a separate thread
-	// NOTE: for now, mutex is not required since CreateImGuiWindowContent() do not write anything to commandlist
+	MeshManager::Get().RenderAllMeshes(commandList, vpMatrix);
 
-	std::thread meshRenderThread(&MeshManager::RenderAllMeshes, &MeshManager::Get(), commandList, vpMatrix);
+	// move  to second pass
+	// back buffer transition barrier
+	TransitionResource(commandList, backBuffer,
+		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	// clear RTV
+	ClearRTV(commandList, rtv, clearColor);
+	// Render function for second pass
+	// MeshManager::Get().RenderSecondPass(commandList, firstPassRtvHandle, rtv);
 
-	// Wait mesh rendering to be finished, then draw ImGui on backbuffer
-	meshRenderThread.join();
 	UIManager::Get().Draw(commandList);
 
 	// Present

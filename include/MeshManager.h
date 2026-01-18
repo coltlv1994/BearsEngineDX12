@@ -26,6 +26,8 @@ public:
 
 	void RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix);
 
+	void RenderAllMeshes2ndPass(ComPtr<ID3D12GraphicsCommandList2> p_commandList, CD3DX12_CPU_DESCRIPTOR_HANDLE p_firstPassRTVs);
+
 	void StartListeningThread()
 	{
 		std::thread m_listenerThread(&MeshManager::Listen, this);

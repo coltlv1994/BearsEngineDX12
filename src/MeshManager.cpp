@@ -95,14 +95,13 @@ void MeshManager::ClearMeshes()
 // TODO: need change
 void MeshManager::RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix)
 {
-	ComPtr<ID3D12RootSignature> rootSignature = m_defaultShader_p->GetRootSigniture();
-	ComPtr<ID3D12PipelineState> pipelineState = m_defaultShader_p->GetPipelineState();
+	// this is for first pass
+	ComPtr<ID3D12RootSignature> rootSignature;
+	ComPtr<ID3D12PipelineState> pipelineState;
+	m_defaultShader_p->GetRSAndPSO_1stPass(rootSignature, pipelineState);
 
 	p_commandList->SetPipelineState(pipelineState.Get());
 	p_commandList->SetGraphicsRootSignature(rootSignature.Get());
-
-	// set light info here; model matrices and material CBV is per instance and will set later
-	p_commandList->SetGraphicsRootConstantBufferView(3, m_lightManager_p->GetLightCBVGPUAddress());
 
 	for (Instance* instance_p : m_instanceList)
 	{
@@ -112,6 +111,21 @@ void MeshManager::RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandLi
 		instance_p->Render(p_commandList, p_vpMatrix, textureHandle);
 	}
 }
+
+void  MeshManager::RenderAllMeshes2ndPass(ComPtr<ID3D12GraphicsCommandList2> p_commandList, CD3DX12_CPU_DESCRIPTOR_HANDLE p_firstPassRTVs)
+{
+	// this is for first pass
+	ComPtr<ID3D12RootSignature> rootSignature;
+	ComPtr<ID3D12PipelineState> pipelineState;
+	m_defaultShader_p->GetRSAndPSO_2ndPass(rootSignature, pipelineState);
+
+	p_commandList->SetPipelineState(pipelineState.Get());
+	p_commandList->SetGraphicsRootSignature(rootSignature.Get());
+
+	// set light info here; model matrices and material CBV is per instance and will set later
+	p_commandList->SetGraphicsRootConstantBufferView(3, m_lightManager_p->GetLightCBVGPUAddress()); // TODO: check root parameter index
+}
+
 
 void MeshManager::Listen()
 {
