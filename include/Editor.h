@@ -72,13 +72,18 @@ private:
 
     // Resize the depth buffer to match the size of the client area.
     void ResizeDepthBuffer(int width, int height);
+
+    void _createSrvForFirstPassRTVs();
     
     uint64_t m_FenceValues[Window::BufferCount] = {};
 
     // Depth buffer.
     Microsoft::WRL::ComPtr<ID3D12Resource> m_DepthBuffer;
-    // Descriptor heap for depth buffer.
+    // Descriptor heap for depth buffer as DSV
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DSVHeap;
+
+	// contains first pass RTV for each 3 frames and one SRV heap for DSV
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_2ndPassSrvHeap;
 
     // textures
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_SRVHeap;

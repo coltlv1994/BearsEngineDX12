@@ -2,12 +2,11 @@
 #include <Application.h>
 #include <MeshManager.h>
 
-Instance::Instance(std::string& p_name, Texture* p_texture_p, Material* p_material_p, Mesh* p_mesh)
+Instance::Instance(std::string& p_name, Texture* p_texture_p,  Mesh* p_mesh)
 {
 	m_name = p_name;
 	m_mesh_p = p_mesh;
 	m_texture_p = p_texture_p;
-	m_material_p = p_material_p;
 }
 
 void Instance::_updateModelMatrix()
@@ -17,7 +16,7 @@ void Instance::_updateModelMatrix()
 	m_modelMatrix = XMMatrixScalingFromVector(m_scale) * m_modelMatrix;
 }
 
-void Instance::Render(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix, CD3DX12_GPU_DESCRIPTOR_HANDLE textureHandle)
+void Instance::Render(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix)
 {
 	if (m_mesh_p == nullptr)
 	{
@@ -25,22 +24,19 @@ void Instance::Render(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XM
 		return;
 	}
 
-	static UINT descriptorSize = Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	textureHandle.Offset(m_texture_p->srvDescriptorIndex, descriptorSize);
-	p_commandList->SetGraphicsRootDescriptorTable(0, textureHandle);
+	auto textureHandle = m_texture_p->GetSrvHeapStart();
+	static UINT srvSize = Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	p_commandList->SetGraphicsRootDescriptorTable(0, CD3DX12_GPU_DESCRIPTOR_HANDLE(textureHandle, 0, srvSize)); // diffuse
+	p_commandList->SetGraphicsRootDescriptorTable(1, CD3DX12_GPU_DESCRIPTOR_HANDLE(textureHandle, 1, srvSize)); // specular
+	p_commandList->SetGraphicsRootDescriptorTable(2, CD3DX12_GPU_DESCRIPTOR_HANDLE(textureHandle, 2, srvSize)); // normal
 
 	// set vertex shader input, i.e. model matrix and its inverse transpose
     // sizeof() / 4 because we are setting 32 bit constants
 	VertexShaderInput vsi = {};
 	vsi.mvpMatrix = m_modelMatrix * p_vpMatrix;
 
-	vsi.t_i_modelMatrix = m_modelMatrix;
-	vsi.t_i_modelMatrix.r[3] = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f); // remove translation component
-	vsi.t_i_modelMatrix = XMMatrixTranspose(XMMatrixInverse(nullptr, vsi.t_i_modelMatrix));
 	p_commandList->SetGraphicsRoot32BitConstants(1, sizeof(vsi) / 4, &vsi, 0);
-
-	// material
-	p_commandList->SetGraphicsRootConstantBufferView(2, m_material_p->GetMaterialCBVGPUAddress());	
 
 	m_mesh_p->RenderInstance(p_commandList);
 }

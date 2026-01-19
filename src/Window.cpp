@@ -329,9 +329,9 @@ void Window::UpdateRenderTargetViews()
 	CD3DX12_CPU_DESCRIPTOR_HANDLE firstPassRtvHandle(m_firstPassRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
 	DXGI_FORMAT mRtvFormat[3] = {
-		DXGI_FORMAT_R32G32B32_FLOAT, // normal
 		DXGI_FORMAT_R32G32B32_FLOAT, // diffuse
-		DXGI_FORMAT_R32_FLOAT // specular
+		DXGI_FORMAT_R32_FLOAT, // specular
+		DXGI_FORMAT_R32G32B32A32_FLOAT // normal
 	};
 
 	CD3DX12_HEAP_PROPERTIES heapProperty(D3D12_HEAP_TYPE_DEFAULT);

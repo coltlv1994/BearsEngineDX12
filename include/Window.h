@@ -89,6 +89,12 @@ public:
      */
     Microsoft::WRL::ComPtr<ID3D12Resource> GetCurrentBackBuffer() const;
 
+    // get first pass RTV's resources
+    Microsoft::WRL::ComPtr<ID3D12Resource>* GetFirstPassRtvResource()
+    {
+        return m_firstPassRTVs;
+    }
+
 
 protected:
     // The Window procedure needs to call protected methods of this class.

@@ -12,7 +12,6 @@ using namespace Microsoft::WRL;
 #include <MessageQueue.h>
 #include <EntityInstance.h>
 #include <map>
-#include <Material.h>
 
 struct ExampleDescriptorHeapAllocator
 {

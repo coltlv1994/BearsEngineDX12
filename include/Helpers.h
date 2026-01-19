@@ -84,7 +84,6 @@ struct VertexPosColor
 struct VertexShaderInput
 {
     XMMATRIX mvpMatrix;
-	XMMATRIX t_i_modelMatrix;
 };
 
 // used for material constant buffer view

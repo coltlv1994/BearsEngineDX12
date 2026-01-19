@@ -11,8 +11,7 @@ using namespace DirectX;
 // POSITION: float3, NORMAL: float3, TEXCOORD: float2
 static D3D12_INPUT_ELEMENT_DESC firstPassInputLayout[] = {
     { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-    { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-    { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 };
 
 static UINT firstPassInputLayoutCount = sizeof(firstPassInputLayout) / sizeof(D3D12_INPUT_ELEMENT_DESC);
@@ -69,9 +68,9 @@ void Shader::_create1st()
     // A single 32-bit constant root parameter that is used by the vertex shader.
     // first pass don't handle lights, only textures is enough
     CD3DX12_ROOT_PARAMETER1 rootParameters[2];
-    CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+    CD3DX12_DESCRIPTOR_RANGE1 descriptorRange = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 4, 0);
     rootParameters[0].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL); // texture
-    rootParameters[1].InitAsConstants(sizeof(VertexShaderInput) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX); // MVP and t_i_model matrices
+    rootParameters[1].InitAsConstants(sizeof(VertexShaderInput) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX); // MVP matrix
 
     D3D12_STATIC_SAMPLER_DESC sampler = {};
     sampler.Filter = D3D12_FILTER_ANISOTROPIC;
@@ -102,9 +101,9 @@ void Shader::_create1st()
 
     D3D12_RT_FORMAT_ARRAY rtvFormats = {};
     rtvFormats.NumRenderTargets = 3;
-    rtvFormats.RTFormats[0] = DXGI_FORMAT_R32G32B32_FLOAT; // normal
-    rtvFormats.RTFormats[1] = DXGI_FORMAT_R32G32B32_FLOAT; // diffuse
-    rtvFormats.RTFormats[2] = DXGI_FORMAT_R32_FLOAT; // specular
+    rtvFormats.RTFormats[0] = DXGI_FORMAT_R32G32B32_FLOAT; // diffuse
+    rtvFormats.RTFormats[1] = DXGI_FORMAT_R32_FLOAT; // specular
+    rtvFormats.RTFormats[2] = DXGI_FORMAT_R32G32B32A32_FLOAT; // normal
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineState;
     memset(&graphicsPipelineState, 0, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));

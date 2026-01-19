@@ -7,7 +7,6 @@
 #include <MessageQueue.h>
 #include <EntityInstance.h>
 #include <Texture.h>
-#include <Material.h>
 #include <LightManager.h>
 
 class MeshManager
@@ -26,7 +25,7 @@ public:
 
 	void RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix);
 
-	void RenderAllMeshes2ndPass(ComPtr<ID3D12GraphicsCommandList2> p_commandList, CD3DX12_CPU_DESCRIPTOR_HANDLE p_firstPassRTVs);
+	void RenderAllMeshes2ndPass(ComPtr<ID3D12GraphicsCommandList2> p_commandList, UINT currentBackBufferIndex, ComPtr<ID3D12DescriptorHeap> m_2ndPassSrvHeap);
 
 	void StartListeningThread()
 	{
@@ -55,22 +54,9 @@ public:
 
 	Texture* GetTextureByName(const std::string& textureName);
 
-	Material* GetMaterialByName(const std::string& materialName);
-
 	Mesh* GetMeshByName(const std::string& meshName);
 
-	void CreateDefaultMaterial();
-
 	void InitializeLightManager(XMFLOAT4& p_mainCameraLocation);
-
-	void ClearMaterials()
-	{
-		for (auto materialPair : m_materialMap)
-		{
-			delete materialPair.second;
-		}
-		m_materialMap.clear();
-	}
 
 private:
 	std::unordered_map<std::string, Mesh*> m_meshes; // map of mesh name to Mesh pointer
@@ -79,7 +65,6 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_SRVHeap; // passed from Editor class, holds textures
 	std::vector<Instance*> m_instanceList; // list of all created instances
 	std::unordered_map<std::string, Texture*> m_textureMap; // map of texture file path to texture resource
-	std::unordered_map<std::string, Material*> m_materialMap; // map of material name to material
 	LightManager* m_lightManager_p = nullptr;
 
 	unsigned int m_createdInstanceCount = 0; // for unique instance naming, this value should never decrease except map reloading

@@ -56,13 +56,20 @@ bool Editor::LoadContent()
 
 	// Create the descriptor heap for the depth-stencil view.
 	m_DSVHeap = app.CreateDescriptorHeap(1, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
+	UINT secondPassSrvHeapSize = Window::BufferCount * Window::FirstPassRTVCount + 1; // 3 SRV for first pass RTVs per frame + 1 SRV for depth buffer
+	m_2ndPassSrvHeap =
+		app.CreateDescriptorHeap(
+			secondPassSrvHeapSize,
+			D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+			D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
+
+	_createSrvForFirstPassRTVs();
 
 	// Allocating SRV descriptors (for textures), and set the size to 128
 	m_SRVHeap = app.CreateDescriptorHeap(128, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
 
 	MeshManager::Get().SetSRVHeap(m_SRVHeap);
 	MeshManager::Get().CreateDefaultTexture();
-	MeshManager::Get().CreateDefaultMaterial();
 
 	// Setup ImGui binding for DirectX 12
 	UIManager::Get().InitializeD3D12(device, commandQueue, m_SRVHeap, Window::BufferCount);
@@ -125,6 +132,22 @@ void Editor::ResizeDepthBuffer(int width, int height)
 
 		device->CreateDepthStencilView(m_DepthBuffer.Get(), &dsv,
 			m_DSVHeap->GetCPUDescriptorHandleForHeapStart());
+
+		D3D12_SHADER_RESOURCE_VIEW_DESC descSRV;
+
+		descSRV.Texture2D.MipLevels = 1;
+		descSRV.Texture2D.MostDetailedMip = 0;
+		descSRV.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+		descSRV.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		descSRV.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+		CD3DX12_CPU_DESCRIPTOR_HANDLE dsvSrvHandle =
+			CD3DX12_CPU_DESCRIPTOR_HANDLE(
+				m_2ndPassSrvHeap->GetCPUDescriptorHandleForHeapStart(),
+				Window::BufferCount * Window::FirstPassRTVCount,
+				Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+
+		device->CreateShaderResourceView(m_DepthBuffer.Get(), &descSRV, dsvSrvHandle);
 	}
 }
 
@@ -224,9 +247,8 @@ void Editor::OnRender(RenderEventArgs& e)
 	auto backBuffer = m_pWindow->GetCurrentBackBuffer();
 	static UINT descriptorSize = Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-	auto rtv = m_pWindow->GetCurrentRenderTargetView();
-
 	auto firstPassRtv = m_pWindow->GetFirstPassRenderTargetView();
+
 	CD3DX12_CPU_DESCRIPTOR_HANDLE firstPassRtvHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(firstPassRtv);
 
 	auto dsv = m_DSVHeap->GetCPUDescriptorHandleForHeapStart();
@@ -235,16 +257,15 @@ void Editor::OnRender(RenderEventArgs& e)
 	commandList->RSSetScissorRects(1, &m_ScissorRect);
 	FLOAT clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-	// first pass
-	// clear rtv
+	// first pass, clear rtv
 	for (UINT i = 0; i < Window::FirstPassRTVCount; i++)
 	{
 		commandList->ClearRenderTargetView(firstPassRtvHandle.Offset(i, descriptorSize), clearColor, 0, nullptr);
 	}
 	// clear dsv
 	ClearDepth(commandList, dsv);
-	ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap.Get() };
-	commandList->SetDescriptorHeaps(1, ppHeaps);
+	ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap.Get(), m_2ndPassSrvHeap.Get()};
+	commandList->SetDescriptorHeaps(2, ppHeaps);
 
 	// bind render targets
 	commandList->OMSetRenderTargets(Window::FirstPassRTVCount, &firstPassRtv, FALSE, &dsv);
@@ -252,16 +273,22 @@ void Editor::OnRender(RenderEventArgs& e)
 
 	UIManager::Get().CreateImGuiWindowContent();
 
+	// first pass
 	MeshManager::Get().RenderAllMeshes(commandList, vpMatrix);
 
 	// move  to second pass
 	// back buffer transition barrier
+	auto secondPassRtv = m_pWindow->GetCurrentRenderTargetView();
+
 	TransitionResource(commandList, backBuffer,
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
 	// clear RTV
-	ClearRTV(commandList, rtv, clearColor);
+	ClearRTV(commandList, secondPassRtv, clearColor);
+	commandList->OMSetRenderTargets(1, &secondPassRtv, FALSE, nullptr);
+
 	// Render function for second pass
-	// MeshManager::Get().RenderSecondPass(commandList, firstPassRtvHandle, rtv);
+	MeshManager::Get().RenderAllMeshes2ndPass(commandList, currentBackBufferIndex, m_2ndPassSrvHeap);
 
 	UIManager::Get().Draw(commandList);
 
@@ -319,4 +346,39 @@ D3D12_VIEWPORT& Editor::GetViewport()
 D3D12_RECT& Editor::GetScissorRect()
 {
 	return m_ScissorRect;
+}
+
+void Editor::_createSrvForFirstPassRTVs()
+{
+	//Create SRV for RTs
+	Application& app = Application::Get();
+	auto device = app.GetDevice();
+	ComPtr<ID3D12Resource>* resources_p = m_pWindow->GetFirstPassRtvResource();
+
+	DXGI_FORMAT mRtvFormat[3] = {
+	DXGI_FORMAT_R32G32B32_FLOAT, // diffuse
+	DXGI_FORMAT_R32_FLOAT, // specular
+	DXGI_FORMAT_R32G32B32A32_FLOAT // normal
+	};
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC descSRV;
+
+	ZeroMemory(&descSRV, sizeof(descSRV));
+	descSRV.Texture2D.MipLevels = 1;
+	descSRV.Texture2D.MostDetailedMip = 0;
+	descSRV.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	descSRV.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE srvHandle =
+		CD3DX12_CPU_DESCRIPTOR_HANDLE(
+			m_2ndPassSrvHeap->GetCPUDescriptorHandleForHeapStart(),
+			0,
+			app.GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+
+	for (UINT i = 0; i < Window::BufferCount; i++) {
+		for (UINT j = 0; j < Window::FirstPassRTVCount; j++) {
+			descSRV.Format = mRtvFormat[j];
+			device->CreateShaderResourceView(resources_p[i * 3 + j].Get(), &descSRV, srvHandle.Offset(i * 3 + j));
+		}
+	}
 }

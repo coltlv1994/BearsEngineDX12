@@ -1,6 +1,6 @@
 Texture2D gAlbedoTexture : register(t0);
-Texture2D gNormalTexture : register(t1);
-Texture2D gSpecularGlossTexture : register(t2);
+Texture2D gSpecularGlossTexture : register(t1);
+Texture2D gNormalTexture : register(t2);
 Texture2D gDepth : register(t3);
 
 SamplerState Sampler : register(s0);

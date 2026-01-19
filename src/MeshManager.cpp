@@ -4,9 +4,7 @@
 #include <UIManager.h>
 #include <Application.h>
 #include <CommandQueue.h>
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include <Window.h>
 
 // UIManager singleton instance
 static MeshManager* gs_pSingleton = nullptr;
@@ -28,7 +26,6 @@ void MeshManager::Destroy()
 MeshManager::~MeshManager()
 {
 	ClearMeshes();
-	ClearMaterials();
 }
 
 bool MeshManager::AddMesh(const std::string& meshName, Shader* p_shader_p)
@@ -105,25 +102,42 @@ void MeshManager::RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandLi
 
 	for (Instance* instance_p : m_instanceList)
 	{
-		CD3DX12_GPU_DESCRIPTOR_HANDLE textureHandle(m_SRVHeap->GetGPUDescriptorHandleForHeapStart());
-
 		// call mesh class to render it
-		instance_p->Render(p_commandList, p_vpMatrix, textureHandle);
+		instance_p->Render(p_commandList, p_vpMatrix);
 	}
 }
 
-void  MeshManager::RenderAllMeshes2ndPass(ComPtr<ID3D12GraphicsCommandList2> p_commandList, CD3DX12_CPU_DESCRIPTOR_HANDLE p_firstPassRTVs)
+void  MeshManager::RenderAllMeshes2ndPass(ComPtr<ID3D12GraphicsCommandList2> p_commandList, UINT currentBackBufferIndex, ComPtr<ID3D12DescriptorHeap> m_2ndPassSrvHeap)
 {
-	// this is for first pass
+	// this is for 2nd pass
 	ComPtr<ID3D12RootSignature> rootSignature;
 	ComPtr<ID3D12PipelineState> pipelineState;
 	m_defaultShader_p->GetRSAndPSO_2ndPass(rootSignature, pipelineState);
 
 	p_commandList->SetPipelineState(pipelineState.Get());
-	p_commandList->SetGraphicsRootSignature(rootSignature.Get());
+	// sharing the same root signature for both passes
+	//p_commandList->SetGraphicsRootSignature(rootSignature.Get());
 
-	// set light info here; model matrices and material CBV is per instance and will set later
-	p_commandList->SetGraphicsRootConstantBufferView(3, m_lightManager_p->GetLightCBVGPUAddress()); // TODO: check root parameter index
+	UINT srvHeapStartIndex = currentBackBufferIndex * Window::FirstPassRTVCount;
+
+	static D3D12_GPU_DESCRIPTOR_HANDLE textureHandle = m_2ndPassSrvHeap->GetGPUDescriptorHandleForHeapStart();	
+	static UINT descriptorSize = Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+
+	// albedo
+	p_commandList->SetGraphicsRootDescriptorTable(0, CD3DX12_GPU_DESCRIPTOR_HANDLE(textureHandle, srvHeapStartIndex, descriptorSize));
+
+	// normal
+	p_commandList->SetGraphicsRootDescriptorTable(1, CD3DX12_GPU_DESCRIPTOR_HANDLE(textureHandle, srvHeapStartIndex + 1, descriptorSize));
+
+	// specular
+	p_commandList->SetGraphicsRootDescriptorTable(2, CD3DX12_GPU_DESCRIPTOR_HANDLE(textureHandle, srvHeapStartIndex + 2, descriptorSize));
+
+	// Depth
+	p_commandList->SetGraphicsRootDescriptorTable(4, CD3DX12_GPU_DESCRIPTOR_HANDLE(textureHandle, Window::FirstPassRTVCount * Window::BufferCount, descriptorSize));
+
+	// set light info here;
+	p_commandList->SetGraphicsRootConstantBufferView(3, m_lightManager_p->GetLightCBVGPUAddress()); 
 }
 
 
@@ -181,7 +195,7 @@ void MeshManager::_processMessage(Message& msg)
 	{
 		std::string instanceName = "instance_" + std::to_string(m_createdInstanceCount);
 
-		Instance* createdInstance = new Instance(instanceName, m_textureMap["default_white"], m_materialMap["defaultMaterial"]);
+		Instance* createdInstance = new Instance(instanceName, m_textureMap["default_white"]);
 		m_instanceList.push_back(createdInstance);
 		_sendInstanceReplyMessage(createdInstance);
 
@@ -222,8 +236,7 @@ void MeshManager::_processMessage(Message& msg)
 		{
 			std::string instanceName = instanceInfos_p[i].instanceName;
 			Texture* texture_p = GetTextureByName(std::string(instanceInfos_p[i].textureName));
-			Material* meshMaterial_p = GetMaterialByName(std::string(instanceInfos_p[i].materialName));
-			Instance* instance_p = new Instance(instanceName, texture_p, meshMaterial_p, mesh_p);
+			Instance* instance_p = new Instance(instanceName, texture_p, mesh_p);
 			if (instance_p)
 			{
 				instance_p->SetPosition(instanceInfos_p[i].position[0], instanceInfos_p[i].position[1], instanceInfos_p[i].position[2]);
@@ -410,122 +423,14 @@ void MeshManager::_sendInstanceFailedMessage(const std::string& meshName)
 
 void MeshManager::CreateDefaultTexture()
 {
-	ReadAndUploadTexture();
+	Texture* defaultTexture = new Texture("default_white", 0, m_SRVHeap);
 }
 
 bool MeshManager::ReadAndUploadTexture(const char* textureName)
 {
-	ComPtr<ID3D12Resource> texture = nullptr;
+	Texture* newTexture = new Texture(textureName, m_textureMap.size(), m_SRVHeap);
 
-	auto device = Application::Get().GetDevice();
-	auto commandQueue = Application::Get().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
-	auto commandList = commandQueue->GetCommandList();
-
-	static CD3DX12_HEAP_PROPERTIES heap_default = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-
-	unsigned char* imageData = nullptr;
-
-	D3D12_RESOURCE_DESC textureDesc = {};
-	textureDesc.MipLevels = 1;
-	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-	textureDesc.DepthOrArraySize = 1;
-	textureDesc.SampleDesc.Count = 1;
-	textureDesc.SampleDesc.Quality = 0;
-	textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-
-	if (textureName == nullptr)
-	{
-		// load default white texture
-		textureDesc.Width = 128;
-		textureDesc.Height = 128;
-
-		size_t bufferSize = textureDesc.Width * textureDesc.Height * 4; // 4 channels RGBA
-
-		imageData = new unsigned char[bufferSize];
-		memset(imageData, 0xFF, bufferSize); // white texture
-	}
-	else
-	{
-		// get texture path, convert to wchar_t*
-		char texturePath[500];
-		sprintf_s(texturePath, "textures\\%s", textureName);
-
-		int width, height, channels;
-		imageData = stbi_load(texturePath, &width, &height, &channels, STBI_rgb_alpha); // force 4 channels
-
-		if (imageData == nullptr)
-		{
-			// Failed to load image
-			return false;
-		}
-
-		// Describe and create a Texture2D.
-		textureDesc.Width = width;
-		textureDesc.Height = height;
-	}
-
-	ThrowIfFailed(device->CreateCommittedResource(
-		&heap_default,
-		D3D12_HEAP_FLAG_NONE,
-		&textureDesc,
-		D3D12_RESOURCE_STATE_COMMON,
-		nullptr,
-		IID_PPV_ARGS(&texture)));
-
-	const UINT64 uploadBufferSize = GetRequiredIntermediateSize(texture.Get(), 0, 1);
-
-	static CD3DX12_HEAP_PROPERTIES heap_upload = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-	CD3DX12_RESOURCE_DESC buffer_default_size = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
-	ComPtr<ID3D12Resource> textureUploadHeap = nullptr;
-
-	// Create the GPU upload buffer.
-	ThrowIfFailed(device->CreateCommittedResource(
-		&heap_upload,
-		D3D12_HEAP_FLAG_NONE,
-		&buffer_default_size,
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&textureUploadHeap)));
-
-	D3D12_SUBRESOURCE_DATA textureData = {};
-	textureData.pData = imageData;
-	textureData.RowPitch = textureDesc.Width * 4;
-	textureData.SlicePitch = textureData.RowPitch * textureDesc.Height;
-
-	UpdateSubresources(commandList.Get(), texture.Get(), textureUploadHeap.Get(), 0, 0, 1, &textureData);
-
-	// wait until upload is complete
-	auto fenceValue = commandQueue->ExecuteCommandList(commandList);
-	commandQueue->WaitForFenceValue(fenceValue);
-
-	// The data is guaranteed to be uploaded after WaitForFenceValue()
-	if (textureName == nullptr)
-	{
-		delete[] imageData;
-	}
-	else
-	{
-		stbi_image_free(imageData);
-	}
-
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Format = texture->GetDesc().Format; // replace with texture
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.MipLevels = texture->GetDesc().MipLevels;
-	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-
-	// store in from 2nd heap to avoid error with imgui
-	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(m_SRVHeap->GetCPUDescriptorHandleForHeapStart());
-	UINT descriptorIndex = m_textureMap.size() + 1;
-	hDescriptor.Offset(descriptorIndex, Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
-	device->CreateShaderResourceView(texture.Get(), &srvDesc, hDescriptor);
-
-	// store texture in map
-	textureName = textureName ? textureName : "default_white";
-	m_textureMap[textureName] = new Texture(textureName, texture, descriptorIndex);
+	m_textureMap[textureName] = newTexture;
 
 	return true;
 }
@@ -543,19 +448,6 @@ Texture* MeshManager::GetTextureByName(const std::string& textureName)
 	}
 }
 
-Material* MeshManager::GetMaterialByName(const std::string& materialName)
-{
-	if (auto materialIter = m_materialMap.find(materialName); materialIter != m_materialMap.end())
-	{
-		return materialIter->second;
-	}
-	else
-	{
-		// get default texture
-		return m_materialMap["defaultMaterial"];
-	}
-}
-
 Mesh* MeshManager::GetMeshByName(const std::string& meshName)
 {
 	if (auto meshIter = m_meshes.find(meshName); meshIter != m_meshes.end())
@@ -566,12 +458,6 @@ Mesh* MeshManager::GetMeshByName(const std::string& meshName)
 	{
 		return nullptr;
 	}
-}
-
-void MeshManager::CreateDefaultMaterial()
-{
-	Material* defaultMaterial = new Material("defaultMaterial");
-	m_materialMap["defaultMaterial"] = defaultMaterial;
 }
 
 void MeshManager::InitializeLightManager(XMFLOAT4& p_mainCameraLocation)
