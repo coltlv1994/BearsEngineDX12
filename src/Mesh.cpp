@@ -110,12 +110,14 @@ void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 					break;
 				case 'n':
 					// read vertex normal
-					float nx, ny, nz;
-					// "vn " has three characters, including the space 
-					sscanf_s(&line.c_str()[3], "%f %f %f", &nx, &ny, &nz);
-					m_normals.push_back(nx);
-					m_normals.push_back(ny);
-					m_normals.push_back(nz);
+					//float nx, ny, nz;
+					//// "vn " has three characters, including the space 
+					//sscanf_s(&line.c_str()[3], "%f %f %f", &nx, &ny, &nz);
+					//m_normals.push_back(nx);
+					//m_normals.push_back(ny);
+					//m_normals.push_back(nz);
+					break;
+				default: // ill-formatted line, ignore
 					break;
 				}
 				break;
@@ -149,9 +151,9 @@ void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 						m_triangles.push_back(v[startIndex] - 1);
 						m_triangles.push_back(v[currentIndex] - 1);
 						m_triangles.push_back(v[currentIndexPlusOne] - 1);
-						m_triangleNormalIndex.push_back(vn[startIndex] - 1);
-						m_triangleNormalIndex.push_back(vn[currentIndex] - 1);
-						m_triangleNormalIndex.push_back(vn[currentIndexPlusOne] - 1);
+						//m_triangleNormalIndex.push_back(vn[startIndex] - 1);
+						//m_triangleNormalIndex.push_back(vn[currentIndex] - 1);
+						//m_triangleNormalIndex.push_back(vn[currentIndexPlusOne] - 1);
 						m_triangleTexcoordIndex.push_back(vt[startIndex] - 1);
 						m_triangleTexcoordIndex.push_back(vt[currentIndex] - 1);
 						m_triangleTexcoordIndex.push_back(vt[currentIndexPlusOne] - 1);
@@ -170,11 +172,11 @@ void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 
 		// integrity check
 		size_t numOfVertices = m_vertices.size() / 3;
-		size_t numOfNormals = m_normals.size() / 3;
+		//size_t numOfNormals = m_normals.size() / 3;
 		size_t numOfTexcoords = m_texcoords.size() / 2;
 		unsigned int maxVertexIndex = *std::max_element(m_triangles.begin(), m_triangles.end());
-		unsigned int maxNormalIndex = *std::max_element(m_triangleNormalIndex.begin(), m_triangleNormalIndex.end());
-		unsigned int maxTexcoordIndex = *std::max_element(m_triangleTexcoordIndex.begin(), m_triangleTexcoordIndex.end());
+		//unsigned int maxNormalIndex = *std::max_element(m_triangleNormalIndex.begin(), m_triangleNormalIndex.end());
+		unsigned int maxTexcoordIndex = *std::max_element(m_triangleTexcoordIndex.begin(), m_triangleTexcoordIndex.end());	
 
 		// combine buffers
 		auto noOfVertices = m_vertices.size() / 3;
@@ -186,9 +188,9 @@ void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 			auto vi2 = m_triangles[i * 3 + 1];
 			auto vi3 = m_triangles[i * 3 + 2];
 
-			auto vni1 = m_triangleNormalIndex[i * 3];
-			auto vni2 = m_triangleNormalIndex[i * 3 + 1];
-			auto vni3 = m_triangleNormalIndex[i * 3 + 2];
+			//auto vni1 = m_triangleNormalIndex[i * 3];
+			//auto vni2 = m_triangleNormalIndex[i * 3 + 1];
+			//auto vni3 = m_triangleNormalIndex[i * 3 + 2];
 
 			auto vti1 = m_triangleTexcoordIndex[i * 3];
 			auto vti2 = m_triangleTexcoordIndex[i * 3 + 1];
@@ -196,17 +198,17 @@ void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 
 			combinedBuffer.push_back(VertexPosColor(
 				{ m_vertices[vi1 * 3], m_vertices[vi1 * 3 + 1] , m_vertices[vi1 * 3 + 2] },
-				{ m_normals[vni1 * 3], m_normals[vni1 * 3 + 1] , m_normals[vni1 * 3 + 2] },
+				//{ m_normals[vni1 * 3], m_normals[vni1 * 3 + 1] , m_normals[vni1 * 3 + 2] },
 				{ m_texcoords[vti1 * 2], m_texcoords[vti1 * 2 + 1] }));
 
 			combinedBuffer.push_back(VertexPosColor(
 				{ m_vertices[vi2 * 3], m_vertices[vi2 * 3 + 1] , m_vertices[vi2 * 3 + 2] },
-				{ m_normals[vni2 * 3], m_normals[vni2 * 3 + 1] , m_normals[vni2 * 3 + 2] },
+				//{ m_normals[vni2 * 3], m_normals[vni2 * 3 + 1] , m_normals[vni2 * 3 + 2] },
 				{ m_texcoords[vti2 * 2], m_texcoords[vti2 * 2 + 1] }));
 
 			combinedBuffer.push_back(VertexPosColor(
 				{ m_vertices[vi3 * 3], m_vertices[vi3 * 3 + 1] , m_vertices[vi3 * 3 + 2] },
-				{ m_normals[vni3 * 3], m_normals[vni3 * 3 + 1] , m_normals[vni3 * 3 + 2] },
+				//{ m_normals[vni3 * 3], m_normals[vni3 * 3 + 1] , m_normals[vni3 * 3 + 2] },
 				{ m_texcoords[vti3 * 2], m_texcoords[vti3 * 2 + 1] }));
 		}
 
@@ -217,9 +219,9 @@ void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 		}
 
 		m_vertices.clear();
-		m_normals.clear();
+		//m_normals.clear();
 		m_texcoords.clear();
-		m_triangleNormalIndex.clear();
+		//m_triangleNormalIndex.clear();
 		m_triangleTexcoordIndex.clear();
 
 		// write to binary file for future use

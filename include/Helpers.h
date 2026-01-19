@@ -75,7 +75,8 @@ static UINT CalcConstantBufferByteSize(UINT byteSize)
 struct VertexPosColor
 {
     XMFLOAT3 Position;
-    XMFLOAT3 Normal;
+    // normals are currently read from texture map
+    //XMFLOAT3 Normal;
     XMFLOAT2 TexCoord;
 };
 
