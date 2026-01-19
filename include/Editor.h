@@ -82,10 +82,12 @@ private:
     // Descriptor heap for depth buffer as DSV
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DSVHeap;
 
-	// contains first pass RTV for each 3 frames and one SRV heap for DSV
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_2ndPassSrvHeap;
-
     // textures
+    // index 0: imgui
+	// index 1-3, 4-6, 7-9: first pass RTVs for each buffer
+	// index 10: depth buffer SRV
+	// index 11-13, 14-16, etc: other textures
+    // total size: 512 (for now)
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_SRVHeap;
 
     D3D12_VIEWPORT m_Viewport;

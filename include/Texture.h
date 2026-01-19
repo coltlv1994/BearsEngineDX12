@@ -35,7 +35,10 @@ public:
 		static UINT srvSize = Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		static D3D12_GPU_DESCRIPTOR_HANDLE srvBaseHandle = m_SRVHeap->GetGPUDescriptorHandleForHeapStart();
 
-		UINT offset = m_textureIndex * 3 + 1;
+		// initial offset should be 11
+		// 1 for imgui, 3 RTV-SRV per 3 backbuffers, 1 for depth buffer SRV
+		// 1 + 3 * 3 + 1 = 11
+		UINT offset = m_textureIndex * 3 + 11;
 
 		return CD3DX12_GPU_DESCRIPTOR_HANDLE(srvBaseHandle, offset, srvSize);
 	}

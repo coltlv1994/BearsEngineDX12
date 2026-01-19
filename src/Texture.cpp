@@ -5,13 +5,13 @@
 
 void Texture::_initialize()
 {
-	std::string diffuseTextureName = m_name + "_diffuse.jpg";
-	std::string normalTextureName = m_name + "_normal.jpg";
-	std::string specularTextureName = m_name + "_specular.jpg";
+	std::string diffuseTextureName = "textures\\" + m_name + "_diffuse.jpg";
+	std::string normalTextureName = "textures\\" + m_name + "_normal.jpg";
+	std::string specularTextureName = "textures\\" + m_name + "_specular.jpg";
 
 	// first in this SRV heap is for imgui
 	// after that, each Texture has 3 textures: diffuse, normal, specular
-	UINT indexStart = m_textureIndex * 3 + 1;
+	UINT indexStart = m_textureIndex * 3 + 11;
 
 	_loadTexture(diffuseTextureName, indexStart);
 	_loadTexture(normalTextureName, indexStart + 1);

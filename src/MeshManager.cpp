@@ -110,7 +110,7 @@ void MeshManager::RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandLi
 	}
 }
 
-void  MeshManager::RenderAllMeshes2ndPass(ComPtr<ID3D12GraphicsCommandList2> p_commandList, UINT currentBackBufferIndex, ComPtr<ID3D12DescriptorHeap> m_2ndPassSrvHeap)
+void  MeshManager::RenderAllMeshes2ndPass(ComPtr<ID3D12GraphicsCommandList2> p_commandList, UINT currentBackBufferIndex)
 {
 	if (m_instanceList.size() == 0)
 		return;
@@ -122,28 +122,19 @@ void  MeshManager::RenderAllMeshes2ndPass(ComPtr<ID3D12GraphicsCommandList2> p_c
 
 	p_commandList->SetPipelineState(pipelineState.Get());
 	// sharing the same root signature for both passes
-	//p_commandList->SetGraphicsRootSignature(rootSignature.Get());
+	p_commandList->SetGraphicsRootSignature(rootSignature.Get());
 
-	UINT srvHeapStartIndex = currentBackBufferIndex * Window::FirstPassRTVCount;
+	UINT srvHeapStartIndex = currentBackBufferIndex * Window::FirstPassRTVCount + 1;
 
-	static D3D12_GPU_DESCRIPTOR_HANDLE textureHandle = m_2ndPassSrvHeap->GetGPUDescriptorHandleForHeapStart();	
+	static D3D12_GPU_DESCRIPTOR_HANDLE textureHandle = m_SRVHeap->GetGPUDescriptorHandleForHeapStart();
 	static UINT descriptorSize = Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-
-	// albedo
-	p_commandList->SetGraphicsRootDescriptorTable(0, CD3DX12_GPU_DESCRIPTOR_HANDLE(textureHandle, srvHeapStartIndex, descriptorSize));
-
-	// normal
-	p_commandList->SetGraphicsRootDescriptorTable(1, CD3DX12_GPU_DESCRIPTOR_HANDLE(textureHandle, srvHeapStartIndex + 1, descriptorSize));
-
-	// specular
-	p_commandList->SetGraphicsRootDescriptorTable(2, CD3DX12_GPU_DESCRIPTOR_HANDLE(textureHandle, srvHeapStartIndex + 2, descriptorSize));
+	// set light info here;
+	p_commandList->SetGraphicsRootConstantBufferView(0, m_lightManager_p->GetLightCBVGPUAddress());
+	p_commandList->SetGraphicsRootDescriptorTable(1, CD3DX12_GPU_DESCRIPTOR_HANDLE(textureHandle, srvHeapStartIndex, descriptorSize));
 
 	// Depth
-	p_commandList->SetGraphicsRootDescriptorTable(4, CD3DX12_GPU_DESCRIPTOR_HANDLE(textureHandle, Window::FirstPassRTVCount * Window::BufferCount, descriptorSize));
-
-	// set light info here;
-	p_commandList->SetGraphicsRootConstantBufferView(3, m_lightManager_p->GetLightCBVGPUAddress()); 
+	p_commandList->SetGraphicsRootDescriptorTable(2, CD3DX12_GPU_DESCRIPTOR_HANDLE(textureHandle, Window::FirstPassRTVCount * Window::BufferCount + 1, descriptorSize));
 }
 
 
@@ -429,7 +420,7 @@ void MeshManager::_sendInstanceFailedMessage(const std::string& meshName)
 
 void MeshManager::CreateDefaultTexture()
 {
-	Texture* defaultTexture = new Texture("default_white", 0, m_SRVHeap);
+	m_textureMap["default_white"] = new Texture("default_white", 0, m_SRVHeap);
 }
 
 bool MeshManager::ReadAndUploadTexture(const char* textureName)

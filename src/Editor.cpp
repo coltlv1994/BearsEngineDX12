@@ -56,17 +56,13 @@ bool Editor::LoadContent()
 
 	// Create the descriptor heap for the depth-stencil view.
 	m_DSVHeap = app.CreateDescriptorHeap(1, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
-	UINT secondPassSrvHeapSize = Window::BufferCount * Window::FirstPassRTVCount + 1; // 3 SRV for first pass RTVs per frame + 1 SRV for depth buffer
-	m_2ndPassSrvHeap =
-		app.CreateDescriptorHeap(
-			secondPassSrvHeapSize,
-			D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
-			D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
-
-	_createSrvForFirstPassRTVs();
 
 	// Allocating SRV descriptors (for textures), and set the size to 128
-	m_SRVHeap = app.CreateDescriptorHeap(128, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
+	m_SRVHeap = app.CreateDescriptorHeap(512, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
+
+	UINT secondPassSrvHeapSize = Window::BufferCount * Window::FirstPassRTVCount + 1; // 3 SRV for first pass RTVs per frame + 1 SRV for depth buffer
+
+	_createSrvForFirstPassRTVs();
 
 	MeshManager::Get().SetSRVHeap(m_SRVHeap);
 	MeshManager::Get().CreateDefaultTexture();
@@ -142,10 +138,11 @@ void Editor::ResizeDepthBuffer(int width, int height)
 		descSRV.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 		descSRV.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
+		// offset by one more since index 0 is for imgui
 		CD3DX12_CPU_DESCRIPTOR_HANDLE dsvSrvHandle =
 			CD3DX12_CPU_DESCRIPTOR_HANDLE(
-				m_2ndPassSrvHeap->GetCPUDescriptorHandleForHeapStart(),
-				Window::BufferCount * Window::FirstPassRTVCount,
+				m_SRVHeap->GetCPUDescriptorHandleForHeapStart(),
+				Window::BufferCount * Window::FirstPassRTVCount + 1,
 				Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
 
 		device->CreateShaderResourceView(m_DepthBuffer.Get(), &descSRV, dsvSrvHandle);
@@ -304,7 +301,7 @@ void Editor::OnRender(RenderEventArgs& e)
 	commandList->OMSetRenderTargets(1, &secondPassRtv, FALSE, nullptr);
 
 	// Render function for second pass
-	MeshManager::Get().RenderAllMeshes2ndPass(commandList, currentBackBufferIndex, m_2ndPassSrvHeap);
+	MeshManager::Get().RenderAllMeshes2ndPass(commandList, currentBackBufferIndex);
 
 	UIManager::Get().Draw(commandList);
 
@@ -394,15 +391,17 @@ void Editor::_createSrvForFirstPassRTVs()
 	descSRV.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	descSRV.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE srvHandle =
-		CD3DX12_CPU_DESCRIPTOR_HANDLE(
-			m_2ndPassSrvHeap->GetCPUDescriptorHandleForHeapStart());
+	UINT srvIncrementSize = app.GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	// offset by 1. first descriptor is reserved for IMGUI
+	CD3DX12_CPU_DESCRIPTOR_HANDLE srvHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(
+			m_SRVHeap->GetCPUDescriptorHandleForHeapStart(), 1, srvIncrementSize);
 
 	for (UINT i = 0; i < Window::BufferCount; i++) {
 		for (UINT j = 0; j < Window::FirstPassRTVCount; j++) {
 			descSRV.Format = mRtvFormat[j];
 			device->CreateShaderResourceView(resources_p[i * 3 + j].Get(), &descSRV, srvHandle);
-			srvHandle.Offset(1, app.GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+			srvHandle.Offset(1, srvIncrementSize);
 		}
 	}
 }
