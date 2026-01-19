@@ -267,7 +267,7 @@ void Editor::OnRender(RenderEventArgs& e)
 	}
 	// clear dsv
 	ClearDepth(commandList, dsv);
-	ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap.Get()};
+	ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap.Get() };
 	commandList->SetDescriptorHeaps(1, ppHeaps);
 
 	// bind render targets
@@ -283,6 +283,19 @@ void Editor::OnRender(RenderEventArgs& e)
 	// back buffer transition barrier
 	auto secondPassRtv = m_pWindow->GetCurrentRenderTargetView();
 
+	ComPtr<ID3D12Resource>* firstPassRtvResources = m_pWindow->GetFirstPassRtvResource();
+
+	for (UINT i = 0; i < Window::FirstPassRTVCount; i++)
+	{
+		TransitionResource(commandList,
+			firstPassRtvResources[currentBackBufferIndex * Window::FirstPassRTVCount + i],
+			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
+	}
+
+	TransitionResource(commandList,
+		m_DepthBuffer,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ);
+
 	TransitionResource(commandList, backBuffer,
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
@@ -296,16 +309,25 @@ void Editor::OnRender(RenderEventArgs& e)
 	UIManager::Get().Draw(commandList);
 
 	// Present
+	TransitionResource(commandList, backBuffer,
+		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+
+	for (UINT i = 0; i < Window::FirstPassRTVCount; i++)
 	{
-		TransitionResource(commandList, backBuffer,
-			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-
-		m_FenceValues[currentBackBufferIndex] = commandQueue->ExecuteCommandList(commandList);
-
-		currentBackBufferIndex = m_pWindow->Present(); // it has moved to next buffer
-
-		commandQueue->WaitForFenceValue(m_FenceValues[currentBackBufferIndex]);
+		TransitionResource(commandList,
+			firstPassRtvResources[currentBackBufferIndex * Window::FirstPassRTVCount + i],
+			D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	}
+
+	TransitionResource(commandList,
+		m_DepthBuffer,
+		D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+
+	m_FenceValues[currentBackBufferIndex] = commandQueue->ExecuteCommandList(commandList);
+
+	currentBackBufferIndex = m_pWindow->Present(); // it has moved to next buffer
+
+	commandQueue->WaitForFenceValue(m_FenceValues[currentBackBufferIndex]);
 }
 
 void Editor::OnKeyPressed(KeyEventArgs& e)
