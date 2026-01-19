@@ -92,6 +92,9 @@ void MeshManager::ClearMeshes()
 // TODO: need change
 void MeshManager::RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix)
 {
+	if (m_instanceList.size() == 0)
+		return;
+
 	// this is for first pass
 	ComPtr<ID3D12RootSignature> rootSignature;
 	ComPtr<ID3D12PipelineState> pipelineState;
@@ -109,6 +112,9 @@ void MeshManager::RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandLi
 
 void  MeshManager::RenderAllMeshes2ndPass(ComPtr<ID3D12GraphicsCommandList2> p_commandList, UINT currentBackBufferIndex, ComPtr<ID3D12DescriptorHeap> m_2ndPassSrvHeap)
 {
+	if (m_instanceList.size() == 0)
+		return;
+
 	// this is for 2nd pass
 	ComPtr<ID3D12RootSignature> rootSignature;
 	ComPtr<ID3D12PipelineState> pipelineState;

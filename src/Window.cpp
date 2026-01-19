@@ -329,9 +329,15 @@ void Window::UpdateRenderTargetViews()
 	CD3DX12_CPU_DESCRIPTOR_HANDLE firstPassRtvHandle(m_firstPassRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
 	DXGI_FORMAT mRtvFormat[3] = {
-		DXGI_FORMAT_R32G32B32_FLOAT, // diffuse
+		DXGI_FORMAT_R32G32B32A32_FLOAT, // diffuse
 		DXGI_FORMAT_R32_FLOAT, // specular
 		DXGI_FORMAT_R32G32B32A32_FLOAT // normal
+	};
+
+	DXGI_FORMAT srvFormat[3] = {
+	DXGI_FORMAT_R32G32B32A32_FLOAT, // diffuse
+	DXGI_FORMAT_R32_FLOAT, // specular
+	DXGI_FORMAT_R32G32B32A32_FLOAT // normal
 	};
 
 	CD3DX12_HEAP_PROPERTIES heapProperty(D3D12_HEAP_TYPE_DEFAULT);
@@ -359,14 +365,14 @@ void Window::UpdateRenderTargetViews()
 
 		m_d3d12BackBuffers[i] = backBuffer;
 
-		rtvHandle.Offset(m_RTVDescriptorSize);
+		rtvHandle.Offset(1, m_RTVDescriptorSize);
 
 		// first pass render targets
 		// ComPtr<ID3D12Resource> will automatically release
 		for (UINT j = 0; j < FirstPassRTVCount; ++j)
 		{
 			// Create a texture to be used as the first pass render target.
-			resourceDesc.Format = mRtvFormat[i];
+			resourceDesc.Format = mRtvFormat[j];
 
 			ThrowIfFailed(
 				device->CreateCommittedResource(
@@ -379,7 +385,7 @@ void Window::UpdateRenderTargetViews()
 
 			// Create the render target view for the first pass render target.
 			device->CreateRenderTargetView(m_firstPassRTVs[i * FirstPassRTVCount + j].Get(), nullptr, firstPassRtvHandle);
-			firstPassRtvHandle.Offset(m_RTVDescriptorSize);
+			firstPassRtvHandle.Offset(1, m_RTVDescriptorSize);
 		}
 	}
 }

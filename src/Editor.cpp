@@ -111,7 +111,7 @@ void Editor::ResizeDepthBuffer(int width, int height)
 		optimizedClearValue.DepthStencil = { 1.0f, 0 };
 
 		static CD3DX12_HEAP_PROPERTIES heap_default = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-		CD3DX12_RESOURCE_DESC tex2d = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, width, height,
+		CD3DX12_RESOURCE_DESC tex2d = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32_TYPELESS, width, height,
 			1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
 
 		ThrowIfFailed(device->CreateCommittedResource(
@@ -137,7 +137,8 @@ void Editor::ResizeDepthBuffer(int width, int height)
 
 		descSRV.Texture2D.MipLevels = 1;
 		descSRV.Texture2D.MostDetailedMip = 0;
-		descSRV.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+		descSRV.Texture2D.PlaneSlice = 0;
+		descSRV.Format = DXGI_FORMAT_R32_FLOAT;
 		descSRV.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 		descSRV.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
@@ -250,6 +251,7 @@ void Editor::OnRender(RenderEventArgs& e)
 	auto firstPassRtv = m_pWindow->GetFirstPassRenderTargetView();
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE firstPassRtvHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(firstPassRtv);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE firstPassRtvHandleForReset = CD3DX12_CPU_DESCRIPTOR_HANDLE(firstPassRtv);
 
 	auto dsv = m_DSVHeap->GetCPUDescriptorHandleForHeapStart();
 
@@ -260,15 +262,16 @@ void Editor::OnRender(RenderEventArgs& e)
 	// first pass, clear rtv
 	for (UINT i = 0; i < Window::FirstPassRTVCount; i++)
 	{
-		commandList->ClearRenderTargetView(firstPassRtvHandle.Offset(i, descriptorSize), clearColor, 0, nullptr);
+		commandList->ClearRenderTargetView(firstPassRtvHandleForReset, clearColor, 0, nullptr);
+		firstPassRtvHandleForReset.Offset(1, descriptorSize);
 	}
 	// clear dsv
 	ClearDepth(commandList, dsv);
-	ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap.Get(), m_2ndPassSrvHeap.Get()};
-	commandList->SetDescriptorHeaps(2, ppHeaps);
+	ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap.Get()};
+	commandList->SetDescriptorHeaps(1, ppHeaps);
 
 	// bind render targets
-	commandList->OMSetRenderTargets(Window::FirstPassRTVCount, &firstPassRtv, FALSE, &dsv);
+	commandList->OMSetRenderTargets(Window::FirstPassRTVCount, &firstPassRtv, TRUE, &dsv);
 	XMMATRIX vpMatrix = m_mainCamera.GetViewProjectionMatrix();
 
 	UIManager::Get().CreateImGuiWindowContent();
@@ -356,7 +359,7 @@ void Editor::_createSrvForFirstPassRTVs()
 	ComPtr<ID3D12Resource>* resources_p = m_pWindow->GetFirstPassRtvResource();
 
 	DXGI_FORMAT mRtvFormat[3] = {
-	DXGI_FORMAT_R32G32B32_FLOAT, // diffuse
+	DXGI_FORMAT_R32G32B32A32_FLOAT, // diffuse
 	DXGI_FORMAT_R32_FLOAT, // specular
 	DXGI_FORMAT_R32G32B32A32_FLOAT // normal
 	};
@@ -371,14 +374,13 @@ void Editor::_createSrvForFirstPassRTVs()
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE srvHandle =
 		CD3DX12_CPU_DESCRIPTOR_HANDLE(
-			m_2ndPassSrvHeap->GetCPUDescriptorHandleForHeapStart(),
-			0,
-			app.GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+			m_2ndPassSrvHeap->GetCPUDescriptorHandleForHeapStart());
 
 	for (UINT i = 0; i < Window::BufferCount; i++) {
 		for (UINT j = 0; j < Window::FirstPassRTVCount; j++) {
 			descSRV.Format = mRtvFormat[j];
-			device->CreateShaderResourceView(resources_p[i * 3 + j].Get(), &descSRV, srvHandle.Offset(i * 3 + j));
+			device->CreateShaderResourceView(resources_p[i * 3 + j].Get(), &descSRV, srvHandle);
+			srvHandle.Offset(1, app.GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
 		}
 	}
 }

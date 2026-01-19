@@ -16,7 +16,7 @@ Texture2D normalTexture : register(t2);
 
 SamplerState Sampler : register(s0);
 
-FPPS_OUT main(FPPS_IN IN) : SV_Target
+FPPS_OUT main(FPPS_IN IN)
 {
     FPPS_OUT OUT;
    
