@@ -58,6 +58,8 @@ public:
 
 	void InitializeLightManager(XMFLOAT4& p_mainCameraLocation);
 
+	void Prepare2ndPassResources();
+
 private:
 	std::unordered_map<std::string, Mesh*> m_meshes; // map of mesh name to Mesh pointer
 	MessageQueue m_messageQueue;
@@ -70,6 +72,9 @@ private:
 	unsigned int m_createdInstanceCount = 0; // for unique instance naming, this value should never decrease except map reloading
 
 	uint64_t m_memInfo[2] = { 0 }; // used and total memory info
+
+	ComPtr<ID3D12Resource> m_2ndPassVertexBuffer;
+	D3D12_VERTEX_BUFFER_VIEW m_2ndPassVertexBufferView;
 
 	void _processMessage(Message& msg);
 	// Message Queue access

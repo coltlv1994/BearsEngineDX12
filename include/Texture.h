@@ -46,9 +46,11 @@ public:
 private:
 	std::string m_name;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_SRVHeap; // passed from mesh manager
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_resources[3]; //one for each RTV-mapped SRV
 
 	unsigned int m_textureIndex = 0; // to calculate the offset in SRV heap
+	unsigned int m_srvHeapOffset = 11; // default value
 
 	void _initialize();
-	bool _loadTexture(const std::string& textureFilePath, UINT p_srvHeapIndex);
+	bool _loadTexture(const std::string& textureFilePath, UINT resourceIndex);
 };

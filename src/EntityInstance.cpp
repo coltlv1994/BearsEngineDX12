@@ -27,9 +27,8 @@ void Instance::Render(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XM
 	auto textureHandle = m_texture_p->GetSrvHeapStart();
 	static UINT srvSize = Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-	p_commandList->SetGraphicsRootDescriptorTable(0, CD3DX12_GPU_DESCRIPTOR_HANDLE(textureHandle, 0, srvSize)); // diffuse
-	p_commandList->SetGraphicsRootDescriptorTable(1, CD3DX12_GPU_DESCRIPTOR_HANDLE(textureHandle, 1, srvSize)); // specular
-	p_commandList->SetGraphicsRootDescriptorTable(2, CD3DX12_GPU_DESCRIPTOR_HANDLE(textureHandle, 2, srvSize)); // normal
+	p_commandList->SetGraphicsRootDescriptorTable(0, textureHandle);
+
 
 	// set vertex shader input, i.e. model matrix and its inverse transpose
     // sizeof() / 4 because we are setting 32 bit constants

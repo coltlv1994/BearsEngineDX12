@@ -11,14 +11,14 @@ void Texture::_initialize()
 
 	// first in this SRV heap is for imgui
 	// after that, each Texture has 3 textures: diffuse, normal, specular
-	UINT indexStart = m_textureIndex * 3 + 11;
+	m_srvHeapOffset = m_textureIndex * 3 + 11;
 
-	_loadTexture(diffuseTextureName, indexStart);
-	_loadTexture(normalTextureName, indexStart + 1);
-	_loadTexture(specularTextureName, indexStart + 2);
+	_loadTexture(diffuseTextureName, 0);
+	_loadTexture(normalTextureName, 1);
+	_loadTexture(specularTextureName, 2);
 }
 
-bool Texture::_loadTexture(const std::string& textureFilePath, UINT p_srvHeapIndex)
+bool Texture::_loadTexture(const std::string& textureFilePath, UINT resourceIndex)
 {
 	// Load textures and create SRV descriptors in the heap
 	auto device = Application::Get().GetDevice();
@@ -97,8 +97,10 @@ bool Texture::_loadTexture(const std::string& textureFilePath, UINT p_srvHeapInd
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(m_SRVHeap->GetCPUDescriptorHandleForHeapStart());
-	hDescriptor.Offset(p_srvHeapIndex, Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+	hDescriptor.Offset(m_srvHeapOffset + resourceIndex, Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
 	device->CreateShaderResourceView(texture.Get(), &srvDesc, hDescriptor);
+	// Store texture resource
+	m_resources[resourceIndex] = texture;
 
 	stbi_image_free(imageData);
 

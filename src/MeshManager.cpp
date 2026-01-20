@@ -135,6 +135,10 @@ void  MeshManager::RenderAllMeshes2ndPass(ComPtr<ID3D12GraphicsCommandList2> p_c
 
 	// Depth
 	p_commandList->SetGraphicsRootDescriptorTable(2, CD3DX12_GPU_DESCRIPTOR_HANDLE(textureHandle, Window::FirstPassRTVCount * Window::BufferCount + 1, descriptorSize));
+
+	p_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	p_commandList->IASetVertexBuffers(0, 1, &m_2ndPassVertexBufferView);
+	p_commandList->DrawInstanced(4, 1, 0, 0);
 }
 
 
@@ -460,4 +464,44 @@ Mesh* MeshManager::GetMeshByName(const std::string& meshName)
 void MeshManager::InitializeLightManager(XMFLOAT4& p_mainCameraLocation)
 {
 	m_lightManager_p = new LightManager(p_mainCameraLocation);
+}
+
+void MeshManager::Prepare2ndPassResources()
+{
+	auto device = Application::Get().GetDevice();
+
+	// create a full screen quad vertex buffer
+	VertexPosColor quadVertices[] =
+	{
+		{ XMFLOAT3(-1.0f,  1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },
+		{ XMFLOAT3( 1.0f,  1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },
+		{ XMFLOAT3(-1.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },
+		{ XMFLOAT3( 1.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },
+	};
+
+	const UINT quadVertexBufferSize = sizeof(quadVertices);
+
+	CD3DX12_HEAP_PROPERTIES heapProperty(D3D12_HEAP_TYPE_UPLOAD);
+	static CD3DX12_HEAP_PROPERTIES heap_upload = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+	CD3DX12_RESOURCE_DESC buffer_upload = CD3DX12_RESOURCE_DESC::Buffer(quadVertexBufferSize);
+
+	// could move to default heap for better performance
+	// but this is not urgently needed
+	ThrowIfFailed(device->CreateCommittedResource(
+		&heap_upload,
+		D3D12_HEAP_FLAG_NONE,
+		&buffer_upload,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&m_2ndPassVertexBuffer)));
+
+
+	UINT8* dataBegin;
+	ThrowIfFailed(m_2ndPassVertexBuffer->Map(0, nullptr, reinterpret_cast<void**>(&dataBegin)));
+	memcpy(dataBegin, quadVertices, sizeof(quadVertices));
+	m_2ndPassVertexBuffer->Unmap(0, nullptr);
+
+	m_2ndPassVertexBufferView.BufferLocation = m_2ndPassVertexBuffer->GetGPUVirtualAddress();
+	m_2ndPassVertexBufferView.StrideInBytes = sizeof(VertexPosColor);
+	m_2ndPassVertexBufferView.SizeInBytes = sizeof(quadVertices);
 }

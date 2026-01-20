@@ -450,12 +450,6 @@ void UIManager::CreateImGuiWindowContent()
 		ImGui::EndTabItem();
 	}
 
-	if (ImGui::BeginTabItem("Materials"))
-	{
-		// Material editor
-		ImGui::EndTabItem();
-	}
-
 	if (ImGui::BeginTabItem("Lightings"))
 	{
 		if (ImGui::Button("Update Lighting"))
