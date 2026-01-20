@@ -85,11 +85,19 @@ void Camera::_updateVPMatrix()
 	XMMATRIX projectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(m_fov), m_aspectRatio, m_nearPlane, m_farPlane);
 
 	m_viewProjectionMatrix = XMMatrixMultiply(viewMatrix, projectionMatrix);
+
+	m_invPVMatrix = XMMatrixInverse(nullptr, viewMatrix) * XMMatrixInverse(nullptr, projectionMatrix);
 }
 
 XMMATRIX Camera::GetViewProjectionMatrix() const
 {
 	return m_viewProjectionMatrix;
+}
+
+
+XMMATRIX Camera::GetInvPVMatrix() const
+{
+	return m_invPVMatrix;
 }
 
 Camera& Camera::operator=(const Camera& other)

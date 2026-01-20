@@ -178,6 +178,14 @@ void UIManager::CreateImGuiWindowContent()
 			// save map
 			_saveMap();
 		}
+
+		if (ImGui::Button("Rebuild shaders"))
+		{
+			// send message to mesh manager
+			Message* msg = new Message();
+			msg->type = MSG_TYPE_REBUILD_SHADERS;
+			MeshManager::Get().ReceiveMessage(msg);
+		}
 		ImGui::EndTabItem();
 	}
 

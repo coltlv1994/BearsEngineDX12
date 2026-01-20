@@ -25,6 +25,8 @@ public:
 
 	XMMATRIX GetViewProjectionMatrix() const;
 
+	XMMATRIX GetInvPVMatrix() const;
+
 	Camera& operator=(const Camera& other);
 
 	XMVECTOR GetPosition() const;
@@ -58,5 +60,6 @@ private:
 */
 
 	XMMATRIX m_viewProjectionMatrix;
+	XMMATRIX m_invPVMatrix;
 	void _updateVPMatrix();
 };

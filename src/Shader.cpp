@@ -23,27 +23,47 @@ static UINT firstPassInputLayoutCount = sizeof(firstPassInputLayout) / sizeof(D3
 //    { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 //};
 
-Shader::Shader()
+Shader::Shader(const wchar_t* p_1stVsPath, const wchar_t* p_1stPsPath, const wchar_t* p_2ndVsPath, const wchar_t* p_2ndPsPath)
 {
-	//ThrowIfFailed(D3DReadFileToBlob(p_vsPath, &m_vertexShaderBlob));
-	//ThrowIfFailed(D3DReadFileToBlob(p_psPath, &m_pixelShaderBlob));
+	m_1stVsPath = p_1stVsPath;
+	m_1stPsPath = p_1stPsPath;
+	m_2ndVsPath = p_2ndVsPath;
+	m_2ndPsPath = p_2ndPsPath;
 
-	//CreateRootSignitureAndPipelineStream(firstPassInputLayout, firstPassInputLayoutCount);
+    _createRSAndPSO();
 }
 
 Shader::~Shader()
 {
 }
 
-void Shader::CreateRSAndPSO(const wchar_t* p_1stVsPath, const wchar_t* p_1sPsPath, const wchar_t* p_2ndVsPath, const wchar_t* p_2ndPsPath)
+void Shader::_createRSAndPSO()
 {
-    ThrowIfFailed(D3DReadFileToBlob(p_1stVsPath, &m_1stPassVertexShaderBlob));
-    ThrowIfFailed(D3DReadFileToBlob(p_1sPsPath, &m_1stPassPixelShaderBlob));
-    ThrowIfFailed(D3DReadFileToBlob(p_2ndVsPath, &m_2ndPassVertexShaderBlob));
-    ThrowIfFailed(D3DReadFileToBlob(p_2ndPsPath, &m_2ndPassPixelShaderBlob));
+    ThrowIfFailed(D3DReadFileToBlob((L"shaders\\" + m_1stVsPath + L".cso").c_str(), &m_1stPassVertexShaderBlob));
+    ThrowIfFailed(D3DReadFileToBlob((L"shaders\\" + m_1stPsPath + L".cso").c_str(), &m_1stPassPixelShaderBlob));
+    ThrowIfFailed(D3DReadFileToBlob((L"shaders\\" + m_2ndVsPath + L".cso").c_str(), &m_2ndPassVertexShaderBlob));
+    ThrowIfFailed(D3DReadFileToBlob((L"shaders\\" + m_2ndPsPath + L".cso").c_str(), &m_2ndPassPixelShaderBlob));
 
 	_create1st();
 	_create2nd();
+}
+
+void Shader::RebuildShaders()
+{
+    ThrowIfFailed(D3DCompileFromFile((L"shaders\\" + m_1stVsPath + L".hlsl").c_str(), nullptr, nullptr,
+		"main", "vs_5_1", 0, 0, &m_1stPassVertexShaderBlob, nullptr));
+
+    ThrowIfFailed(D3DCompileFromFile((L"shaders\\" + m_1stPsPath + L".hlsl").c_str(), nullptr, nullptr,
+        "main", "ps_5_1", 0, 0, &m_1stPassPixelShaderBlob, nullptr));
+
+    ThrowIfFailed(D3DCompileFromFile((L"shaders\\" + m_2ndVsPath + L".hlsl").c_str(), nullptr, nullptr,
+        "main", "vs_5_1", 0, 0, &m_2ndPassVertexShaderBlob, nullptr));
+
+    ThrowIfFailed(D3DCompileFromFile((L"shaders\\" + m_2ndPsPath + L".hlsl").c_str(), nullptr, nullptr,
+        "main", "ps_5_1", 0, 0, &m_2ndPassPixelShaderBlob, nullptr));
+
+    _create1st();
+    _create2nd();
 }
 
 void Shader::_create1st()
@@ -146,12 +166,13 @@ void Shader::_create2nd()
         D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
     // A single 32-bit constant root parameter that is used by the vertex shader.
-    CD3DX12_ROOT_PARAMETER1 rootParameters[3];
+    CD3DX12_ROOT_PARAMETER1 rootParameters[4];
     CD3DX12_DESCRIPTOR_RANGE1 descriptorRange1 = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 0);
     CD3DX12_DESCRIPTOR_RANGE1 descriptorRange2 = CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3);
     rootParameters[0].InitAsConstantBufferView(0); // Light CB
     rootParameters[1].InitAsDescriptorTable(1, &descriptorRange1, D3D12_SHADER_VISIBILITY_PIXEL); // G-buffer inputs
     rootParameters[2].InitAsDescriptorTable(1, &descriptorRange2, D3D12_SHADER_VISIBILITY_PIXEL); // G-buffer inputs, depth
+    rootParameters[3].InitAsConstants(sizeof(SecondPassRootConstants) / 4, 1, 0, D3D12_SHADER_VISIBILITY_PIXEL); // MVP matrix
 
     D3D12_STATIC_SAMPLER_DESC sampler = {};
     sampler.Filter = D3D12_FILTER_ANISOTROPIC;
@@ -169,7 +190,7 @@ void Shader::_create2nd()
     sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
     CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
-    rootSignatureDescription.Init_1_1(3, rootParameters, 1, &sampler, rootSignatureFlags);
+    rootSignatureDescription.Init_1_1(4, rootParameters, 1, &sampler, rootSignatureFlags);
 
     // Serialize the root signature.
     ComPtr<ID3DBlob> rootSignatureBlob;

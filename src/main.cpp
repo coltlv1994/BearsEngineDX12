@@ -40,9 +40,8 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
     {
         std::shared_ptr<Editor> editor = std::make_shared<Editor>(L"BearsEngine in D3D12", 2560, 1440);
 
-        Shader demoShader;
-        demoShader.CreateRSAndPSO(L"shaders\\FirstPassVertexShader.cso", L"shaders\\FirstPassPixelShader.cso",
-			L"shaders\\SecondPassVertexShader.cso", L"shaders\\SecondPassPixelShader.cso");
+        Shader demoShader(L"FirstPassVertexShader", L"FirstPassPixelShader",
+            L"SecondPassVertexShader", L"SecondPassPixelShader");
 
 		MeshManager::Get().SetDefaultShader(&demoShader);
 

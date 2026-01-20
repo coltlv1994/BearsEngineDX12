@@ -22,8 +22,13 @@ FPPS_OUT main(FPPS_IN IN)
    
     // * is component-wise multiplication, dot is inner product
     OUT.albedo = diffuseTexture.Sample(Sampler, IN.TexCoord);
-    OUT.specgloss = specularTexture.Sample(Sampler, IN.TexCoord).x;
-    OUT.normal = normalTexture.Sample(Sampler, IN.TexCoord);
+    //OUT.specgloss = specularTexture.Sample(Sampler, IN.TexCoord).x;
+    //OUT.normal = normalTexture.Sample(Sampler, IN.TexCoord);
+    
+    // DEBUG
+    //OUT.albedo = float4(1.0f, 1.0f, 1.0f, 1.0f);
+    OUT.specgloss = 1.0f;
+    OUT.normal = float4(1.0f, 1.0f, 1.0f, 1.0f);
     
     return OUT;
 }

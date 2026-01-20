@@ -25,7 +25,7 @@ public:
 
 	void RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix);
 
-	void RenderAllMeshes2ndPass(ComPtr<ID3D12GraphicsCommandList2> p_commandList, UINT currentBackBufferIndex);
+	void RenderAllMeshes2ndPass(ComPtr<ID3D12GraphicsCommandList2> p_commandList, UINT currentBackBufferIndex, const XMMATRIX& p_invScreenPVMatrix);
 
 	void StartListeningThread()
 	{

@@ -271,6 +271,15 @@ void Editor::OnRender(RenderEventArgs& e)
 	// bind render targets
 	commandList->OMSetRenderTargets(Window::FirstPassRTVCount, &firstPassRtv, TRUE, &dsv);
 	XMMATRIX vpMatrix = m_mainCamera.GetViewProjectionMatrix();
+	XMMATRIX invPVMatrix = m_mainCamera.GetInvPVMatrix();
+
+	static XMFLOAT4X4 matScreen = XMFLOAT4X4(2 / GetClientWidth(), 0, 0, 0,
+		                                    0, -2 / GetClientHeight(), 0, 0,
+		                                    0, 0, 1, 0,
+		                                    -1, 1, 0, 1);
+	XMMATRIX invScreenPVMatrix = XMMatrixInverse(nullptr,
+		XMMatrixTranspose(XMMatrixMultiply(XMLoadFloat4x4(&matScreen), invPVMatrix)));
+
 
 	UIManager::Get().CreateImGuiWindowContent();
 
@@ -302,7 +311,7 @@ void Editor::OnRender(RenderEventArgs& e)
 	commandList->OMSetRenderTargets(1, &secondPassRtv, FALSE, nullptr);
 
 	// Render function for second pass
-	MeshManager::Get().RenderAllMeshes2ndPass(commandList, currentBackBufferIndex);
+	MeshManager::Get().RenderAllMeshes2ndPass(commandList, currentBackBufferIndex, invScreenPVMatrix);
 
 	UIManager::Get().Draw(commandList);
 

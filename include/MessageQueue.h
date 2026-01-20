@@ -21,6 +21,7 @@ enum MessageType : uint32_t
 	MSG_TYPE_REMOVE_INSTANCE = 0xD, // request to remove instance, content is instance pointer
 	MSG_TYPE_CPU_MEMORY_INFO = 0xE, // message to report CPU memory usage, content is values of available and total memory in bytes
 	MSG_TYPE_MODIFY_LIGHT = 0xF, // request to modify light parameters, content is light data
+	MSG_TYPE_REBUILD_SHADERS = 0x10 // request to rebuild all shaders, no content
 };
 
 constexpr size_t POINTER_SIZE = sizeof(void*);

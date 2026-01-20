@@ -5,6 +5,7 @@
 #include <dxgi1_6.h>
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
+#include <string>
 
 // Windows Runtime Library. Needed for Microsoft::WRL::ComPtr<> template class.
 #include <wrl.h>
@@ -16,7 +17,7 @@ using namespace Microsoft::WRL;
 class Shader
 {
 public:
-	Shader();
+	Shader(const wchar_t* p_1stVsPath, const wchar_t* p_1sPsPath, const wchar_t* p_2ndVsPath, const wchar_t* p_2ndPsPath);
 	~Shader();
 
 	void GetRSAndPSO_1stPass(ComPtr<ID3D12RootSignature>& rootSignature, ComPtr<ID3D12PipelineState>& pipelineState)
@@ -31,8 +32,7 @@ public:
 		pipelineState = m_2ndPassPipelineState;
 	}
 
-	void CreateRSAndPSO(const wchar_t* p_1stVsPath, const wchar_t* p_1sPsPath, const wchar_t* p_2ndVsPath, const wchar_t* p_2ndPsPath);
-
+	void RebuildShaders();
 
 private:
 	ComPtr<ID3DBlob> m_1stPassVertexShaderBlob;
@@ -47,6 +47,12 @@ private:
 	ComPtr<ID3D12PipelineState> m_1stPassPipelineState;
 	ComPtr<ID3D12PipelineState> m_2ndPassPipelineState;
 
+	std::wstring m_1stVsPath;
+	std::wstring m_1stPsPath;
+	std::wstring m_2ndVsPath;
+	std::wstring m_2ndPsPath;
+
+	void _createRSAndPSO();
 	void _create1st();
 	void _create2nd();
 };

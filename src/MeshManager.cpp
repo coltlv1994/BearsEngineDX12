@@ -110,7 +110,7 @@ void MeshManager::RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandLi
 	}
 }
 
-void  MeshManager::RenderAllMeshes2ndPass(ComPtr<ID3D12GraphicsCommandList2> p_commandList, UINT currentBackBufferIndex)
+void  MeshManager::RenderAllMeshes2ndPass(ComPtr<ID3D12GraphicsCommandList2> p_commandList, UINT currentBackBufferIndex, const XMMATRIX& p_invScreenPVMatrix)
 {
 	if (m_instanceList.size() == 0)
 		return;
@@ -131,12 +131,17 @@ void  MeshManager::RenderAllMeshes2ndPass(ComPtr<ID3D12GraphicsCommandList2> p_c
 
 	// set light info here;
 	p_commandList->SetGraphicsRootConstantBufferView(0, m_lightManager_p->GetLightCBVGPUAddress());
+
+	SecondPassRootConstants sprc = {};
+	sprc.invScreenPVMatrix = p_invScreenPVMatrix;
+	p_commandList->SetGraphicsRoot32BitConstants(3, sizeof(sprc) / 4, &sprc, 0);
+
 	p_commandList->SetGraphicsRootDescriptorTable(1, CD3DX12_GPU_DESCRIPTOR_HANDLE(textureHandle, srvHeapStartIndex, descriptorSize));
 
 	// Depth
 	p_commandList->SetGraphicsRootDescriptorTable(2, CD3DX12_GPU_DESCRIPTOR_HANDLE(textureHandle, Window::FirstPassRTVCount * Window::BufferCount + 1, descriptorSize));
 
-	p_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	p_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	p_commandList->IASetVertexBuffers(0, 1, &m_2ndPassVertexBufferView);
 	p_commandList->DrawInstanced(4, 1, 0, 0);
 }
@@ -336,6 +341,11 @@ void MeshManager::_processMessage(Message& msg)
 		}
 		LightConstants* lightData = (LightConstants*)(msg.GetData());
 		m_lightManager_p->CopyData(lightData);
+		break;
+	}
+	case MSG_TYPE_REBUILD_SHADERS:
+	{
+		m_defaultShader_p->RebuildShaders();
 		break;
 	}
 	default:

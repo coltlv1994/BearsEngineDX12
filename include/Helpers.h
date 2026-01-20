@@ -87,6 +87,11 @@ struct VertexShaderInput
     XMMATRIX mvpMatrix;
 };
 
+struct SecondPassRootConstants
+{
+    XMMATRIX invScreenPVMatrix;
+};
+
 // used for material constant buffer view
 // NOTE: must match the structure defined in the shader.
 struct MaterialConstants
