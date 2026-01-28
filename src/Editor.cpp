@@ -276,9 +276,9 @@ void Editor::OnRender(RenderEventArgs& e)
 	XMMATRIX invPVMatrix = m_mainCamera.GetInvPVMatrix();
 
 	// treat the texture coord:
-	// (screen space) x = 2u-1, y = 1 - 2v
-	XMFLOAT4X4 matScreen = XMFLOAT4X4(2.0 / GetClientWidth(), 0, 0, 0,
-		                                    0, -2.0 / GetClientHeight(), 0, 0,
+	// (screen space) x = 2u - 1, y = 1 - 2v
+	XMFLOAT4X4 matScreen = XMFLOAT4X4(2.0, 0, 0, 0,
+		                                    0, -2.0, 0, 0,
 		                                    0, 0, 1, 0,
 		                                    -1, 1, 0, 1);
 	XMMATRIX matS = XMLoadFloat4x4(&matScreen);

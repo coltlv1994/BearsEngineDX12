@@ -216,7 +216,8 @@ float4 main(FPPS_IN IN) : SV_TARGET
     worldPosition /= worldPosition.w;
     
     // normal mapping
-    float3 normal = normalize(gNormalTexture.Sample(Sampler, IN.TexCoord).xyz);
+    // the texture has value of [0, 1] and now it has to converted to [-1, 1]
+    float3 normal = normalize(gNormalTexture.Sample(Sampler, IN.TexCoord).xyz * 2.0f - 1.0f);
     
     // specular value
     float specular = gSpecularTexture.Sample(Sampler, IN.TexCoord).x;
@@ -233,5 +234,5 @@ float4 main(FPPS_IN IN) : SV_TARGET
     
     float4 LightColor = ambientLight + lighting;
     
-    return worldPosition;
+    return LightColor;
 }
