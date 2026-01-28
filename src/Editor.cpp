@@ -147,6 +147,8 @@ void Editor::ResizeDepthBuffer(int width, int height)
 				Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
 
 		device->CreateShaderResourceView(m_DepthBuffer.Get(), &descSRV, dsvSrvHandle);
+
+		_createSrvForFirstPassRTVs();
 	}
 }
 
@@ -273,13 +275,15 @@ void Editor::OnRender(RenderEventArgs& e)
 	XMMATRIX vpMatrix = m_mainCamera.GetViewProjectionMatrix();
 	XMMATRIX invPVMatrix = m_mainCamera.GetInvPVMatrix();
 
-	static XMFLOAT4X4 matScreen = XMFLOAT4X4(2 / GetClientWidth(), 0, 0, 0,
-		                                    0, -2 / GetClientHeight(), 0, 0,
+	// treat the texture coord:
+	// (screen space) x = 2u-1, y = 1 - 2v
+	XMFLOAT4X4 matScreen = XMFLOAT4X4(2.0 / GetClientWidth(), 0, 0, 0,
+		                                    0, -2.0 / GetClientHeight(), 0, 0,
 		                                    0, 0, 1, 0,
 		                                    -1, 1, 0, 1);
-	XMMATRIX invScreenPVMatrix = XMMatrixInverse(nullptr,
-		XMMatrixTranspose(XMMatrixMultiply(XMLoadFloat4x4(&matScreen), invPVMatrix)));
+	XMMATRIX matS = XMLoadFloat4x4(&matScreen);
 
+	XMMATRIX invScreenPVMatrix = XMMatrixMultiply(matS, invPVMatrix);
 
 	UIManager::Get().CreateImGuiWindowContent();
 

@@ -55,7 +55,7 @@ struct LightConstants
 
 struct SecondPassRootConstants
 {
-    matrix invScreenPVMatrix;
+    matrix invSPV; // screen * inv(P) * inv(V)
 };
 
 ConstantBuffer<LightConstants> LightCB : register(b0);
@@ -212,8 +212,8 @@ float4 main(FPPS_IN IN) : SV_TARGET
     // reconstruct world position from depth
     float z = gDepth.Sample(Sampler, IN.TexCoord).x;
     float4 projectedPosition = float4(IN.TexCoord.xy, z, 1.0f);
-    float4 worldPosition = mul(projectedPosition, SPRC.invScreenPVMatrix);
-    worldPosition = worldPosition / worldPosition.w;
+    float4 worldPosition = mul(SPRC.invSPV, projectedPosition);
+    worldPosition /= worldPosition.w;
     
     // normal mapping
     float3 normal = normalize(gNormalTexture.Sample(Sampler, IN.TexCoord).xyz);
@@ -222,8 +222,6 @@ float4 main(FPPS_IN IN) : SV_TARGET
     float specular = gSpecularTexture.Sample(Sampler, IN.TexCoord).x;
     
     float3 toEye = normalize(LightCB.CameraPosition.xyz - worldPosition.xyz);
-    
-    //float3 toLight = normalize(LightCB.lightpositon.xyz - vPositionWS.xyz);
     
     float4 ambientLight = LightCB.AmbientLightStrength * albedo * LightCB.AmbientLightColor;
     
@@ -235,5 +233,5 @@ float4 main(FPPS_IN IN) : SV_TARGET
     
     float4 LightColor = ambientLight + lighting;
     
-    return albedo * LightColor;
+    return worldPosition;
 }

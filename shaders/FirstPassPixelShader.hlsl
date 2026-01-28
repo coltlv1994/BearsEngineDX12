@@ -11,8 +11,8 @@ struct FPPS_OUT
 };
 
 Texture2D diffuseTexture : register(t0);
-Texture2D specularTexture : register(t1);
-Texture2D normalTexture : register(t2);
+Texture2D normalTexture : register(t1);
+Texture2D specularTexture : register(t2);
 
 SamplerState Sampler : register(s0);
 
@@ -22,13 +22,8 @@ FPPS_OUT main(FPPS_IN IN)
    
     // * is component-wise multiplication, dot is inner product
     OUT.albedo = diffuseTexture.Sample(Sampler, IN.TexCoord);
-    //OUT.specgloss = specularTexture.Sample(Sampler, IN.TexCoord).x;
-    //OUT.normal = normalTexture.Sample(Sampler, IN.TexCoord);
-    
-    // DEBUG
-    //OUT.albedo = float4(1.0f, 1.0f, 1.0f, 1.0f);
-    OUT.specgloss = 1.0f;
-    OUT.normal = float4(1.0f, 1.0f, 1.0f, 1.0f);
+    OUT.specgloss = specularTexture.Sample(Sampler, IN.TexCoord).x;
+    OUT.normal = normalTexture.Sample(Sampler, IN.TexCoord);
     
     return OUT;
 }

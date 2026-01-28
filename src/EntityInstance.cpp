@@ -11,9 +11,7 @@ Instance::Instance(std::string& p_name, Texture* p_texture_p,  Mesh* p_mesh)
 
 void Instance::_updateModelMatrix()
 {
-	m_modelMatrix = XMMatrixTranslationFromVector(m_position);
-	m_modelMatrix = XMMatrixRotationRollPitchYawFromVector(m_rotation) * m_modelMatrix;
-	m_modelMatrix = XMMatrixScalingFromVector(m_scale) * m_modelMatrix;
+	m_modelMatrix = XMMatrixScalingFromVector(m_scale) * XMMatrixRotationRollPitchYawFromVector(m_rotation) * XMMatrixTranslationFromVector(m_position);
 }
 
 void Instance::Render(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix)

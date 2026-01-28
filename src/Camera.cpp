@@ -1,13 +1,13 @@
 #include <Camera.h>
 
 Camera::Camera()
-	: m_position(XMVectorZero())
-	, m_rotation(XMVectorZero())
+     :m_rotation(XMVectorZero())
 	, m_fov(90.0f)
 	, m_aspectRatio(16.0f / 9.0f)
 	, m_nearPlane(0.1f)
 	, m_farPlane(1000.0f)
 {
+	m_position = XMVectorSet(0.0f, 0.0f, -10.0f, 1.0f);
 	_updateVPMatrix();
 }
 
@@ -23,7 +23,7 @@ void Camera::SetPosition(const XMVECTOR& position)
 
 void Camera::SetPosition(float x, float y, float z)
 {
-	m_position = XMVectorSet(x, y, z, 0.0f);
+	m_position = XMVectorSet(x, y, z, 1.0f);
 	_updateVPMatrix();
 }
 
@@ -79,14 +79,13 @@ void Camera::_updateVPMatrix()
 	lookAt = XMVector3Normalize(lookAt);
 	XMVECTOR upDirection = XMVector3TransformCoord(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), rotationMatrix);
 	upDirection = XMVector3Normalize(upDirection);
-	XMVECTOR focusPoint = m_position + lookAt;
 
-	XMMATRIX viewMatrix = XMMatrixLookAtLH(m_position, focusPoint, upDirection);
+	XMMATRIX viewMatrix = XMMatrixLookToLH(m_position, lookAt, upDirection);
 	XMMATRIX projectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(m_fov), m_aspectRatio, m_nearPlane, m_farPlane);
 
 	m_viewProjectionMatrix = XMMatrixMultiply(viewMatrix, projectionMatrix);
 
-	m_invPVMatrix = XMMatrixInverse(nullptr, viewMatrix) * XMMatrixInverse(nullptr, projectionMatrix);
+	m_invPVMatrix = XMMatrixInverse(nullptr, m_viewProjectionMatrix);
 }
 
 XMMATRIX Camera::GetViewProjectionMatrix() const

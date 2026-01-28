@@ -25,7 +25,13 @@ FirstPassVS_OUT main(FirstPassVS_IN FPVS_IN)
     FirstPassVS_OUT OUT;
     
     OUT.TexCoord = FPVS_IN.TexCoord;
-    OUT.Position = mul(float4(FPVS_IN.Position, 1.0f), ModelViewProjectionCB.MVP);
+    // mul(matrix, vector) will assume the matrix is column-major and vector is column vector
+    // HLSL is default to use column-major to load matrices
+    // When loading MVP matrix into constant buffer, it will write by rows; but HLSL will interpret them
+    // as columns here, which is effectively, transpose.
+    // (MA * MB)^T = MB^T * MA^T
+    // No additional transpose is needed.
+    OUT.Position = mul(ModelViewProjectionCB.MVP, float4(FPVS_IN.Position, 1.0f));
     
     return OUT;
 }

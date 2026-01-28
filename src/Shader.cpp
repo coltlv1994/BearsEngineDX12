@@ -132,6 +132,11 @@ void Shader::_create1st()
     graphicsPipelineState.VS = CD3DX12_SHADER_BYTECODE(m_1stPassVertexShaderBlob.Get());
     graphicsPipelineState.PS = CD3DX12_SHADER_BYTECODE(m_1stPassPixelShaderBlob.Get());
     graphicsPipelineState.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+    // note: below commented-out lines will change default RasterizerState
+    // which means, default values are opposite to them.
+    //graphicsPipelineState.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+    //graphicsPipelineState.RasterizerState.FrontCounterClockwise = TRUE;
+    //graphicsPipelineState.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
     graphicsPipelineState.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
     graphicsPipelineState.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
     graphicsPipelineState.SampleMask = UINT_MAX;

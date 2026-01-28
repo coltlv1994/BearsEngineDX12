@@ -351,7 +351,7 @@ void Window::UpdateRenderTargetViews()
 
 	resourceDesc.DepthOrArraySize = 1;
 	resourceDesc.Width = (UINT)m_ClientWidth;
-	resourceDesc.Height = (UINT)m_ClientWidth;
+	resourceDesc.Height = (UINT)m_ClientHeight;
 	resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
