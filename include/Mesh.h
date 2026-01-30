@@ -27,11 +27,11 @@ public:
 private:
 	std::string m_meshClassName;
 	std::vector<float> m_vertices;
-	//std::vector<float> m_normals;
+	std::vector<float> m_normals;
 	std::vector<float> m_texcoords;
 
 	std::vector<uint32_t> m_triangles;
-	//std::vector<uint32_t> m_triangleNormalIndex;
+	std::vector<uint32_t> m_triangleNormalIndex;
 	std::vector<uint32_t> m_triangleTexcoordIndex;
 
 	std::vector<VertexPosColor> combinedBuffer;

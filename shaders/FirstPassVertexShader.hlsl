@@ -8,6 +8,7 @@ struct ModelViewProjection
 struct FirstPassVS_IN
 {
     float3 Position : POSITION;
+    float3 Normal : NORMAL;
     float2 TexCoord : TEXCOORD;
 };
 

@@ -1,6 +1,7 @@
 struct SecondPassVS_IN
 {
-    float4 position : POSITION;
+    float3 position : POSITION;
+    float3 normal : NORMAL;
     float2 texcoord : TEXCOORD;
 };
 
@@ -13,7 +14,7 @@ struct SecondPassVS_OUT
 SecondPassVS_OUT main(SecondPassVS_IN IN)
 {
     SecondPassVS_OUT OUT;
-    OUT.position = IN.position;
+    OUT.position = float4(IN.position, 1.0f);
     OUT.texcoord = IN.texcoord;
     return OUT;
 }

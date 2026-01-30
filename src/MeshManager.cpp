@@ -483,10 +483,10 @@ void MeshManager::Prepare2ndPassResources()
 	// create a full screen quad vertex buffer
 	VertexPosColor quadVertices[] =
 	{
-		{ XMFLOAT3(-1.0f,  1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },
-		{ XMFLOAT3( 1.0f,  1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },
-		{ XMFLOAT3(-1.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },
-		{ XMFLOAT3( 1.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },
+		{ XMFLOAT3(-1.0f,  1.0f, 0.0f), XMFLOAT3(-1.0f,  1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },
+		{ XMFLOAT3( 1.0f,  1.0f, 0.0f), XMFLOAT3(-1.0f,  1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },
+		{ XMFLOAT3(-1.0f, -1.0f, 0.0f), XMFLOAT3(-1.0f,  1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },
+		{ XMFLOAT3( 1.0f, -1.0f, 0.0f), XMFLOAT3(-1.0f,  1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },
 	};
 
 	const UINT quadVertexBufferSize = sizeof(quadVertices);

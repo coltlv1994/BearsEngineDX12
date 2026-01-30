@@ -76,7 +76,7 @@ struct VertexPosColor
 {
     XMFLOAT3 Position;
     // normals are currently read from texture map
-    //XMFLOAT3 Normal;
+    XMFLOAT3 Normal;
     XMFLOAT2 TexCoord;
 };
 
