@@ -334,12 +334,6 @@ void Window::UpdateRenderTargetViews()
 		DXGI_FORMAT_R32G32B32A32_FLOAT // normal
 	};
 
-	DXGI_FORMAT srvFormat[3] = {
-	DXGI_FORMAT_R32G32B32A32_FLOAT, // diffuse
-	DXGI_FORMAT_R32_FLOAT, // specular
-	DXGI_FORMAT_R32G32B32A32_FLOAT // normal
-	};
-
 	CD3DX12_HEAP_PROPERTIES heapProperty(D3D12_HEAP_TYPE_DEFAULT);
 	D3D12_RESOURCE_DESC resourceDesc;
 	ZeroMemory(&resourceDesc, sizeof(resourceDesc));

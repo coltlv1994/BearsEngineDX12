@@ -71,20 +71,27 @@ static UINT CalcConstantBufferByteSize(UINT byteSize)
     return (byteSize + 255) & ~255;
 }
 
-// Vertex data for a colored cube.
-struct VertexPosColor
+// Vertex data for first pass
+struct FirstPassVertexData
 {
     XMFLOAT3 Position;
     // normals are currently read from texture map
     XMFLOAT3 Normal;
+    XMFLOAT3 Tangent;
     XMFLOAT2 TexCoord;
 };
 
-// input structure for the vertex shader.
-// WARNING: must match the structure defined in the shader.
+struct SecondPassVertexData
+{
+    XMFLOAT3 Position;
+    XMFLOAT2 TexCoord;
+};
+
+// input structure for first pass vertex shader
 struct VertexShaderInput
 {
     XMMATRIX mvpMatrix;
+    XMMATRIX tiModel;
 };
 
 struct SecondPassRootConstants

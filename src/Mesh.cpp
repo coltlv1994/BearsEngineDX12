@@ -106,7 +106,8 @@ void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 					// "vt " has three characters, including the space
 					sscanf_s(&line.c_str()[3], "%f %f", &tu, &tv);
 					m_texcoords.push_back(tu);
-					m_texcoords.push_back(tv);
+					// OBJ file starts at bottom-left, but DX12 starts at top-left
+					m_texcoords.push_back(1.0f - tv);
 					break;
 				case 'n':
 					// read vertex normal
@@ -196,19 +197,23 @@ void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 			auto vti2 = m_triangleTexcoordIndex[i * 3 + 1];
 			auto vti3 = m_triangleTexcoordIndex[i * 3 + 2];
 
-			combinedBuffer.push_back(VertexPosColor(
+			// Tangent will be calculated later
+			combinedBuffer.push_back(FirstPassVertexData(
 				{ m_vertices[vi1 * 3], m_vertices[vi1 * 3 + 1] , m_vertices[vi1 * 3 + 2] },
 				{ m_normals[vni1 * 3], m_normals[vni1 * 3 + 1] , m_normals[vni1 * 3 + 2] },
+				{0.0f, 0.0f, 0.0f},
 				{ m_texcoords[vti1 * 2], m_texcoords[vti1 * 2 + 1] }));
 
-			combinedBuffer.push_back(VertexPosColor(
+			combinedBuffer.push_back(FirstPassVertexData(
 				{ m_vertices[vi2 * 3], m_vertices[vi2 * 3 + 1] , m_vertices[vi2 * 3 + 2] },
 				{ m_normals[vni2 * 3], m_normals[vni2 * 3 + 1] , m_normals[vni2 * 3 + 2] },
+				{ 0.0f, 0.0f, 0.0f },
 				{ m_texcoords[vti2 * 2], m_texcoords[vti2 * 2 + 1] }));
 
-			combinedBuffer.push_back(VertexPosColor(
+			combinedBuffer.push_back(FirstPassVertexData(
 				{ m_vertices[vi3 * 3], m_vertices[vi3 * 3 + 1] , m_vertices[vi3 * 3 + 2] },
 				{ m_normals[vni3 * 3], m_normals[vni3 * 3 + 1] , m_normals[vni3 * 3 + 2] },
+				{ 0.0f, 0.0f, 0.0f },
 				{ m_texcoords[vti3 * 2], m_texcoords[vti3 * 2 + 1] }));
 		}
 
@@ -247,12 +252,12 @@ void Mesh::LoadDataToGPU()
 	ComPtr<ID3D12Resource> intermediateVertexBuffer;
 	UpdateBufferResource(commandList,
 		&m_vertexBuffer, &intermediateVertexBuffer,
-		combinedBuffer.size(), sizeof(VertexPosColor), combinedBuffer.data());
+		combinedBuffer.size(), sizeof(FirstPassVertexData), combinedBuffer.data());
 
 	// Create the vertex buffer view.
 	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-	m_vertexBufferView.SizeInBytes = combinedBuffer.size() * sizeof(VertexPosColor);
-	m_vertexBufferView.StrideInBytes = sizeof(VertexPosColor);
+	m_vertexBufferView.SizeInBytes = combinedBuffer.size() * sizeof(FirstPassVertexData);
+	m_vertexBufferView.StrideInBytes = sizeof(FirstPassVertexData);
 
 	// Upload index buffer data.
 	ComPtr<ID3D12Resource> intermediateIndexBuffer;
@@ -341,7 +346,7 @@ void Mesh::ReadFromBinaryFile(const wchar_t* p_binFilePath)
 	size_t vertexCount = 0;
 	sscanf_s(line.c_str(), "vertices: %zu", &vertexCount);
 	combinedBuffer.resize(vertexCount);
-	binFile.read(reinterpret_cast<char*>(combinedBuffer.data()), vertexCount * sizeof(VertexPosColor));
+	binFile.read(reinterpret_cast<char*>(combinedBuffer.data()), vertexCount * sizeof(FirstPassVertexData));
 	std::getline(binFile, line); // read the newline
 	std::getline(binFile, line);
 	size_t indexCount = 0;
@@ -364,7 +369,7 @@ void Mesh::WriteToBinaryFile(const wchar_t* p_binFilePath)
 	}
 
 	binFile << "vertices: " << combinedBuffer.size() << "\n";
-	binFile.write(reinterpret_cast<const char*>(combinedBuffer.data()), combinedBuffer.size() * sizeof(VertexPosColor));
+	binFile.write(reinterpret_cast<const char*>(combinedBuffer.data()), combinedBuffer.size() * sizeof(FirstPassVertexData));
 	binFile << "\nindices: " << m_triangles.size() << "\n";
 	binFile.write(reinterpret_cast<const char*>(m_triangles.data()), m_triangles.size() * sizeof(uint32_t));
 	binFile.close();

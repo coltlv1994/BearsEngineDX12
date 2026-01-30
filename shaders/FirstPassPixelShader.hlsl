@@ -1,6 +1,7 @@
 struct FPPS_IN
 {
     float2 TexCoord : TEXCOORD;
+    float3x3 tbnMatrix : TBNMATRIX;
 };
 
 struct FPPS_OUT
@@ -23,7 +24,9 @@ FPPS_OUT main(FPPS_IN IN)
     // * is component-wise multiplication, dot is inner product
     OUT.albedo = diffuseTexture.Sample(Sampler, IN.TexCoord);
     OUT.specgloss = specularTexture.Sample(Sampler, IN.TexCoord).x;
-    OUT.normal = normalTexture.Sample(Sampler, IN.TexCoord);
+    
+    float3 n_sample = normalTexture.Sample(Sampler, IN.TexCoord);
+    OUT.normal = (normalize(mul(IN.tbnMatrix, n_sample * 2.0f - 1.0f)), 0.0f);
     
     return OUT;
 }

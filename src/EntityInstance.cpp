@@ -32,6 +32,7 @@ void Instance::Render(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XM
     // sizeof() / 4 because we are setting 32 bit constants
 	VertexShaderInput vsi = {};
 	vsi.mvpMatrix = m_modelMatrix * p_vpMatrix;
+	vsi.tiModel = XMMatrixTranspose(XMMatrixInverse(nullptr, m_modelMatrix));
 
 	p_commandList->SetGraphicsRoot32BitConstants(1, sizeof(vsi) / 4, &vsi, 0);
 

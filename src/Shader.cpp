@@ -7,22 +7,23 @@ using namespace DirectX;
 
 #include <Application.h>
 
-// For now, two passes share the same input layout
 // POSITION: float3, NORMAL: float3, TEXCOORD: float2
 static D3D12_INPUT_ELEMENT_DESC firstPassInputLayout[] = {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 };
 
 static UINT firstPassInputLayoutCount = sizeof(firstPassInputLayout) / sizeof(D3D12_INPUT_ELEMENT_DESC);
 
 // Deferred rendering is second pass
-//static D3D12_INPUT_ELEMENT_DESC secondPassInputLayout[] = {
-//    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-//    { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-//    { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-//};
+static D3D12_INPUT_ELEMENT_DESC secondPassInputLayout[] = {
+    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+};
+
+static UINT secondPassInputLayoutCount = sizeof(secondPassInputLayout) / sizeof(D3D12_INPUT_ELEMENT_DESC);
 
 Shader::Shader(const wchar_t* p_1stVsPath, const wchar_t* p_1stPsPath, const wchar_t* p_2ndVsPath, const wchar_t* p_2ndPsPath)
 {
@@ -148,7 +149,7 @@ void Shader::_create1st()
     graphicsPipelineState.RTVFormats[2] = rtvFormats.RTFormats[2];
     graphicsPipelineState.SampleDesc.Count = 1;
     graphicsPipelineState.SampleDesc.Quality = 0;
-    graphicsPipelineState.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+    graphicsPipelineState.DSVFormat = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
     ThrowIfFailed(device->CreateGraphicsPipelineState(&graphicsPipelineState, IID_PPV_ARGS(&m_1stPassPipelineState)));
 }
 
@@ -214,7 +215,7 @@ void Shader::_create2nd()
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineState;
     memset(&graphicsPipelineState, 0, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
-    graphicsPipelineState.InputLayout = { firstPassInputLayout, static_cast<UINT>(firstPassInputLayoutCount) };
+    graphicsPipelineState.InputLayout = { secondPassInputLayout, static_cast<UINT>(secondPassInputLayoutCount) };
     graphicsPipelineState.pRootSignature = m_2ndPassRootSignature.Get();
     graphicsPipelineState.VS = CD3DX12_SHADER_BYTECODE(m_2ndPassVertexShaderBlob.Get());
     graphicsPipelineState.PS = CD3DX12_SHADER_BYTECODE(m_2ndPassPixelShaderBlob.Get());

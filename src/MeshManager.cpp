@@ -481,12 +481,12 @@ void MeshManager::Prepare2ndPassResources()
 	auto device = Application::Get().GetDevice();
 
 	// create a full screen quad vertex buffer
-	VertexPosColor quadVertices[] =
+	SecondPassVertexData quadVertices[] =
 	{
-		{ XMFLOAT3(-1.0f,  1.0f, 0.0f), XMFLOAT3(-1.0f,  1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },
-		{ XMFLOAT3( 1.0f,  1.0f, 0.0f), XMFLOAT3(-1.0f,  1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },
-		{ XMFLOAT3(-1.0f, -1.0f, 0.0f), XMFLOAT3(-1.0f,  1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },
-		{ XMFLOAT3( 1.0f, -1.0f, 0.0f), XMFLOAT3(-1.0f,  1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },
+		{ XMFLOAT3(-1.0f,  1.0f, 0.0f),  XMFLOAT2(0.0f, 0.0f) },
+		{ XMFLOAT3( 1.0f,  1.0f, 0.0f),  XMFLOAT2(1.0f, 0.0f) },
+		{ XMFLOAT3(-1.0f, -1.0f, 0.0f),  XMFLOAT2(0.0f, 1.0f) },
+		{ XMFLOAT3( 1.0f, -1.0f, 0.0f),  XMFLOAT2(1.0f, 1.0f) },
 	};
 
 	const UINT quadVertexBufferSize = sizeof(quadVertices);
@@ -512,6 +512,6 @@ void MeshManager::Prepare2ndPassResources()
 	m_2ndPassVertexBuffer->Unmap(0, nullptr);
 
 	m_2ndPassVertexBufferView.BufferLocation = m_2ndPassVertexBuffer->GetGPUVirtualAddress();
-	m_2ndPassVertexBufferView.StrideInBytes = sizeof(VertexPosColor);
+	m_2ndPassVertexBufferView.StrideInBytes = sizeof(SecondPassVertexData);
 	m_2ndPassVertexBufferView.SizeInBytes = sizeof(quadVertices);
 }

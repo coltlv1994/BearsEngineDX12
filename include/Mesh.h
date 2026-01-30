@@ -34,7 +34,7 @@ private:
 	std::vector<uint32_t> m_triangleNormalIndex;
 	std::vector<uint32_t> m_triangleTexcoordIndex;
 
-	std::vector<VertexPosColor> combinedBuffer;
+	std::vector<FirstPassVertexData> combinedBuffer;
 
 	UINT m_triangleCount = 0;
 

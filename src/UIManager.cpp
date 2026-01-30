@@ -99,7 +99,7 @@ void UIManager::InitializeD3D12(ComPtr<ID3D12Device>device, ComPtr<ID3D12Command
 	init_info.CommandQueue = commandQueue.Get();
 	init_info.NumFramesInFlight = numFramesInFlight;
 	init_info.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-	init_info.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+	init_info.DSVFormat = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 
 	g_pd3dSrvDescHeapAlloc.Create(device.Get(), srvHeap.Get());
 
