@@ -38,8 +38,10 @@ FirstPassVS_OUT main(FirstPassVS_IN FPVS_IN)
     OUT.Position = mul(ModelViewProjectionCB.MVP, float4(FPVS_IN.Position, 1.0f));
     
     // construct tbn matrix
-    float3 N = normalize(mul(ModelViewProjectionCB.tiModel, float4(FPVS_IN.Normal, 0.0f)).xyz);
-    float3 T = normalize(mul(ModelViewProjectionCB.tiModel, float4(FPVS_IN.Tangent, 0.0f)).xyz);
+    float3x3 tiM = (float3x3) ModelViewProjectionCB.tiModel;
+    
+    float3 N = normalize(mul(tiM, FPVS_IN.Normal));
+    float3 T = normalize(mul(tiM, FPVS_IN.Tangent));
     float3 B = cross(N, T);
     
     OUT.tbnMatrix = float3x3(T, B, N);

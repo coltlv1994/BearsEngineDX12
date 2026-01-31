@@ -182,6 +182,10 @@ void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 		// combine buffers
 		auto noOfVertices = m_vertices.size() / 3;
 		auto noOfTriangles = m_triangles.size() / 3;
+		const float* verticesData = m_vertices.data();
+		const float* normalsData = m_normals.data();
+		const float* texcoordsData = m_texcoords.data();
+
 		for (auto i = 0; i < noOfTriangles; i++)
 		{
 			// position, normal, texcoord
@@ -197,24 +201,46 @@ void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 			auto vti2 = m_triangleTexcoordIndex[i * 3 + 1];
 			auto vti3 = m_triangleTexcoordIndex[i * 3 + 2];
 
+			XMFLOAT3 position1 = XMFLOAT3(&verticesData[vi1 * 3]);
+			XMFLOAT3 position2 = XMFLOAT3(&verticesData[vi1 * 3]);
+			XMFLOAT3 position3 = XMFLOAT3(&verticesData[vi3 * 3]);
+
+			XMFLOAT3 normal1 = XMFLOAT3(&normalsData[vni1 * 3]);
+			XMFLOAT3 normal2 = XMFLOAT3(&normalsData[vni2 * 3]);
+			XMFLOAT3 normal3 = XMFLOAT3(&normalsData[vni3 * 3]);
+
+			XMFLOAT2 texcoord1 = XMFLOAT2(&texcoordsData[vti1 * 2]);
+			XMFLOAT2 texcoord2 = XMFLOAT2(&texcoordsData[vti2 * 2]);
+			XMFLOAT2 texcoord3 = XMFLOAT2(&texcoordsData[vti3 * 2]);
+
+			float deltaU1 = texcoord2.x - texcoord1.x;
+			float deltaU2 = texcoord3.x - texcoord1.x;
+			float deltaV1 = texcoord2.y - texcoord1.y;
+			float deltaV2 = texcoord3.y - texcoord1.y;
+
+			float invDetDelta = 1.0f / (deltaU1 * deltaV2 - deltaU2 * deltaV1);
+
+			XMVECTOR p1v = XMLoadFloat3(&position1);
+			XMVECTOR p2v = XMLoadFloat3(&position2);
+			XMVECTOR p3v = XMLoadFloat3(&position3);
+			//XMVECTOR e1 = p2v - p1v;
+			//XMVECTOR e2 = p3v - p1v;
+
+			//XMVECTOR T_VECTOR = (deltaV2 * (p2v - p1v) - deltaV1 * (p3v - p1v)) * invDetDelta;
+			XMVECTOR T_VECTOR = (deltaV2 * p2v - deltaV1 * p3v - (deltaV2 - deltaV1) * p1v) * invDetDelta;
+
+			XMFLOAT3 tVector;
+			XMStoreFloat3(&tVector, T_VECTOR);
+
 			// Tangent will be calculated later
 			combinedBuffer.push_back(FirstPassVertexData(
-				{ m_vertices[vi1 * 3], m_vertices[vi1 * 3 + 1] , m_vertices[vi1 * 3 + 2] },
-				{ m_normals[vni1 * 3], m_normals[vni1 * 3 + 1] , m_normals[vni1 * 3 + 2] },
-				{0.0f, 0.0f, 0.0f},
-				{ m_texcoords[vti1 * 2], m_texcoords[vti1 * 2 + 1] }));
+				position1, normal1, tVector, texcoord1));
 
 			combinedBuffer.push_back(FirstPassVertexData(
-				{ m_vertices[vi2 * 3], m_vertices[vi2 * 3 + 1] , m_vertices[vi2 * 3 + 2] },
-				{ m_normals[vni2 * 3], m_normals[vni2 * 3 + 1] , m_normals[vni2 * 3 + 2] },
-				{ 0.0f, 0.0f, 0.0f },
-				{ m_texcoords[vti2 * 2], m_texcoords[vti2 * 2 + 1] }));
+				position2, normal2, tVector, texcoord2));
 
 			combinedBuffer.push_back(FirstPassVertexData(
-				{ m_vertices[vi3 * 3], m_vertices[vi3 * 3 + 1] , m_vertices[vi3 * 3 + 2] },
-				{ m_normals[vni3 * 3], m_normals[vni3 * 3 + 1] , m_normals[vni3 * 3 + 2] },
-				{ 0.0f, 0.0f, 0.0f },
-				{ m_texcoords[vti3 * 2], m_texcoords[vti3 * 2 + 1] }));
+				position3, normal3, tVector, texcoord3));
 		}
 
 		m_triangles.clear();
