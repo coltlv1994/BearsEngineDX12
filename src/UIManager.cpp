@@ -548,7 +548,7 @@ void UIManager::CreateImGuiWindowContent()
 				ImGui::Text("Point Light #%lu", i);
 				ImGui::Text("Strength");
 				ImGui::SliderFloat((pLStrengthLabel + std::to_string(i)).c_str(), &m_lightConstants.PointLights[i].Strength, 0.0f, 1.0f, "%.3f");
-				ImGui::Text("Direction");
+				ImGui::Text("Position");
 				ImGui::InputFloat3((plPositionLabel + std::to_string(i)).c_str(), (float*)&m_lightConstants.PointLights[i].Position);
 				ImGui::Text("Color");
 				ImGui::ColorEdit3((plColorLabel + std::to_string(i)).c_str(), (float*)&m_lightConstants.PointLights[i].Color);
@@ -584,7 +584,7 @@ void UIManager::CreateImGuiWindowContent()
 				ImGui::Text("Direction");
 				ImGui::InputFloat3((slDirectionLabel + std::to_string(i)).c_str(), (float*)&m_lightConstants.SpotLights[i].Direction);
 				ImGui::Text("Falloff distance, start/end");
-				ImGui::InputFloat2((slFalloffLabel + std::to_string(i)).c_str(), (float*)&m_lightConstants.PointLights[i].Falloff);
+				ImGui::InputFloat2((slFalloffLabel + std::to_string(i)).c_str(), (float*)&m_lightConstants.SpotLights[i].Falloff);
 				ImGui::Text("Spot power");
 				ImGui::SliderFloat((slSpotPowerLabel + std::to_string(i)).c_str(), &m_lightConstants.SpotLights[i].SpotPower, 0.0f, 1.0f, "%.3f");
 				ImGui::Text("Color");

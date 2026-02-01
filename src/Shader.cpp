@@ -149,7 +149,7 @@ void Shader::_create1st()
     graphicsPipelineState.RTVFormats[2] = rtvFormats.RTFormats[2];
     graphicsPipelineState.SampleDesc.Count = 1;
     graphicsPipelineState.SampleDesc.Quality = 0;
-    graphicsPipelineState.DSVFormat = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+    graphicsPipelineState.DSVFormat = DXGI_FORMAT_D32_FLOAT;
     ThrowIfFailed(device->CreateGraphicsPipelineState(&graphicsPipelineState, IID_PPV_ARGS(&m_1stPassPipelineState)));
 }
 

@@ -25,8 +25,9 @@ FPPS_OUT main(FPPS_IN IN)
     OUT.albedo = diffuseTexture.Sample(Sampler, IN.TexCoord);
     OUT.specgloss = specularTexture.Sample(Sampler, IN.TexCoord).x;
     
-    float3 n_sample = normalTexture.Sample(Sampler, IN.TexCoord);
-    OUT.normal = (normalize(mul(IN.tbnMatrix, n_sample * 2.0f - 1.0f)), 0.0f);
+    float3 n_sample = normalTexture.Sample(Sampler, IN.TexCoord).xyz;
+    n_sample = n_sample * 2.0f - 1.0f;
+    OUT.normal = float4(normalize(mul(IN.tbnMatrix, n_sample)), 0.0f);
     
     return OUT;
 }

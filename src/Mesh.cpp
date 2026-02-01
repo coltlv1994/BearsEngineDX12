@@ -202,7 +202,7 @@ void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 			auto vti3 = m_triangleTexcoordIndex[i * 3 + 2];
 
 			XMFLOAT3 position1 = XMFLOAT3(&verticesData[vi1 * 3]);
-			XMFLOAT3 position2 = XMFLOAT3(&verticesData[vi1 * 3]);
+			XMFLOAT3 position2 = XMFLOAT3(&verticesData[vi2 * 3]);
 			XMFLOAT3 position3 = XMFLOAT3(&verticesData[vi3 * 3]);
 
 			XMFLOAT3 normal1 = XMFLOAT3(&normalsData[vni1 * 3]);
@@ -223,8 +223,8 @@ void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 			XMVECTOR p1v = XMLoadFloat3(&position1);
 			XMVECTOR p2v = XMLoadFloat3(&position2);
 			XMVECTOR p3v = XMLoadFloat3(&position3);
-			//XMVECTOR e1 = p2v - p1v;
-			//XMVECTOR e2 = p3v - p1v;
+			XMVECTOR e1 = p2v - p1v;
+			XMVECTOR e2 = p3v - p1v;
 
 			//XMVECTOR T_VECTOR = (deltaV2 * (p2v - p1v) - deltaV1 * (p3v - p1v)) * invDetDelta;
 			XMVECTOR T_VECTOR = (deltaV2 * p2v - deltaV1 * p3v - (deltaV2 - deltaV1) * p1v) * invDetDelta;

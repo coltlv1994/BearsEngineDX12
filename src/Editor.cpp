@@ -104,11 +104,11 @@ void Editor::ResizeDepthBuffer(int width, int height)
 		// Resize screen dependent resources.
 		// Create a depth buffer.
 		D3D12_CLEAR_VALUE optimizedClearValue = {};
-		optimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+		optimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
 		optimizedClearValue.DepthStencil = { 1.0f, 0 };
 
 		static CD3DX12_HEAP_PROPERTIES heap_default = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-		CD3DX12_RESOURCE_DESC tex2d = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT_S8X24_UINT, width, height,
+		CD3DX12_RESOURCE_DESC tex2d = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, width, height,
 			1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
 
 		ThrowIfFailed(device->CreateCommittedResource(
@@ -122,7 +122,7 @@ void Editor::ResizeDepthBuffer(int width, int height)
 
 		// Update the depth-stencil view.
 		D3D12_DEPTH_STENCIL_VIEW_DESC dsv = {};
-		dsv.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+		dsv.Format = DXGI_FORMAT_D32_FLOAT;
 		dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 		dsv.Texture2D.MipSlice = 0;
 		dsv.Flags = D3D12_DSV_FLAG_NONE;
@@ -135,7 +135,7 @@ void Editor::ResizeDepthBuffer(int width, int height)
 		descSRV.Texture2D.MipLevels = 1;
 		descSRV.Texture2D.MostDetailedMip = 0;
 		descSRV.Texture2D.PlaneSlice = 0;
-		descSRV.Format = DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+		descSRV.Format = DXGI_FORMAT_R32_FLOAT;
 		descSRV.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 		descSRV.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
