@@ -57,7 +57,7 @@ bool Editor::LoadContent()
 	// Create the descriptor heap for the depth-stencil view.
 	m_DSVHeap = app.CreateDescriptorHeap(1, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
 
-	// Allocating SRV descriptors (for textures), and set the size to 128
+	// Allocating SRV descriptors (for textures), and set the size to 512
 	m_SRVHeap = app.CreateDescriptorHeap(512, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
 
 	UINT secondPassSrvHeapSize = Window::BufferCount * Window::FirstPassRTVCount + 1; // 3 SRV for first pass RTVs per frame + 1 SRV for depth buffer
