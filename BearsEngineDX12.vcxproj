@@ -95,7 +95,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3dcompiler.lib;D3D12.lib;dxgi.lib;shlwapi.lib;windowscodecs.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>DirectXTK12.lib;d3dcompiler.lib;D3D12.lib;dxgi.lib;shlwapi.lib;windowscodecs.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -112,7 +112,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3dcompiler.lib;D3D12.lib;dxgi.lib;shlwapi.lib;windowscodecs.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>DirectXTK12.lib;d3dcompiler.lib;D3D12.lib;dxgi.lib;shlwapi.lib;windowscodecs.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -127,7 +127,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3dcompiler.lib;D3D12.lib;dxgi.lib;shlwapi.lib;windowscodecs.lib;libcrypto.lib;libssl.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>DirectXTK12.lib;d3dcompiler.lib;D3D12.lib;dxgi.lib;shlwapi.lib;windowscodecs.lib;libcrypto.lib;libssl.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <FxCompile>
       <ShaderModel>5.1</ShaderModel>
@@ -147,7 +147,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3dcompiler.lib;D3D12.lib;dxgi.lib;shlwapi.lib;windowscodecs.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>DirectXTK12.lib;d3dcompiler.lib;D3D12.lib;dxgi.lib;shlwapi.lib;windowscodecs.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -162,7 +162,6 @@
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\Camera.cpp" />
     <ClCompile Include="src\CommandQueue.cpp" />
-    <ClCompile Include="src\DDSTextureLoader.cpp" />
     <ClCompile Include="src\DX12LibPCH.cpp" />
     <ClCompile Include="src\EntityInstance.cpp" />
     <ClCompile Include="src\Game.cpp" />
