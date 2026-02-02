@@ -74,6 +74,8 @@ private:
     void ResizeDepthBuffer(int width, int height);
 
     void _createSrvForFirstPassRTVs();
+
+    void _createSamplers();
     
     uint64_t m_FenceValues[Window::BufferCount] = {};
 
@@ -89,6 +91,8 @@ private:
 	// index 11-13, 14-16, etc: other textures
     // total size: 512 (for now)
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_SRVHeap;
+
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_samplersHeap;
 
     D3D12_VIEWPORT m_Viewport;
     D3D12_RECT m_ScissorRect;

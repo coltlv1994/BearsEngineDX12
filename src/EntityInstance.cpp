@@ -27,7 +27,6 @@ void Instance::Render(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XM
 
 	p_commandList->SetGraphicsRootDescriptorTable(0, textureHandle);
 
-
 	// set vertex shader input, i.e. model matrix and its inverse transpose
     // sizeof() / 4 because we are setting 32 bit constants
 	VertexShaderInput vsi = {};

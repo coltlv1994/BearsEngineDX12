@@ -43,9 +43,10 @@ public:
 		m_defaultShader_p = shader_p;
 	}
 
-	void SetSRVHeap(Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> srvHeap)
+	void SetSRVHeap(Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> srvHeap, Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> samplerHeap)
 	{
 		m_SRVHeap = srvHeap;
+		m_samplerHeap = samplerHeap;
 	}
 
 	void CreateDefaultTexture();
@@ -62,16 +63,21 @@ public:
 
 	void Prepare2ndPassResources();
 
+	void SetSamplerIndex(unsigned int p_samplerIndex);
+
 private:
 	std::unordered_map<std::string, Mesh*> m_meshes; // map of mesh name to Mesh pointer
 	MessageQueue m_messageQueue;
 	Shader* m_defaultShader_p = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_SRVHeap; // passed from Editor class, holds textures
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_samplerHeap; // passed from Editor class, holds samplers
 	std::vector<Instance*> m_instanceList; // list of all created instances
 	std::unordered_map<std::string, Texture*> m_textureMap; // map of texture file path to texture resource
 	LightManager* m_lightManager_p = nullptr;
 
 	unsigned int m_createdInstanceCount = 0; // for unique instance naming, this value should never decrease except map reloading
+
+	unsigned int m_selectedSampler = 0;
 
 	uint64_t m_memInfo[2] = { 0 }; // used and total memory info
 

@@ -103,6 +103,12 @@ void MeshManager::RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandLi
 	p_commandList->SetPipelineState(pipelineState.Get());
 	p_commandList->SetGraphicsRootSignature(rootSignature.Get());
 
+	// set sampler
+	static UINT samplerSize = Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+	static D3D12_GPU_DESCRIPTOR_HANDLE samplerBaseHandle = m_samplerHeap->GetGPUDescriptorHandleForHeapStart();
+
+	p_commandList->SetGraphicsRootDescriptorTable(2, CD3DX12_GPU_DESCRIPTOR_HANDLE(samplerBaseHandle, m_selectedSampler, samplerSize));
+
 	for (Instance* instance_p : m_instanceList)
 	{
 		// call mesh class to render it
@@ -514,4 +520,9 @@ void MeshManager::Prepare2ndPassResources()
 	m_2ndPassVertexBufferView.BufferLocation = m_2ndPassVertexBuffer->GetGPUVirtualAddress();
 	m_2ndPassVertexBufferView.StrideInBytes = sizeof(SecondPassVertexData);
 	m_2ndPassVertexBufferView.SizeInBytes = sizeof(quadVertices);
+}
+
+void MeshManager::SetSamplerIndex(unsigned int p_samplerIndex)
+{
+	m_selectedSampler = p_samplerIndex;
 }

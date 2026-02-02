@@ -60,11 +60,15 @@ bool Editor::LoadContent()
 	// Allocating SRV descriptors (for textures), and set the size to 512
 	m_SRVHeap = app.CreateDescriptorHeap(512, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
 
+	// create sampler's heap
+	m_samplersHeap = app.CreateDescriptorHeap(10, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
+
 	UINT secondPassSrvHeapSize = Window::BufferCount * Window::FirstPassRTVCount + 1; // 3 SRV for first pass RTVs per frame + 1 SRV for depth buffer
 
 	_createSrvForFirstPassRTVs();
+	_createSamplers();
 
-	MeshManager::Get().SetSRVHeap(m_SRVHeap);
+	MeshManager::Get().SetSRVHeap(m_SRVHeap, m_samplersHeap);
 	MeshManager::Get().CreateDefaultTexture();
 	MeshManager::Get().Prepare2ndPassResources();
 
@@ -267,8 +271,8 @@ void Editor::OnRender(RenderEventArgs& e)
 	}
 	// clear dsv
 	ClearDepth(commandList, dsv);
-	ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap.Get() };
-	commandList->SetDescriptorHeaps(1, ppHeaps);
+	ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap.Get(), m_samplersHeap.Get()};
+	commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 
 	// bind render targets
 	commandList->OMSetRenderTargets(Window::FirstPassRTVCount, &firstPassRtv, TRUE, &dsv);
@@ -418,4 +422,36 @@ void Editor::_createSrvForFirstPassRTVs()
 			srvHandle.Offset(1, srvIncrementSize);
 		}
 	}
+}
+
+void Editor::_createSamplers()
+{
+	auto device = Application::Get().GetDevice();
+	UINT samplerSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE samplerHandle(m_samplersHeap->GetCPUDescriptorHandleForHeapStart());
+
+	// First sampler, linear interplotation with mipmap
+	D3D12_SAMPLER_DESC samplerDesc = {};
+	samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+	samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
+	samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
+	samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
+	samplerDesc.MinLOD = 0;
+	samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
+	samplerDesc.MipLODBias = 0.0f;
+	samplerDesc.MaxAnisotropy = 1;
+	samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+	device->CreateSampler(&samplerDesc, samplerHandle);
+
+	// second sampler, all point
+	samplerHandle.Offset(1, samplerSize);
+	samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+	device->CreateSampler(&samplerDesc, samplerHandle);
+
+	// second sampler, anisotropic
+	samplerHandle.Offset(1, samplerSize);
+	samplerDesc.Filter = D3D12_FILTER_ANISOTROPIC;
+	samplerDesc.MaxAnisotropy = 8;
+	device->CreateSampler(&samplerDesc, samplerHandle);
 }

@@ -85,6 +85,7 @@ private:
 	MessageQueue m_messageQueue;
 	std::vector<std::string> listOfMeshes; // UI manager does not directly operate on meshes and textures
 	std::vector<std::string> listOfTextures;
+	std::vector<std::string> listOfSamplers;
 	std::vector<Instance*> listOfInstances;
 	bool errorMessage = false; // to trigger error message popup
 	char errorMessageBuffer[256] = { 0 };
