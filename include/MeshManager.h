@@ -9,6 +9,8 @@
 #include <Texture.h>
 #include <LightManager.h>
 
+#include <ResourceUploadBatch.h>
+
 class MeshManager
 {
 public:

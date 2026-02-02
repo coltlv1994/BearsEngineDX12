@@ -1,5 +1,6 @@
 #include <Texture.h>
 #include <DDSTextureLoader.h>
+#include <WICTextureLoader.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"

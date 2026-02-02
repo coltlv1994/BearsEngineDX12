@@ -269,6 +269,7 @@
     <ClInclude Include="include\EntityInstance.h" />
     <ClInclude Include="include\Events.h" />
     <ClInclude Include="include\Game.h" />
+    <ClInclude Include="include\GraphicsMemory.h" />
     <ClInclude Include="include\Helpers.h" />
     <ClInclude Include="include\HighResolutionClock.h" />
     <ClInclude Include="include\KeyCodes.h" />
@@ -278,9 +279,11 @@
     <ClInclude Include="include\MessageQueue.h" />
     <ClInclude Include="include\resource.h" />
     <ClInclude Include="include\Editor.h" />
+    <ClInclude Include="include\ResourceUploadBatch.h" />
     <ClInclude Include="include\Shader.h" />
     <ClInclude Include="include\Texture.h" />
     <ClInclude Include="include\UIManager.h" />
+    <ClInclude Include="include\WICTextureLoader.h" />
     <ClInclude Include="include\Window.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
