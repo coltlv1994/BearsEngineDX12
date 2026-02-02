@@ -85,6 +85,8 @@ Application::Application(HINSTANCE hInst)
 		m_CopyCommandQueue = std::make_shared<CommandQueue>(m_d3d12Device, D3D12_COMMAND_LIST_TYPE_COPY);
 
 		m_TearingSupported = CheckTearingSupport();
+
+		m_resourceUploadBatch = new ResourceUploadBatch(m_d3d12Device.Get());
 	}
 }
 
@@ -489,4 +491,9 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 	}
 
 	return 0;
+}
+
+DirectX::ResourceUploadBatch& Application::GetRUB()
+{
+	return *m_resourceUploadBatch;
 }

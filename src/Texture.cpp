@@ -1,110 +1,96 @@
 #include <Texture.h>
 #include <DDSTextureLoader.h>
 #include <WICTextureLoader.h>
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include <ResourceUploadBatch.h>
+#include <cstdlib>
 
 void Texture::_initialize()
 {
-	std::string diffuseTextureName = "textures\\" + m_name + "_diffuse.jpg";
-	std::string normalTextureName = "textures\\" + m_name + "_normal.jpg";
-	std::string specularTextureName = "textures\\" + m_name + "_specular.jpg";
-
 	// first in this SRV heap is for imgui
 	// after that, each Texture has 3 textures: diffuse, normal, specular
 	m_srvHeapOffset = m_textureIndex * 3 + 11;
 
-	_loadTexture(diffuseTextureName, 0);
-	_loadTexture(normalTextureName, 1);
-	_loadTexture(specularTextureName, 2);
+	for (unsigned int i = 0; i < ResourceIndex::MAX_NO; i++)
+	{
+		_loadTexture(i);
+	}
 }
 
-bool Texture::_loadTexture(const std::string& textureFilePath, UINT resourceIndex)
+void Texture::_loadTexture(unsigned int p_internalResourceIndex)
 {
-	// Load textures and create SRV descriptors in the heap
-	auto device = Application::Get().GetDevice();
-	auto commandQueue = Application::Get().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
-	auto commandList = commandQueue->GetCommandList();
+	wchar_t filename[256] = L"";
+	wchar_t fullpath[512] = L"";
 
-	static CD3DX12_HEAP_PROPERTIES heap_default = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+	size_t convertedChar = 0;
+	mbstowcs_s(&convertedChar, filename, 255, m_name.c_str(), 511);
 
-	unsigned char* imageData = nullptr;
-
-	ComPtr<ID3D12Resource> texture;
-
-	D3D12_RESOURCE_DESC textureDesc = {};
-	textureDesc.MipLevels = 1;
-	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-	textureDesc.DepthOrArraySize = 1;
-	textureDesc.SampleDesc.Count = 1;
-	textureDesc.SampleDesc.Quality = 0;
-	textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-
-	int width, height, channels;
-	imageData = stbi_load(textureFilePath.c_str(), &width, &height, &channels, STBI_rgb_alpha); // force 4 channels
-
-	if (imageData == nullptr)
+	switch (p_internalResourceIndex)
 	{
-		// Failed to load image
-		return false;
+	case ResourceIndex::DIFFUSE:
+		swprintf_s(fullpath, 511, L"textures\\%s_diffuse.dds", filename);
+		_loadDDSTexture(fullpath, p_internalResourceIndex);
+		break;
+	case ResourceIndex::NORMAL:
+		swprintf_s(fullpath, 511, L"textures\\%s_normal.jpg", filename);
+		_loadWICTexture(fullpath, p_internalResourceIndex);
+		break;
+	case ResourceIndex::SPECULAR:
+		swprintf_s(fullpath, 511, L"textures\\%s_specular.jpg", filename);
+		_loadWICTexture(fullpath, p_internalResourceIndex);
+		break;
+	default:
+		return;
 	}
 
-	// Describe and create a Texture2D.
-	textureDesc.Width = width;
-	textureDesc.Height = height;
+	_createSRV(p_internalResourceIndex);
+}
 
-	ThrowIfFailed(device->CreateCommittedResource(
-		&heap_default,
-		D3D12_HEAP_FLAG_NONE,
-		&textureDesc,
-		D3D12_RESOURCE_STATE_COMMON,
-		nullptr,
-		IID_PPV_ARGS(&texture)));
+void Texture::_loadDDSTexture(const wchar_t* p_fullpath, unsigned int p_internalResourceIndex)
+{
+	static ID3D12Device2* device = Application::Get().GetDevice().Get();
+	static auto copyCommandQueue = Application::Get().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY)->GetD3D12CommandQueue().Get();
+	static ResourceUploadBatch& rub = Application::Get().GetRUB();
 
-	const UINT64 uploadBufferSize = GetRequiredIntermediateSize(texture.Get(), 0, 1);
+	rub.Begin(D3D12_COMMAND_LIST_TYPE_COPY);
 
-	static CD3DX12_HEAP_PROPERTIES heap_upload = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-	CD3DX12_RESOURCE_DESC buffer_default_size = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
-	ComPtr<ID3D12Resource> textureUploadHeap = nullptr;
+	ThrowIfFailed(CreateDDSTextureFromFile(device, rub, p_fullpath, &m_resources[p_internalResourceIndex]));
 
-	// Create the GPU upload buffer.
-	ThrowIfFailed(device->CreateCommittedResource(
-		&heap_upload,
-		D3D12_HEAP_FLAG_NONE,
-		&buffer_default_size,
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&textureUploadHeap)));
+	auto uploadFinished = rub.End(copyCommandQueue);
 
-	D3D12_SUBRESOURCE_DATA textureData = {};
-	textureData.pData = imageData;
-	textureData.RowPitch = textureDesc.Width * 4;
-	textureData.SlicePitch = textureData.RowPitch * textureDesc.Height;
+	uploadFinished.wait();
 
-	UpdateSubresources(commandList.Get(), texture.Get(), textureUploadHeap.Get(), 0, 0, 1, &textureData);
+}
 
-	// wait until upload is complete
-	auto fenceValue = commandQueue->ExecuteCommandList(commandList);
-	commandQueue->WaitForFenceValue(fenceValue);
+void Texture::_loadWICTexture(const wchar_t* p_fullpath, unsigned int p_internalResourceIndex, bool p_createMissingMipmap)
+{
+	static ID3D12Device2* device = Application::Get().GetDevice().Get();
+	static auto copyCommandQueue = Application::Get().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY)->GetD3D12CommandQueue().Get();
+	static ResourceUploadBatch& rub = Application::Get().GetRUB();
+
+	rub.Begin(D3D12_COMMAND_LIST_TYPE_COPY);
+	ThrowIfFailed(CreateWICTextureFromFile(device, rub, p_fullpath, &m_resources[p_internalResourceIndex], p_createMissingMipmap));
+
+	auto uploadFinished = rub.End(copyCommandQueue);
+
+	uploadFinished.wait();
+}
+
+void Texture::_createSRV(unsigned int p_internalResourceIndex)
+{
+	static ID3D12Device2* device = Application::Get().GetDevice().Get();
+	static UINT descriptorIncrementSize = Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	static D3D12_CPU_DESCRIPTOR_HANDLE srvHeapHandle = m_SRVHeap->GetCPUDescriptorHandleForHeapStart();
 
 	// Create shader resource view (SRV)
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Format = texture->GetDesc().Format; // replace with texture
+	srvDesc.Format = m_resources[p_internalResourceIndex]->GetDesc().Format; // replace with texture
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.MipLevels = texture->GetDesc().MipLevels;
+	srvDesc.Texture2D.MipLevels = m_resources[p_internalResourceIndex]->GetDesc().MipLevels;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(m_SRVHeap->GetCPUDescriptorHandleForHeapStart());
-	hDescriptor.Offset(m_srvHeapOffset + resourceIndex, Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
-	device->CreateShaderResourceView(texture.Get(), &srvDesc, hDescriptor);
-	// Store texture resource
-	m_resources[resourceIndex] = texture;
-
-	stbi_image_free(imageData);
-
-	return true;
+	hDescriptor.Offset(m_srvHeapOffset + p_internalResourceIndex, descriptorIncrementSize);
+	device->CreateShaderResourceView(m_resources[p_internalResourceIndex].Get(), &srvDesc, hDescriptor);
 }

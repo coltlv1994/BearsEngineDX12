@@ -9,10 +9,6 @@
 
 #include <dxgidebug.h>
 
-#include "imgui.h"
-#include "imgui_impl_win32.h"
-#include "imgui_impl_dx12.h"
-
 void ReportLiveObjects()
 {
     //IDXGIDebug1* dxgiDebug;

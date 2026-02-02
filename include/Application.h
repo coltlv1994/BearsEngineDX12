@@ -6,13 +6,14 @@
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <wrl.h>
-
 #include <memory>
 #include <string>
 
 class Window;
 class Game;
 class CommandQueue;
+
+#include "ResourceUploadBatch.h"
 
 class Application
 {
@@ -31,6 +32,8 @@ public:
 	* Get the application singleton.
 	*/
 	static Application& Get();
+
+	DirectX::ResourceUploadBatch& GetRUB();
 
 	/**
 	 * Check to see if VSync-off is supported.
@@ -120,5 +123,7 @@ private:
 	std::shared_ptr<CommandQueue> m_CopyCommandQueue;
 
 	bool m_TearingSupported;
+
+	DirectX::ResourceUploadBatch* m_resourceUploadBatch;
 
 };

@@ -473,7 +473,7 @@ void UIManager::CreateImGuiWindowContent()
 
 		// Lighting editor
 		ImGui::Text("Ambient lighting strength");
-		ImGui::SliderFloat("##ambientStrength", &m_lightConstants.AmbientLightStrength, 0.0f, 1.0f, "%.3f");
+		ImGui::SliderFloat("##ambientStrength", &m_lightConstants.AmbientLightStrength, 0.0f, 10.0f, "%.3f");
 		ImGui::Text("Ambient lighting color");
 		ImGui::ColorEdit3("##ambientColor", (float*)&m_lightConstants.AmbientLightColor);
 
@@ -520,7 +520,7 @@ void UIManager::CreateImGuiWindowContent()
 			{
 				ImGui::Text("Directional Light #%lu", i);
 				ImGui::Text("Strength");
-				ImGui::SliderFloat((dLStrengthLabel + std::to_string(i)).c_str(), &m_lightConstants.DirectionalLights[i].Strength, 0.0f, 1.0f, "%.3f");
+				ImGui::SliderFloat((dLStrengthLabel + std::to_string(i)).c_str(), &m_lightConstants.DirectionalLights[i].Strength, 0.0f, 10.0f, "%.3f");
 				ImGui::Text("Direction");
 				ImGui::InputFloat3((dlDirectionLabel + std::to_string(i)).c_str(), (float*)&m_lightConstants.DirectionalLights[i].Direction);
 				ImGui::Text("Color");
@@ -547,7 +547,7 @@ void UIManager::CreateImGuiWindowContent()
 			{
 				ImGui::Text("Point Light #%lu", i);
 				ImGui::Text("Strength");
-				ImGui::SliderFloat((pLStrengthLabel + std::to_string(i)).c_str(), &m_lightConstants.PointLights[i].Strength, 0.0f, 1.0f, "%.3f");
+				ImGui::SliderFloat((pLStrengthLabel + std::to_string(i)).c_str(), &m_lightConstants.PointLights[i].Strength, 0.0f, 10.0f, "%.3f");
 				ImGui::Text("Position");
 				ImGui::InputFloat3((plPositionLabel + std::to_string(i)).c_str(), (float*)&m_lightConstants.PointLights[i].Position);
 				ImGui::Text("Color");
@@ -578,7 +578,7 @@ void UIManager::CreateImGuiWindowContent()
 			{
 				ImGui::Text("Spot Light #%lu", i);
 				ImGui::Text("Strength");
-				ImGui::SliderFloat((sLStrengthLabel + std::to_string(i)).c_str(), &m_lightConstants.SpotLights[i].Strength, 0.0f, 1.0f, "%.3f");
+				ImGui::SliderFloat((sLStrengthLabel + std::to_string(i)).c_str(), &m_lightConstants.SpotLights[i].Strength, 0.0f, 10.0f, "%.3f");
 				ImGui::Text("Position");
 				ImGui::InputFloat3((slPositionLabel + std::to_string(i)).c_str(), (float*)&m_lightConstants.SpotLights[i].Position);
 				ImGui::Text("Direction");

@@ -102,7 +102,7 @@ float3 ComputeDirectionalLight(DirectionalLight L, float3 normal, float3 toEye, 
     float ndotl = max(dot(lightVec, normal), 0.0f);
     float3 lightStrength = L.Strength * ndotl;
 
-    return BlinnPhong(lightStrength, lightVec, normal, toEye, materialVec);
+    return BlinnPhong(lightStrength, lightVec, normal, toEye, materialVec) * L.Color.rgb;
 }
 
 //---------------------------------------------------------------------------------------
@@ -131,7 +131,7 @@ float3 ComputePointLight(PointLight L, float3 pos, float3 normal, float3 toEye, 
     float att = CalcAttenuation(d, L.Falloff);
     lightStrength *= att;
 
-    return BlinnPhong(lightStrength, lightVec, normal, toEye, materialVec);
+    return BlinnPhong(lightStrength, lightVec, normal, toEye, materialVec) * L.Color.rgb;
 }
 
 //---------------------------------------------------------------------------------------
@@ -165,7 +165,7 @@ float3 ComputeSpotLight(SpotLight L, float3 pos, float3 normal, float3 toEye, fl
     float spotFactor = pow(max(dot(-lightVec, lightDirection), 0.0f), L.SpotPower);
     lightStrength *= spotFactor;
 
-    return BlinnPhong(lightStrength, lightVec, normal, toEye, materialVec);
+    return BlinnPhong(lightStrength, lightVec, normal, toEye, materialVec) * L.Color.rgb;
 }
 
 float4 ComputeLighting(float3 pos, float4 materialVec, float3 normal, float3 toEye,
@@ -211,7 +211,7 @@ float4 main(FPPS_IN IN) : SV_TARGET
     
     float3 toEye = normalize(LightCB.CameraPosition.xyz - worldPosition.xyz);
     
-    //float4 ambientLight = LightCB.AmbientLightStrength * albedo * LightCB.AmbientLightColor * dot(normal, normal);
+    float4 ambientLight = LightCB.AmbientLightStrength * LightCB.AmbientLightColor * dot(normal, normal);
     
     // rgb/xyz is diffuse albedo, w/a is specular
     float4 materialVec = float4(albedo.xyz, specular);
@@ -222,7 +222,7 @@ float4 main(FPPS_IN IN) : SV_TARGET
                                       toEye,
                                       float3(1.0f, 1.0f, 1.0f)); // No shadows for now
     
-    float4 LightColor = lighting * albedo;
+    float4 LightColor = (lighting + ambientLight) * albedo;
     
     return LightColor;
 }
