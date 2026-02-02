@@ -265,6 +265,7 @@
     <ClInclude Include="include\Camera.h" />
     <ClInclude Include="include\CommandQueue.h" />
     <ClInclude Include="include\d3dx12.h" />
+    <ClInclude Include="include\DDSTextureLoader.h" />
     <ClInclude Include="include\DX12LibPCH.h" />
     <ClInclude Include="include\EntityInstance.h" />
     <ClInclude Include="include\Events.h" />
