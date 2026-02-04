@@ -9,6 +9,8 @@
 #include <memory>
 #include <string>
 
+#include <d3d11.h>
+
 class Window;
 class Game;
 class CommandQueue;
@@ -117,6 +119,9 @@ private:
 
 	Microsoft::WRL::ComPtr<IDXGIAdapter4> m_dxgiAdapter;
 	Microsoft::WRL::ComPtr<ID3D12Device2> m_d3d12Device;
+
+	// D3D11on12 for Direct2D interoperability
+	Microsoft::WRL::ComPtr<ID3D11Device> m_d3d11Device;
 
 	std::shared_ptr<CommandQueue> m_DirectCommandQueue;
 	std::shared_ptr<CommandQueue> m_ComputeCommandQueue;
