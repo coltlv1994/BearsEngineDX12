@@ -302,7 +302,7 @@ void Editor::OnRender(RenderEventArgs& e)
 	}
 	// clear dsv
 	ClearDepth(commandList, dsv);
-	ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap.Get(), m_samplersHeap.Get()};
+	ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap.Get(), m_samplersHeap.Get() };
 	commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 
 	// bind render targets
@@ -313,9 +313,9 @@ void Editor::OnRender(RenderEventArgs& e)
 	// treat the texture coord:
 	// (screen space) x = 2u - 1, y = 1 - 2v
 	XMFLOAT4X4 matScreen = XMFLOAT4X4(2.0, 0, 0, 0,
-		                                    0, -2.0, 0, 0,
-		                                    0, 0, 1, 0,
-		                                    -1, 1, 0, 1);
+		0, -2.0, 0, 0,
+		0, 0, 1, 0,
+		-1, 1, 0, 1);
 	XMMATRIX matS = XMLoadFloat4x4(&matScreen);
 
 	XMMATRIX invScreenPVMatrix = XMMatrixMultiply(matS, invPVMatrix);
@@ -442,7 +442,7 @@ void Editor::_createSrvForFirstPassRTVs()
 
 	// offset by 1. first descriptor is reserved for IMGUI
 	CD3DX12_CPU_DESCRIPTOR_HANDLE srvHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(
-			m_SRVHeap->GetCPUDescriptorHandleForHeapStart(), 1, srvIncrementSize);
+		m_SRVHeap->GetCPUDescriptorHandleForHeapStart(), 1, srvIncrementSize);
 
 	for (UINT i = 0; i < Window::BufferCount; i++) {
 		for (UINT j = 0; j < Window::FirstPassRTVCount; j++) {

@@ -160,3 +160,15 @@ const static DirectionalLight defaultDL;
 const static PointLight defaultPL;
 
 const static SpotLight defaultSL;
+
+struct TargetWindowResource
+{
+	float deltaTime = 0.0f;
+	unsigned int currentBackBufferIndex = 0;
+	bool isPhysicsEnabled = false;
+	D3D12_CPU_DESCRIPTOR_HANDLE firstPassRTV;
+	D3D12_CPU_DESCRIPTOR_HANDLE secondPassRTV;
+	ComPtr<ID3D12Resource> backBufferResource;
+	ComPtr<ID3D12Resource> depthBufferResource;
+	D3D12_VIEWPORT viewport;
+};

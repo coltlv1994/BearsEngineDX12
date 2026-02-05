@@ -20,12 +20,10 @@ public:
 
 	// Create the swapchian.
 	ComPtr<IDXGISwapChain4> CreateSwapChain();
-	// Create RTVs
-	void CreateRenderTargetViews();
 
 	/**
-     * Show this window.
-     */
+	 * Show this window.
+	 */
 	void Show();
 
 	/**
@@ -35,17 +33,18 @@ public:
 
 	// Pass the resources needed in Application/Editor
 	void PrepareForRender(
-	    float& out_deltaTime,
+		float& out_deltaTime,
 		unsigned int& out_currentBackBufferIndex,
 		bool& out_isPhysicsEnabled,
 		D3D12_CPU_DESCRIPTOR_HANDLE out_1stPassRTV,
 		D3D12_CPU_DESCRIPTOR_HANDLE out_2ndPassRTV,
-		ComPtr<ID3D12Resource> out_currentBackBuffer,
+		ComPtr<ID3D12Resource> out_backBufferResource,
+		ComPtr<ID3D12Resource> out_depthBufferResource,
 		D3D12_VIEWPORT& out_viewport);
 
 	/**
-     * Return the current back buffer index.
-     */
+	 * Return the current back buffer index.
+	 */
 	UINT GetCurrentBackBufferIndex() const;
 
 	/**
