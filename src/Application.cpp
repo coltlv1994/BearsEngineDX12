@@ -457,6 +457,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 		case WM_PAINT:
 		{
 			// Delta time will be filled in by the Window.
+			// TODO: change to BearWindow?
 			pWindow->OnUpdate();
 			pWindow->OnRender();
 		}
