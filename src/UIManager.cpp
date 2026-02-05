@@ -9,7 +9,7 @@
 // UIManager singleton instance
 static UIManager* gs_pSingleton = nullptr;
 
-constexpr float PI_DIV_180 = 0.01745329; // PI / 180.0f
+constexpr float PI_DIV_180 = 0.01745329f; // PI / 180.0f
 
 // copy-paste, no idea
 static ExampleDescriptorHeapAllocator g_pd3dSrvDescHeapAlloc;
