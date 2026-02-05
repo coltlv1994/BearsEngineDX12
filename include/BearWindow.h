@@ -2,7 +2,6 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
-
 #include <wrl.h>
 using namespace Microsoft::WRL;
 
@@ -10,7 +9,8 @@ using namespace Microsoft::WRL;
 #include <dxgi1_5.h>
 
 #include <string>
-
+#include "HighResolutionClock.h"
+#include "Helpers.h"
 
 class BearWindow
 {
@@ -18,93 +18,85 @@ public:
 	BearWindow() = delete;
 	BearWindow(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync);
 
-	// Create the swapchian.
-	ComPtr<IDXGISwapChain4> CreateSwapChain();
-
-	/**
-	 * Show this window.
-	 */
+	void UpdateRenderResource();
+	// Window manipulation methods
 	void Show();
 
-	/**
-	 * Hide the window.
-	 */
 	void Hide();
 
+	void Destroy();
+
+	void OnResize(int p_newWidth, int p_newHeight);
+
+	//void ToggleFullscreen();
+
+	// Render and present
+	// Create swapchain for this window
+	ComPtr<IDXGISwapChain4> CreateSwapChain();
+
 	// Pass the resources needed in Application/Editor
-	void PrepareForRender(
-		float& out_deltaTime,
-		unsigned int& out_currentBackBufferIndex,
-		bool& out_isPhysicsEnabled,
-		D3D12_CPU_DESCRIPTOR_HANDLE out_1stPassRTV,
-		D3D12_CPU_DESCRIPTOR_HANDLE out_2ndPassRTV,
-		ComPtr<ID3D12Resource> out_backBufferResource,
-		ComPtr<ID3D12Resource> out_depthBufferResource,
-		D3D12_VIEWPORT& out_viewport);
+	// physics is not handled here, but the window can decide whether to update physics or not based on the flag
+	RenderResource& PrepareForRender();
 
 	/**
-	 * Return the current back buffer index.
-	 */
-	UINT GetCurrentBackBufferIndex() const;
+     * Present the swapchain's back buffer to the screen.
+     * Returns the current back buffer index after the present.
+     */
+	unsigned int Present();
 
-	/**
-	 * Present the swapchain's back buffer to the screen.
-	 * Returns the current back buffer index after the present.
-	 */
-	UINT Present();
-
-	/**
-	 * Get the render target view for the current back buffer.
-	 */
-	D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentRenderTargetView() const;
-
-	D3D12_CPU_DESCRIPTOR_HANDLE GetFirstPassRenderTargetView() const;
-
-	/**
-	 * Get the back buffer resource for the current back buffer.
-	 */
-	ComPtr<ID3D12Resource> GetCurrentBackBuffer() const;
-
-	// get first pass RTV's resources
-	ComPtr<ID3D12Resource>* GetFirstPassRtvResource()
+	// Getters of attributes
+	// Return the current back buffer index.
+	unsigned int GetCurrentBackBufferIndex() const
 	{
-		return m_firstPassRTVs;
+		return m_currentBackBufferIndex;
+	}
+	// Get SRV offset; this is shared between textures and other windows
+	unsigned int GetOffsetInSRVHeap() const
+	{
+		return m_offsetInSRVHeap;
 	}
 
 	// public accessible variables
 	static const unsigned int BufferCount = 3;
 	static const unsigned int FirstPassRTVCount = 3;
 	static const unsigned int TotalOfTwoPassesRTVCount = FirstPassRTVCount + 1; // 3 for first pass, 1 for second pass
+	static const unsigned int TotalRTVCount = BufferCount * TotalOfTwoPassesRTVCount;
+	static const unsigned int RequiredSizeInSRVHeap = BufferCount * FirstPassRTVCount + 1; // 3 SRV for first pass RTVs per frame + 1 SRV for depth buffer
 
 private:
-	// Update the render target views for the swapchain back buffers.
-	void UpdateRenderTargetViews();
+	// Update the RTVs (except back buffers) and DSV
+	void UpdateRTVAndDSV();
+
+	// back buffer needs some special handling
+	void CreateBackBuffersAndViewport();
+	void ResizeBackBuffersAndViewport();
 
 	HWND m_hWnd;
 
-	std::wstring m_windowName;
+	// per-window resource
+	ComPtr<IDXGISwapChain4> m_dxgiSwapChain;
+	unsigned int m_currentBackBufferIndex;
+	ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
+	ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
+	ComPtr<ID3D12Resource> m_windowResources[TotalRTVCount + 1]; // one more for depth buffer
+	D3D12_VIEWPORT m_viewport;
+	HighResolutionClock m_windowClock;
 
+	// output to Application/Editor to render
+	RenderResource m_renderResources[BufferCount];
+
+	// the big SRV heap for all windows
+	unsigned int m_offsetInSRVHeap = 1;
+
+	// per-window attributes
+	std::wstring m_windowName;
 	int m_width;
 	int m_height;
 	bool m_isVSync;
 	bool m_isFullscreen;
-
-	ComPtr<IDXGISwapChain4> m_dxgiSwapChain;
-
-	ComPtr<ID3D12DescriptorHeap> m_d3d12RTVDescriptorHeap; // only back buffers
-	// backbuffer for final output
-	ComPtr<ID3D12Resource> m_d3d12BackBuffers[BufferCount];
-
-	// Descriptor heap for first pass RTVs
-	ComPtr<ID3D12DescriptorHeap> m_firstPassRTVDescriptorHeap;
-	// RTV for first pass, as G-buffer render targets
-	// NOTE: don't use 2D array
-	ComPtr<ID3D12Resource> m_firstPassRTVs[FirstPassRTVCount * BufferCount];
-
-	UINT m_rtvDescriptorSize;
-	UINT m_currentBackBufferIndex;
-
-	RECT m_windowRect;
-	D3D12_VIEWPORT m_Viewport;
 	bool m_isTearingSupported;
+	bool m_isPhysicsEnabled;
+	unsigned int m_rtvDescriptorSize;
+	RECT m_windowRect;
+
 };

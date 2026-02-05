@@ -8,6 +8,8 @@
 #include <wrl.h>
 #include <memory>
 #include <string>
+#include <thread>
+#include <mutex>
 
 #include <d3d11.h>
 
@@ -16,6 +18,7 @@ class Editor;
 class CommandQueue;
 
 #include "ResourceUploadBatch.h"
+#include "BearWindow.h"
 
 class Application
 {
@@ -75,6 +78,9 @@ public:
 	*/
 	int Run(std::shared_ptr<Editor> p_editor);
 
+	// New BearWindow system implementation
+	int RunWithBearWindow(const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync = true);
+
 	/**
 	* Request to quit the application and close all windows.
 	* @param exitCode The error code to return to the invoking process.
@@ -98,6 +104,10 @@ public:
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(UINT numDescriptors, D3D12_DESCRIPTOR_HEAP_TYPE type, D3D12_DESCRIPTOR_HEAP_FLAGS flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
 	UINT GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
+
+	// big srv heap management
+	static const unsigned int MAX_SIZE_IN_SRV_HEAP = 65536;
+	unsigned int AllocateInSRVHeap(unsigned int size);
 
 protected:
 
@@ -131,4 +141,12 @@ private:
 
 	DirectX::ResourceUploadBatch* m_resourceUploadBatch;
 
+	// one big SRV heap that stores windows' two-pass RTVs/DSV, and textures
+	ComPtr<ID3D12DescriptorHeap> m_srvHeap;
+	unsigned int sizeOfSrvHeapOffset = 0;
+	unsigned int m_topOfSrvHeap = 1; // start from 1, since 0 is used for imgui font texture
+	std::mutex m_srvHeapMutex;
+
+	// New BearWindow system
+	std::shared_ptr<BearWindow> m_mainWindow; // this is the main window created at application start, UNLESS OTHERWISE SPECIFIED
 };

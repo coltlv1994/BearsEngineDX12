@@ -4,7 +4,6 @@
 #include <UIManager.h>
 #include <MeshManager.h>
 #include <MessageQueue.h>
-#include <thread>
 
 #include <Editor.h>
 #include <CommandQueue.h>
@@ -87,6 +86,9 @@ Application::Application(HINSTANCE hInst)
 		m_TearingSupported = CheckTearingSupport();
 
 		m_resourceUploadBatch = new ResourceUploadBatch(m_d3d12Device.Get());
+
+		m_srvHeap = CreateDescriptorHeap(MAX_SIZE_IN_SRV_HEAP, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
+		sizeOfSrvHeapOffset = GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	}
 }
 
@@ -496,4 +498,54 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 DirectX::ResourceUploadBatch& Application::GetRUB()
 {
 	return *m_resourceUploadBatch;
+}
+
+unsigned int Application::AllocateInSRVHeap(unsigned int p_requiredSize) 
+{
+	// 0 in this heap is reserved to ImGui;
+	// if return is 0, means the allocation failed.
+	unsigned int returnedOffset = 0;
+
+	m_srvHeapMutex.lock();
+
+	// Critical zone; no other thread can allocate from the heap until this allocation is done
+	if (m_topOfSrvHeap + p_requiredSize >= MAX_SIZE_IN_SRV_HEAP)
+	{
+		assert(false && "Out of memory in the SRV heap.");
+	}
+	else
+	{
+		unsigned int returnedOffset = m_topOfSrvHeap;
+		m_topOfSrvHeap += p_requiredSize;
+	}
+
+	m_srvHeapMutex.unlock();
+
+	return returnedOffset;
+}
+
+int Application::RunWithBearWindow(const std::wstring& p_windowName, int p_width, int p_height, bool p_isVSync)
+{
+	// This assumes Create() has successfully completed and the application singleton has been created.
+
+	//m_mainWindow = std::make_shared<BearWindow>(CreateRenderWindow(L"Main Window", 1280, 720, true)->GetHWND(), L"Main Window", 1280, 720, true);
+	RECT windowRect = { 0, 0, p_width, p_height };
+	AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
+
+	HWND hWnd = CreateWindowW(WINDOW_CLASS_NAME, p_windowName.c_str(),
+		WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
+		windowRect.right - windowRect.left,
+		windowRect.bottom - windowRect.top,
+		nullptr, nullptr, m_hInstance, nullptr);
+
+	if (!hWnd)
+	{
+		MessageBoxA(NULL, "Could not create the render window.", "Error", MB_OK | MB_ICONERROR);
+		return 1;
+	}
+
+	m_mainWindow = std::make_shared<BearWindow>(hWnd, p_windowName, p_width, p_height, p_isVSync);
+
+	// Create D3D12 Renderer
+
 }

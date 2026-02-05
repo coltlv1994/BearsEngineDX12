@@ -161,14 +161,17 @@ const static PointLight defaultPL;
 
 const static SpotLight defaultSL;
 
-struct TargetWindowResource
+struct RenderResource
 {
 	float deltaTime = 0.0f;
 	unsigned int currentBackBufferIndex = 0;
 	bool isPhysicsEnabled = false;
 	D3D12_CPU_DESCRIPTOR_HANDLE firstPassRTV;
 	D3D12_CPU_DESCRIPTOR_HANDLE secondPassRTV;
-	ComPtr<ID3D12Resource> backBufferResource;
-	ComPtr<ID3D12Resource> depthBufferResource;
+    D3D12_CPU_DESCRIPTOR_HANDLE dsv;
+    ComPtr<ID3D12Resource>* resourceArray;
+	unsigned int firstPassResourceStartIndex;
+    unsigned int backBufferResourceIndex;
+	unsigned int depthBufferResourceIndex;
 	D3D12_VIEWPORT viewport;
 };
