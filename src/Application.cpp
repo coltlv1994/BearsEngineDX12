@@ -6,7 +6,7 @@
 #include <MessageQueue.h>
 #include <thread>
 
-#include <Game.h>
+#include <Editor.h>
 #include <CommandQueue.h>
 #include <Window.h>
 
@@ -295,10 +295,10 @@ std::shared_ptr<Window> Application::GetWindowByName(const std::wstring& windowN
 }
 
 
-int Application::Run(std::shared_ptr<Game> pGame)
+int Application::Run(std::shared_ptr<Editor> editor)
 {
-	if (!pGame->Initialize()) return 1;
-	if (!pGame->LoadContent()) return 2;
+	if (!editor->Initialize()) return 1;
+	if (!editor->LoadContent()) return 2;
 
 	MSG msg = { 0 };
 	while (msg.message != WM_QUIT)
@@ -321,8 +321,8 @@ int Application::Run(std::shared_ptr<Game> pGame)
 	//MeshManager::Get().ReceiveMessage(msgMM);
 	//UIManager::Get().ReceiveMessage(msgUM);
 
-	pGame->UnloadContent();
-	pGame->Destroy();
+	editor->UnloadContent();
+	editor->Destroy();
 
 	return static_cast<int>(msg.wParam);
 }

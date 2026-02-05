@@ -14,7 +14,7 @@
 #include <HighResolutionClock.h>
 
 // Forward-declare the DirectXTemplate class.
-class Game;
+class Editor;
 
 class Window
 {
@@ -95,6 +95,10 @@ public:
         return m_firstPassRTVs;
     }
 
+    // Register a Game with this window. This allows
+    // the window to callback functions in the Game class.
+    void RegisterCallbacks(std::shared_ptr<Editor> pGame);
+
 
 protected:
     // The Window procedure needs to call protected methods of this class.
@@ -103,15 +107,11 @@ protected:
     // Only the application can create a window.
     friend class Application;
     // The DirectXTemplate class needs to register itself with a window.
-    friend class Game;
+    friend class Editor;
 
     Window() = delete;
     Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync );
     virtual ~Window();
-
-    // Register a Game with this window. This allows
-    // the window to callback functions in the Game class.
-    void RegisterCallbacks( std::shared_ptr<Game> pGame );
 
     // Update and Draw can only be called by the application.
     virtual void OnUpdate();
@@ -120,14 +120,14 @@ protected:
     // A keyboard key was pressed
     virtual void OnKeyPressed(KeyEventArgs& e);
     // A keyboard key was released
-    virtual void OnKeyReleased(KeyEventArgs& e);
+    //virtual void OnKeyReleased(KeyEventArgs& e);
 
-    // The mouse was moved
-    virtual void OnMouseMoved(MouseMotionEventArgs& e);
-    // A button on the mouse was pressed
-    virtual void OnMouseButtonPressed(MouseButtonEventArgs& e);
-    // A button on the mouse was released
-    virtual void OnMouseButtonReleased(MouseButtonEventArgs& e);
+    //// The mouse was moved
+    //virtual void OnMouseMoved(MouseMotionEventArgs& e);
+    //// A button on the mouse was pressed
+    //virtual void OnMouseButtonPressed(MouseButtonEventArgs& e);
+    //// A button on the mouse was released
+    //virtual void OnMouseButtonReleased(MouseButtonEventArgs& e);
     // The mouse wheel was moved.
     virtual void OnMouseWheel(MouseWheelEventArgs& e);
 
@@ -158,7 +158,7 @@ private:
     HighResolutionClock m_RenderClock;
     uint64_t m_FrameCounter;
 
-    std::weak_ptr<Game> m_pGame;
+    std::weak_ptr<Editor> m_editor;
 
     Microsoft::WRL::ComPtr<IDXGISwapChain4> m_dxgiSwapChain;
 	

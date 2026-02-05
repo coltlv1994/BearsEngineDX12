@@ -104,7 +104,6 @@
     <ClCompile Include="src\CommandQueue.cpp" />
     <ClCompile Include="src\DX12LibPCH.cpp" />
     <ClCompile Include="src\EntityInstance.cpp" />
-    <ClCompile Include="src\Game.cpp" />
     <ClCompile Include="src\HighResolutionClock.cpp" />
     <ClCompile Include="src\LightManager.cpp" />
     <ClCompile Include="src\Main.cpp" />
@@ -172,7 +171,6 @@
     <ClInclude Include="include\DX12LibPCH.h" />
     <ClInclude Include="include\EntityInstance.h" />
     <ClInclude Include="include\Events.h" />
-    <ClInclude Include="include\Game.h" />
     <ClInclude Include="include\GraphicsMemory.h" />
     <ClInclude Include="include\Helpers.h" />
     <ClInclude Include="include\HighResolutionClock.h" />

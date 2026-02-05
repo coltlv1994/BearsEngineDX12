@@ -12,7 +12,7 @@
 #include <d3d11.h>
 
 class Window;
-class Game;
+class Editor;
 class CommandQueue;
 
 #include "ResourceUploadBatch.h"
@@ -73,7 +73,7 @@ public:
 	* Run the application loop and message pump.
 	* @return The error code if an error occurred.
 	*/
-	int Run(std::shared_ptr<Game> pGame);
+	int Run(std::shared_ptr<Editor> p_editor);
 
 	/**
 	* Request to quit the application and close all windows.

@@ -1,6 +1,4 @@
 #pragma once
-
-#include <Game.h>
 #include <Window.h>
 #include <Camera.h>
 
@@ -11,49 +9,70 @@
 #include <memory>
 #include <utility>
 
-class Editor : public Game
+class Editor : public std::enable_shared_from_this<Editor>
 {
 public:
-    using super = Game;
-
     Editor(const std::wstring& name, int width, int height, bool vSync = true);
+
+    bool Initialize();
+
     /**
      *  Load content required for the demo.
      */
-    virtual bool LoadContent() override;
+    bool LoadContent();
 
     /**
      *  Unload demo specific content that was loaded in LoadContent.
      */
-    virtual void UnloadContent() override;
+    void UnloadContent();
 
     D3D12_VIEWPORT& GetViewport();
 
     D3D12_RECT& GetScissorRect();
-protected:
+
     /**
      *  Update the game logic.
      */
-    virtual void OnUpdate(UpdateEventArgs& e) override;
+    void OnUpdate(UpdateEventArgs& e);
 
     /**
      *  Render stuff.
      */
-    virtual void OnRender(RenderEventArgs& e) override;
+    void OnRender(RenderEventArgs& e);
 
     /**
      * Invoked by the registered window when a key is pressed
      * while the window has focus.
      */
-    virtual void OnKeyPressed(KeyEventArgs& e) override;
+    void OnKeyPressed(KeyEventArgs& e);
 
     /**
      * Invoked when the mouse wheel is scrolled while the registered window has focus.
      */
-    virtual void OnMouseWheel(MouseWheelEventArgs& e) override;
+    void OnMouseWheel(MouseWheelEventArgs& e);
 
 
-    virtual void OnResize(ResizeEventArgs& e) override;
+    void OnResize(ResizeEventArgs& e);
+
+    int GetClientWidth() const
+    {
+        return m_width;
+    }
+
+    int GetClientHeight() const
+    {
+        return m_height;
+    }
+
+    /**
+ * Invoked when the registered window instance is destroyed.
+ */
+    void OnWindowDestroy();
+
+    /**
+ * Destroy any resource that are used by the game.
+ */
+    void Destroy();
 
 private:
     // Helper functions
@@ -100,4 +119,11 @@ private:
     bool m_ContentLoaded;
 
     Camera m_mainCamera;
+
+    std::wstring m_name;
+    int m_width;
+    int m_height;
+    bool m_isVSync;
+
+    std::shared_ptr<Window> m_pWindow;
 };

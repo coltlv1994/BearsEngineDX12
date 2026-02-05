@@ -22,6 +22,7 @@ using namespace Microsoft::WRL;
 #include "imgui_impl_dx12.h"
 
 #include <algorithm> // For std::min and std::max.
+#include <memory>
 #if defined(min)
 #undef min
 #endif
@@ -40,11 +41,38 @@ constexpr const T& clamp(const T& val, const T& min, const T& max)
 }
 
 Editor::Editor(const std::wstring& name, int width, int height, bool vSync)
-	: super(name, width, height, vSync)
+	: m_name(name)
+	, m_width(width)
+	, m_height(height)
+	, m_isVSync(vSync)
 	, m_ScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX))
 	, m_Viewport(CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)))
 	, m_ContentLoaded(false)
 {
+}
+
+void Editor::Destroy()
+{
+	Application::Get().DestroyWindow(m_pWindow);
+	m_pWindow.reset();
+}
+
+bool Editor::Initialize()
+{
+	// Check for DirectX Math library support.
+	if (!DirectX::XMVerifyCPUSupport())
+	{
+		MessageBoxA(NULL, "Failed to verify DirectX Math library support.", "Error", MB_OK | MB_ICONERROR);
+		return false;
+	}
+
+	m_pWindow = Application::Get().CreateRenderWindow(m_name, m_width, m_height, m_isVSync);
+	m_pWindow->RegisterCallbacks(shared_from_this());
+	m_pWindow->Show();
+
+	UIManager::Get().InitializeWindow(m_pWindow->GetWindowHandle());
+
+	return true;
 }
 
 
@@ -78,7 +106,7 @@ bool Editor::LoadContent()
 	m_ContentLoaded = true;
 
 	// Resize/Create the depth buffer.
-	ResizeDepthBuffer(GetClientWidth(), GetClientHeight());
+	ResizeDepthBuffer(m_width, m_height);
 
 	// Setup the main camera.
 	XMFLOAT4 camPosition = XMFLOAT4(0.0f, 0.0f, -10.0f, 1.0f);
@@ -91,6 +119,14 @@ bool Editor::LoadContent()
 	MeshManager::Get().StartListeningThread();
 
 	return true;
+}
+
+void Editor::OnWindowDestroy()
+{
+	// If the Window which we are registered to is 
+	// destroyed, then any resources which are associated 
+	// to the window must be released.
+	UnloadContent();
 }
 
 void Editor::ResizeDepthBuffer(int width, int height)
@@ -160,7 +196,6 @@ void Editor::OnResize(ResizeEventArgs& e)
 {
 	if (e.Width != GetClientWidth() || e.Height != GetClientHeight())
 	{
-		super::OnResize(e);
 
 		m_Viewport = CD3DX12_VIEWPORT(0.0f, 0.0f,
 			static_cast<float>(e.Width), static_cast<float>(e.Height));
@@ -180,8 +215,6 @@ void Editor::OnUpdate(UpdateEventArgs& e)
 {
 	static uint64_t frameCount = 0;
 	static double totalTime = 0.0;
-
-	super::OnUpdate(e);
 
 	totalTime += e.ElapsedTime; // ElapsedTime: delta time
 	frameCount++;
@@ -243,8 +276,6 @@ void Editor::ClearDepth(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> comma
 
 void Editor::OnRender(RenderEventArgs& e)
 {
-	super::OnRender(e);
-
 	auto commandQueue = Application::Get().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 	auto commandList = commandQueue->GetCommandList();
 
@@ -347,8 +378,6 @@ void Editor::OnRender(RenderEventArgs& e)
 
 void Editor::OnKeyPressed(KeyEventArgs& e)
 {
-	super::OnKeyPressed(e);
-
 	switch (e.Key)
 	{
 	case KeyCode::Escape:

@@ -2,7 +2,7 @@
 #include <Application.h>
 #include <CommandQueue.h>
 #include <Window.h>
-#include <Game.h>
+#include <Editor.h>
 
 Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync)
 	: m_hWnd(hWnd)
@@ -57,7 +57,7 @@ void Window::Hide()
 
 void Window::Destroy()
 {
-	if (auto pGame = m_pGame.lock())
+	if (auto pGame = m_editor.lock())
 	{
 		// Notify the registered game that the window is being destroyed.
 		pGame->OnWindowDestroy();
@@ -158,9 +158,9 @@ void Window::ToggleFullscreen()
 }
 
 
-void Window::RegisterCallbacks(std::shared_ptr<Game> pGame)
+void Window::RegisterCallbacks(std::shared_ptr<Editor> p_editor)
 {
-	m_pGame = pGame;
+	m_editor = p_editor;
 
 	return;
 }
@@ -169,12 +169,12 @@ void Window::OnUpdate()
 {
 	m_UpdateClock.Tick();
 
-	if (auto pGame = m_pGame.lock())
+	if (auto editor = m_editor.lock())
 	{
 		m_FrameCounter++;
 
 		UpdateEventArgs updateEventArgs(m_UpdateClock.GetDeltaSeconds(), m_UpdateClock.GetTotalSeconds());
-		pGame->OnUpdate(updateEventArgs);
+		editor->OnUpdate(updateEventArgs);
 	}
 }
 
@@ -182,62 +182,62 @@ void Window::OnRender()
 {
 	m_RenderClock.Tick();
 
-	if (auto pGame = m_pGame.lock())
+	if (auto editor = m_editor.lock())
 	{
 		RenderEventArgs renderEventArgs(m_RenderClock.GetDeltaSeconds(), m_RenderClock.GetTotalSeconds());
-		pGame->OnRender(renderEventArgs);
+		editor->OnRender(renderEventArgs);
 	}
 }
 
 void Window::OnKeyPressed(KeyEventArgs& e)
 {
-	if (auto pGame = m_pGame.lock())
+	if (auto editor = m_editor.lock())
 	{
-		pGame->OnKeyPressed(e);
+		editor->OnKeyPressed(e);
 	}
 }
 
-void Window::OnKeyReleased(KeyEventArgs& e)
-{
-	if (auto pGame = m_pGame.lock())
-	{
-		pGame->OnKeyReleased(e);
-	}
-}
-
-// The mouse was moved
-void Window::OnMouseMoved(MouseMotionEventArgs& e)
-{
-	if (auto pGame = m_pGame.lock())
-	{
-		pGame->OnMouseMoved(e);
-	}
-}
-
-// A button on the mouse was pressed
-void Window::OnMouseButtonPressed(MouseButtonEventArgs& e)
-{
-	if (auto pGame = m_pGame.lock())
-	{
-		pGame->OnMouseButtonPressed(e);
-	}
-}
-
-// A button on the mouse was released
-void Window::OnMouseButtonReleased(MouseButtonEventArgs& e)
-{
-	if (auto pGame = m_pGame.lock())
-	{
-		pGame->OnMouseButtonReleased(e);
-	}
-}
+//void Window::OnKeyReleased(KeyEventArgs& e)
+//{
+//	if (auto pGame = m_editor.lock())
+//	{
+//		pGame->OnKeyReleased(e);
+//	}
+//}
+//
+//// The mouse was moved
+//void Window::OnMouseMoved(MouseMotionEventArgs& e)
+//{
+//	if (auto pGame = m_editor.lock())
+//	{
+//		pGame->OnMouseMoved(e);
+//	}
+//}
+//
+//// A button on the mouse was pressed
+//void Window::OnMouseButtonPressed(MouseButtonEventArgs& e)
+//{
+//	if (auto pGame = m_editor.lock())
+//	{
+//		pGame->OnMouseButtonPressed(e);
+//	}
+//}
+//
+//// A button on the mouse was released
+//void Window::OnMouseButtonReleased(MouseButtonEventArgs& e)
+//{
+//	if (auto pGame = m_editor.lock())
+//	{
+//		pGame->OnMouseButtonReleased(e);
+//	}
+//}
 
 // The mouse wheel was moved.
 void Window::OnMouseWheel(MouseWheelEventArgs& e)
 {
-	if (auto pGame = m_pGame.lock())
+	if (auto editor = m_editor.lock())
 	{
-		pGame->OnMouseWheel(e);
+		editor->OnMouseWheel(e);
 	}
 }
 
@@ -266,7 +266,7 @@ void Window::OnResize(ResizeEventArgs& e)
 		UpdateRenderTargetViews();
 	}
 
-	if (auto pGame = m_pGame.lock())
+	if (auto pGame = m_editor.lock())
 	{
 		pGame->OnResize(e);
 	}
