@@ -100,6 +100,7 @@
     <ClCompile Include="include\imgui\imgui_tables.cpp" />
     <ClCompile Include="include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="src\Application.cpp" />
+    <ClCompile Include="src\BearWindow.cpp" />
     <ClCompile Include="src\Camera.cpp" />
     <ClCompile Include="src\CommandQueue.cpp" />
     <ClCompile Include="src\DX12LibPCH.cpp" />
@@ -164,6 +165,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Application.h" />
+    <ClInclude Include="include\BearWindow.h" />
     <ClInclude Include="include\Camera.h" />
     <ClInclude Include="include\CommandQueue.h" />
     <ClInclude Include="include\d3dx12.h" />
