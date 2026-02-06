@@ -1,7 +1,7 @@
 #include <Camera.h>
 
 Camera::Camera()
-     :m_rotation(XMVectorZero())
+	:m_rotation(XMVectorZero())
 	, m_fov(90.0f)
 	, m_aspectRatio(16.0f / 9.0f)
 	, m_nearPlane(0.1f)
@@ -92,7 +92,6 @@ XMMATRIX Camera::GetViewProjectionMatrix() const
 {
 	return m_viewProjectionMatrix;
 }
-
 
 XMMATRIX Camera::GetInvPVMatrix() const
 {

@@ -338,7 +338,6 @@ void UIManager::CreateImGuiWindowContent()
 			MeshManager::Get().ReceiveMessage(msg);
 		}
 
-
 		ImGui::Text("Instances:");
 		if (ImGui::BeginListBox("##listbox instances"))
 		{
@@ -600,10 +599,9 @@ void UIManager::CreateImGuiWindowContent()
 				ImGui::Separator();
 			}
 		}
-		
+
 		ImGui::EndTabItem();
 	}
-
 
 	ImGui::EndTabBar();
 
@@ -747,7 +745,6 @@ void UIManager::_processMessage(Message& msg)
 			memcpy_s(m_memInfo, sizeof(uint64_t) * 2, msgData, sizeof(uint64_t) * 2);
 		}
 		break;
-
 	}
 	default:
 		break;
@@ -822,7 +819,7 @@ void UIManager::_saveMap()
 		for (size_t i = 0; i < reloadInfo.numOfInstances; i++)
 		{
 			Instance* instance = instances[i];
-			
+
 			strcpy_s(instanceInfo_ptr[i].instanceName, instance->GetName().c_str());
 			strcpy_s(instanceInfo_ptr[i].textureName, instance->GetTextureName().c_str());
 			XMVECTOR pos = instance->GetPosition();

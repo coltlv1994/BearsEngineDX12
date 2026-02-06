@@ -49,7 +49,6 @@
 #endif
 #endif
 
-
 namespace DirectX
 {
 	class ResourceUploadBatch;

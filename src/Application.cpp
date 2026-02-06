@@ -41,11 +41,10 @@ Application::Application(HINSTANCE hInst)
 	, m_TearingSupported(false)
 {
 	// Windows 10 Creators update adds Per Monitor V2 DPI awareness context.
-	// Using this awareness context allows the client area of the window 
-	// to achieve 100% scaling while still allowing non-client window content to 
+	// Using this awareness context allows the client area of the window
+	// to achieve 100% scaling while still allowing non-client window content to
 	// be rendered in a DPI sensitive fashion.
 	SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-
 
 #if defined(_DEBUG)
 	// Always enable the debug layer before doing anything DX12 related
@@ -151,7 +150,7 @@ Microsoft::WRL::ComPtr<IDXGIAdapter4> Application::GetAdapter(bool bUseWarp)
 			DXGI_ADAPTER_DESC1 dxgiAdapterDesc1;
 			dxgiAdapter1->GetDesc1(&dxgiAdapterDesc1);
 
-			// Check to see if the adapter can create a D3D12 device without actually 
+			// Check to see if the adapter can create a D3D12 device without actually
 			// creating it. The adapter with the largest dedicated video memory
 			// is favored.
 			if ((dxgiAdapterDesc1.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == 0 &&
@@ -218,8 +217,8 @@ bool Application::CheckTearingSupport()
 	BOOL allowTearing = FALSE;
 
 	// Rather than create the DXGI 1.5 factory interface directly, we create the
-	// DXGI 1.4 interface and query for the 1.5 interface. This is to enable the 
-	// graphics debugging tools which will not support the 1.5 factory interface 
+	// DXGI 1.4 interface and query for the 1.5 interface. This is to enable the
+	// graphics debugging tools which will not support the 1.5 factory interface
 	// until a future update.
 	ComPtr<IDXGIFactory4> factory4;
 	if (SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(&factory4))))
@@ -380,7 +379,6 @@ UINT Application::GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE ty
 	return m_d3d12Device->GetDescriptorHandleIncrementSize(type);
 }
 
-
 // Remove a window from our window lists.
 //static void RemoveWindow(HWND hWnd)
 //{
@@ -454,7 +452,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 		break;
 		case WM_DESTROY:
 		{
-			// If a window is being destroyed, remove it from the 
+			// If a window is being destroyed, remove it from the
 			// window maps.
 			gs_activeWindow->Destroy();
 			gs_activeWindow = nullptr;

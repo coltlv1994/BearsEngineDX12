@@ -4,14 +4,14 @@ using namespace DirectX;
 
 #include <string>
 #include <Mesh.h>
-#include <Texture.h>	
+#include <Texture.h>
 
 class Instance
 {
 public:
 	Instance(std::string& p_name, Texture* p_texture_p, Mesh* p_mesh = nullptr);
 
-	const std::string& GetName() 
+	const std::string& GetName()
 	{
 		return m_name;
 	}

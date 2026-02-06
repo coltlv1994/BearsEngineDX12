@@ -106,7 +106,7 @@ void D3D12Renderer::Render(BearWindow& window)
 	if (currentRR.isPhysicsEnabled == false)
 	{
 		//UIManager::Get().CreateImGuiWindowContent();
- 		UIManager::Get().Draw(commandList);
+		UIManager::Get().Draw(commandList);
 	}
 
 	_transitionResource(commandList, currentRR.resourceArray[currentRR.backBufferResourceIndex],
@@ -232,7 +232,6 @@ void D3D12Renderer::_prepare2ndPassResources()
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
 		IID_PPV_ARGS(&m_2ndPassVertexBuffer)));
-
 
 	UINT8* dataBegin;
 	ThrowIfFailed(m_2ndPassVertexBuffer->Map(0, nullptr, reinterpret_cast<void**>(&dataBegin)));

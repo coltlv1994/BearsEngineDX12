@@ -112,7 +112,7 @@ void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 				case 'n':
 					// read vertex normal
 					float nx, ny, nz;
-					//// "vn " has three characters, including the space 
+					//// "vn " has three characters, including the space
 					sscanf_s(&line.c_str()[3], "%f %f %f", &nx, &ny, &nz);
 					m_normals.push_back(nx);
 					m_normals.push_back(ny);
@@ -177,7 +177,7 @@ void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 		size_t numOfTexcoords = m_texcoords.size() / 2;
 		unsigned int maxVertexIndex = *std::max_element(m_triangles.begin(), m_triangles.end());
 		unsigned int maxNormalIndex = *std::max_element(m_triangleNormalIndex.begin(), m_triangleNormalIndex.end());
-		unsigned int maxTexcoordIndex = *std::max_element(m_triangleTexcoordIndex.begin(), m_triangleTexcoordIndex.end());	
+		unsigned int maxTexcoordIndex = *std::max_element(m_triangleTexcoordIndex.begin(), m_triangleTexcoordIndex.end());
 
 		// combine buffers
 		auto noOfVertices = m_vertices.size() / 3;
@@ -400,7 +400,6 @@ void Mesh::WriteToBinaryFile(const wchar_t* p_binFilePath)
 	binFile.write(reinterpret_cast<const char*>(m_triangles.data()), m_triangles.size() * sizeof(uint32_t));
 	binFile.close();
 }
-
 
 void Mesh::RenderInstance(ComPtr<ID3D12GraphicsCommandList2> p_commandList)
 {

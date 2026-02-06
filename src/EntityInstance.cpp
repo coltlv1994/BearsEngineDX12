@@ -2,7 +2,7 @@
 #include <Application.h>
 #include <MeshManager.h>
 
-Instance::Instance(std::string& p_name, Texture* p_texture_p,  Mesh* p_mesh)
+Instance::Instance(std::string& p_name, Texture* p_texture_p, Mesh* p_mesh)
 {
 	m_name = p_name;
 	m_mesh_p = p_mesh;
@@ -27,7 +27,7 @@ void Instance::Render(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XM
 	p_commandList->SetGraphicsRootDescriptorTable(0, textureHandle);
 
 	// set vertex shader input, i.e. model matrix and its inverse transpose
-    // sizeof() / 4 because we are setting 32 bit constants
+	// sizeof() / 4 because we are setting 32 bit constants
 	VertexShaderInput vsi = {};
 	vsi.mvpMatrix = m_modelMatrix * p_vpMatrix;
 	vsi.tiModel = XMMatrixTranspose(XMMatrixInverse(nullptr, m_modelMatrix));

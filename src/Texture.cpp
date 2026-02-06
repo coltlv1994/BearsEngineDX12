@@ -61,7 +61,6 @@ void Texture::_loadDDSTexture(const wchar_t* p_fullpath, unsigned int p_internal
 	auto uploadFinished = rub.End(copyCommandQueue);
 
 	uploadFinished.wait();
-
 }
 
 void Texture::_loadWICTexture(const wchar_t* p_fullpath, unsigned int p_internalResourceIndex, bool p_createMissingMipmap)

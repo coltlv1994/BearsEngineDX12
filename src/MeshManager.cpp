@@ -152,7 +152,6 @@ void  MeshManager::RenderAllMeshes2ndPass(ComPtr<ID3D12GraphicsCommandList2> p_c
 	p_commandList->DrawInstanced(4, 1, 0, 0);
 }
 
-
 void MeshManager::Listen()
 {
 	while (true)
@@ -199,7 +198,6 @@ void MeshManager::_processMessage(Message& msg)
 		{
 			// Failed to add mesh, send error message
 			_sendMeshLoadFailedMessage(meshName);
-
 		}
 		break;
 	}
@@ -314,7 +312,7 @@ void MeshManager::_processMessage(Message& msg)
 		auto iter = std::find(m_instanceList.begin(), m_instanceList.end(), instanceToRemove);
 		if (iter != m_instanceList.end())
 		{
-			delete *iter;
+			delete* iter;
 			m_instanceList.erase(iter);
 		}
 		break;
@@ -490,9 +488,9 @@ void MeshManager::Prepare2ndPassResources()
 	SecondPassVertexData quadVertices[] =
 	{
 		{ XMFLOAT3(-1.0f,  1.0f, 0.0f),  XMFLOAT2(0.0f, 0.0f) },
-		{ XMFLOAT3( 1.0f,  1.0f, 0.0f),  XMFLOAT2(1.0f, 0.0f) },
+		{ XMFLOAT3(1.0f,  1.0f, 0.0f),  XMFLOAT2(1.0f, 0.0f) },
 		{ XMFLOAT3(-1.0f, -1.0f, 0.0f),  XMFLOAT2(0.0f, 1.0f) },
-		{ XMFLOAT3( 1.0f, -1.0f, 0.0f),  XMFLOAT2(1.0f, 1.0f) },
+		{ XMFLOAT3(1.0f, -1.0f, 0.0f),  XMFLOAT2(1.0f, 1.0f) },
 	};
 
 	const UINT quadVertexBufferSize = sizeof(quadVertices);
@@ -510,7 +508,6 @@ void MeshManager::Prepare2ndPassResources()
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
 		IID_PPV_ARGS(&m_2ndPassVertexBuffer)));
-
 
 	UINT8* dataBegin;
 	ThrowIfFailed(m_2ndPassVertexBuffer->Map(0, nullptr, reinterpret_cast<void**>(&dataBegin)));

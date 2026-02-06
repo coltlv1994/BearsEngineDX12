@@ -47,9 +47,9 @@ public:
 	RenderResource& PrepareForRender();
 
 	/**
-     * Present the swapchain's back buffer to the screen.
-     * Returns the current back buffer index after the present.
-     */
+	 * Present the swapchain's back buffer to the screen.
+	 * Returns the current back buffer index after the present.
+	 */
 	unsigned int Present();
 
 	// Getters of attributes
@@ -139,5 +139,4 @@ private:
 	bool m_isPhysicsEnabled;
 	unsigned int m_rtvDescriptorSize;
 	RECT m_windowRect;
-
 };
