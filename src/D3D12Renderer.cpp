@@ -79,6 +79,7 @@ void D3D12Renderer::Render(BearWindow& window)
 	{
 		_renderFirstPass(commandList, instanceList, vpMatrix);
 	}
+
 	// second pass: render to back buffer
 	for (UINT i = 0; i < BearWindow::FirstPassRTVCount; i++)
 	{
@@ -95,6 +96,7 @@ void D3D12Renderer::Render(BearWindow& window)
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	_clearRTV(commandList, currentRR.secondPassRTV, clearColor);
+	commandList->OMSetRenderTargets(1, &currentRR.secondPassRTV, FALSE, nullptr);
 
 	if (instanceList.size() > 0)
 	{
@@ -103,7 +105,8 @@ void D3D12Renderer::Render(BearWindow& window)
 
 	if (currentRR.isPhysicsEnabled == false)
 	{
-		UIManager::Get().Draw(commandList);
+		//UIManager::Get().CreateImGuiWindowContent();
+ 		UIManager::Get().Draw(commandList);
 	}
 
 	_transitionResource(commandList, currentRR.resourceArray[currentRR.backBufferResourceIndex],

@@ -33,16 +33,8 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 
     Application::Create(hInstance);
 
-    {
-        std::shared_ptr<Editor> editor = std::make_shared<Editor>(L"BearsEngine in D3D12", 2560, 1440);
+	retCode = Application::Get().RunWithBearWindow(L"BearWindow Editor", 1280, 720, true);
 
-        Shader demoShader(L"FirstPassVertexShader", L"FirstPassPixelShader",
-            L"SecondPassVertexShader", L"SecondPassPixelShader");
-
-		MeshManager::Get().SetDefaultShader(&demoShader);
-
-        retCode = Application::Get().Run(editor);
-    }
     Application::Destroy();
 
     atexit(&ReportLiveObjects);

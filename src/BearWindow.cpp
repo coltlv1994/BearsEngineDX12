@@ -222,7 +222,7 @@ void BearWindow::CreateBackBuffersAndViewport()
 
 		device->CreateRenderTargetView(backBuffer.Get(), nullptr, rtvHandle);
 
-		m_windowResources[i] = backBuffer;
+		m_windowResources[BufferCount * FirstPassRTVCount + i] = backBuffer;
 
 		rtvHandle.Offset(1, m_rtvDescriptorSize);
 	}

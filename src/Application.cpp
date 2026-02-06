@@ -499,7 +499,7 @@ unsigned int Application::AllocateInSRVHeap(unsigned int p_requiredSize)
 	}
 	else
 	{
-		unsigned int returnedOffset = m_topOfSrvHeap;
+		returnedOffset = m_topOfSrvHeap;
 		m_topOfSrvHeap += p_requiredSize;
 	}
 
@@ -547,6 +547,7 @@ int Application::RunWithBearWindow(const std::wstring& p_windowName, int p_width
 	MeshManager::Get().StartListeningThread();
 
 	m_activeWindow = m_mainWindow;
+	gs_activeWindow = m_mainWindow;
 
 	// Window loop
 	MSG msg = { 0 };
