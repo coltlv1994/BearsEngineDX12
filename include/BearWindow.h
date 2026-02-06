@@ -96,6 +96,8 @@ public:
 		}
 	}
 
+	bool WindowMessageHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
 	// public accessible variables
 	static const unsigned int BufferCount = 3;
 	static const unsigned int FirstPassRTVCount = 3;

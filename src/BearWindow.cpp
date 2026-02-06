@@ -350,3 +350,15 @@ RenderResource& BearWindow::PrepareForRender()
 
 	return returnResource;
 }
+
+bool BearWindow::WindowMessageHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	// return value decides if the message processing should pass on
+	// assume this function is called first
+	if (m_isPhysicsEnabled == false)
+	{
+		// this window is editor
+
+	}
+
+}

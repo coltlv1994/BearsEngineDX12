@@ -349,12 +349,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 			gs_activeWindow->Destroy();
 			gs_activeWindow = nullptr;
 			PostQuitMessage(0);
-
-			//if (gs_Windows.empty())
-			//{
-			//	// If there are no more windows, quit the application.
-			//	PostQuitMessage(0);
-			//}
 		}
 		break;
 		default:
