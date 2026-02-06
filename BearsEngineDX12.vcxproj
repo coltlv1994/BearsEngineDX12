@@ -109,14 +109,12 @@
     <ClCompile Include="src\HighResolutionClock.cpp" />
     <ClCompile Include="src\LightManager.cpp" />
     <ClCompile Include="src\Main.cpp" />
-    <ClCompile Include="src\Editor.cpp" />
     <ClCompile Include="src\Mesh.cpp" />
     <ClCompile Include="src\MeshManager.cpp" />
     <ClCompile Include="src\MessageQueue.cpp" />
     <ClCompile Include="src\Shader.cpp" />
     <ClCompile Include="src\Texture.cpp" />
     <ClCompile Include="src\UIManager.cpp" />
-    <ClCompile Include="src\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders\FirstPassPixelShader.hlsl">
@@ -184,13 +182,11 @@
     <ClInclude Include="include\MeshManager.h" />
     <ClInclude Include="include\MessageQueue.h" />
     <ClInclude Include="include\resource.h" />
-    <ClInclude Include="include\Editor.h" />
     <ClInclude Include="include\ResourceUploadBatch.h" />
     <ClInclude Include="include\Shader.h" />
     <ClInclude Include="include\Texture.h" />
     <ClInclude Include="include\UIManager.h" />
     <ClInclude Include="include\WICTextureLoader.h" />
-    <ClInclude Include="include\Window.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

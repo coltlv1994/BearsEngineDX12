@@ -13,8 +13,6 @@
 
 #include <d3d11.h>
 
-class Window;
-class Editor;
 class CommandQueue;
 
 #include "ResourceUploadBatch.h"
@@ -57,27 +55,21 @@ public:
 	* window instance is returned. If a window with the given name already exists, that window will be
 	* returned.
 	*/
-	std::shared_ptr<Window> CreateRenderWindow(const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync = true);
+	//std::shared_ptr<Window> CreateRenderWindow(const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync = true);
 
 	/**
 	* Destroy a window given the window name.
 	*/
-	void DestroyWindow(const std::wstring& windowName);
+	//void DestroyWindow(const std::wstring& windowName);
 	/**
 	* Destroy a window given the window reference.
 	*/
-	void DestroyWindow(std::shared_ptr<Window> window);
+	//void DestroyWindow(std::shared_ptr<Window> window);
 
 	/**
 	* Find a window by the window name.
 	*/
-	std::shared_ptr<Window> GetWindowByName(const std::wstring& windowName);
-
-	/**
-	* Run the application loop and message pump.
-	* @return The error code if an error occurred.
-	*/
-	int Run(std::shared_ptr<Editor> p_editor);
+	//std::shared_ptr<Window> GetWindowByName(const std::wstring& windowName);
 
 	// New BearWindow system implementation
 	int RunWithBearWindow(const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync = true);
