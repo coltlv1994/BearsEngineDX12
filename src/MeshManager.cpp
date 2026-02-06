@@ -28,7 +28,7 @@ MeshManager::~MeshManager()
 	ClearMeshes();
 }
 
-bool MeshManager::AddMesh(const std::string& meshName, Shader* p_shader_p)
+bool MeshManager::AddMesh(const std::string& meshName)
 {
 	auto result = m_meshes.find(meshName);
 	if (result != m_meshes.end())
@@ -52,7 +52,6 @@ bool MeshManager::AddMesh(const std::string& meshName, Shader* p_shader_p)
 		if (createResult)
 		{
 			m_meshes[meshName] = newMesh;
-			newMesh->UseShader(p_shader_p);
 			newMesh->SetMeshClassName(meshName);
 			return true;
 		}
@@ -87,69 +86,6 @@ void MeshManager::ClearMeshes()
 	}
 
 	m_meshes.clear();
-}
-
-// TODO: need change
-void MeshManager::RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix)
-{
-	if (m_instanceList.size() == 0)
-		return;
-
-	// this is for first pass
-	ComPtr<ID3D12RootSignature> rootSignature;
-	ComPtr<ID3D12PipelineState> pipelineState;
-	m_defaultShader_p->GetRSAndPSO_1stPass(rootSignature, pipelineState);
-
-	p_commandList->SetPipelineState(pipelineState.Get());
-	p_commandList->SetGraphicsRootSignature(rootSignature.Get());
-
-	// set sampler
-	static UINT samplerSize = Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-	static D3D12_GPU_DESCRIPTOR_HANDLE samplerBaseHandle = m_samplerHeap->GetGPUDescriptorHandleForHeapStart();
-
-	p_commandList->SetGraphicsRootDescriptorTable(2, CD3DX12_GPU_DESCRIPTOR_HANDLE(samplerBaseHandle, m_selectedSampler, samplerSize));
-
-	for (Instance* instance_p : m_instanceList)
-	{
-		// call mesh class to render it
-		instance_p->Render(p_commandList, p_vpMatrix);
-	}
-}
-
-void  MeshManager::RenderAllMeshes2ndPass(ComPtr<ID3D12GraphicsCommandList2> p_commandList, UINT currentBackBufferIndex, const XMMATRIX& p_invScreenPVMatrix)
-{
-	if (m_instanceList.size() == 0)
-		return;
-
-	// this is for 2nd pass
-	ComPtr<ID3D12RootSignature> rootSignature;
-	ComPtr<ID3D12PipelineState> pipelineState;
-	m_defaultShader_p->GetRSAndPSO_2ndPass(rootSignature, pipelineState);
-
-	p_commandList->SetPipelineState(pipelineState.Get());
-	// sharing the same root signature for both passes
-	p_commandList->SetGraphicsRootSignature(rootSignature.Get());
-
-	UINT srvHeapStartIndex = currentBackBufferIndex * Window::FirstPassRTVCount + 1;
-
-	static D3D12_GPU_DESCRIPTOR_HANDLE textureHandle = m_SRVHeap->GetGPUDescriptorHandleForHeapStart();
-	static UINT descriptorSize = Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-	// set light info here;
-	p_commandList->SetGraphicsRootConstantBufferView(0, m_lightManager_p->GetLightCBVGPUAddress());
-
-	SecondPassRootConstants sprc = {};
-	sprc.invScreenPVMatrix = p_invScreenPVMatrix;
-	p_commandList->SetGraphicsRoot32BitConstants(3, sizeof(sprc) / 4, &sprc, 0);
-
-	p_commandList->SetGraphicsRootDescriptorTable(1, CD3DX12_GPU_DESCRIPTOR_HANDLE(textureHandle, srvHeapStartIndex, descriptorSize));
-
-	// Depth
-	p_commandList->SetGraphicsRootDescriptorTable(2, CD3DX12_GPU_DESCRIPTOR_HANDLE(textureHandle, Window::FirstPassRTVCount * Window::BufferCount + 1, descriptorSize));
-
-	p_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	p_commandList->IASetVertexBuffers(0, 1, &m_2ndPassVertexBufferView);
-	p_commandList->DrawInstanced(4, 1, 0, 0);
 }
 
 void MeshManager::Listen()
@@ -188,7 +124,7 @@ void MeshManager::_processMessage(Message& msg)
 
 		// TODO: use different shader and texture if specified in message
 		// texturePath is now fixed in Mesh constructor
-		if (AddMesh(meshName, m_defaultShader_p))
+		if (AddMesh(meshName))
 		{
 			// Successfully added mesh
 			// Send back load success message
@@ -228,7 +164,7 @@ void MeshManager::_processMessage(Message& msg)
 			mesh_p = GetMeshByName(meshName);
 			if (!mesh_p)
 			{
-				if (!AddMesh(meshName, m_defaultShader_p))
+				if (!AddMesh(meshName))
 				{
 					// Failed to add mesh, send error message
 					_sendMeshLoadFailedMessage(meshName);
@@ -345,11 +281,6 @@ void MeshManager::_processMessage(Message& msg)
 		}
 		LightConstants* lightData = (LightConstants*)(msg.GetData());
 		m_lightManager_p->CopyData(lightData);
-		break;
-	}
-	case MSG_TYPE_REBUILD_SHADERS:
-	{
-		m_defaultShader_p->RebuildShaders();
 		break;
 	}
 	default:
@@ -478,45 +409,6 @@ Mesh* MeshManager::GetMeshByName(const std::string& meshName)
 void MeshManager::InitializeLightManager(XMFLOAT4& p_mainCameraLocation)
 {
 	m_lightManager_p = new LightManager(p_mainCameraLocation);
-}
-
-void MeshManager::Prepare2ndPassResources()
-{
-	auto device = Application::Get().GetDevice();
-
-	// create a full screen quad vertex buffer
-	SecondPassVertexData quadVertices[] =
-	{
-		{ XMFLOAT3(-1.0f,  1.0f, 0.0f),  XMFLOAT2(0.0f, 0.0f) },
-		{ XMFLOAT3(1.0f,  1.0f, 0.0f),  XMFLOAT2(1.0f, 0.0f) },
-		{ XMFLOAT3(-1.0f, -1.0f, 0.0f),  XMFLOAT2(0.0f, 1.0f) },
-		{ XMFLOAT3(1.0f, -1.0f, 0.0f),  XMFLOAT2(1.0f, 1.0f) },
-	};
-
-	const UINT quadVertexBufferSize = sizeof(quadVertices);
-
-	CD3DX12_HEAP_PROPERTIES heapProperty(D3D12_HEAP_TYPE_UPLOAD);
-	static CD3DX12_HEAP_PROPERTIES heap_upload = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-	CD3DX12_RESOURCE_DESC buffer_upload = CD3DX12_RESOURCE_DESC::Buffer(quadVertexBufferSize);
-
-	// could move to default heap for better performance
-	// but this is not urgently needed
-	ThrowIfFailed(device->CreateCommittedResource(
-		&heap_upload,
-		D3D12_HEAP_FLAG_NONE,
-		&buffer_upload,
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&m_2ndPassVertexBuffer)));
-
-	UINT8* dataBegin;
-	ThrowIfFailed(m_2ndPassVertexBuffer->Map(0, nullptr, reinterpret_cast<void**>(&dataBegin)));
-	memcpy(dataBegin, quadVertices, sizeof(quadVertices));
-	m_2ndPassVertexBuffer->Unmap(0, nullptr);
-
-	m_2ndPassVertexBufferView.BufferLocation = m_2ndPassVertexBuffer->GetGPUVirtualAddress();
-	m_2ndPassVertexBufferView.StrideInBytes = sizeof(SecondPassVertexData);
-	m_2ndPassVertexBufferView.SizeInBytes = sizeof(quadVertices);
 }
 
 void MeshManager::SetSamplerIndex(unsigned int p_samplerIndex)

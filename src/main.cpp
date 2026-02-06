@@ -2,10 +2,9 @@
 #include <Windows.h>
 #include <Shlwapi.h>
 
-#include <Application.h>
-#include <Editor.h>
-#include <Helpers.h>
-#include <MeshManager.h>
+#include "Application.h"
+#include "Helpers.h"
+#include "MeshManager.h"
 
 #include <dxgidebug.h>
 

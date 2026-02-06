@@ -3,7 +3,6 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
-#include <Shader.h>
 #include <MessageQueue.h>
 #include <EntityInstance.h>
 #include <Texture.h>
@@ -21,13 +20,9 @@ public:
 	MeshManager() = default;
 	~MeshManager();
 
-	bool AddMesh(const std::string& meshName, Shader* p_shader_p);
+	bool AddMesh(const std::string& meshName);
 	bool RemoveMesh(const std::string& meshName);
 	void ClearMeshes();
-
-	void RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix);
-
-	void RenderAllMeshes2ndPass(ComPtr<ID3D12GraphicsCommandList2> p_commandList, UINT currentBackBufferIndex, const XMMATRIX& p_invScreenPVMatrix);
 
 	void StartListeningThread()
 	{
@@ -37,17 +32,6 @@ public:
 
 	// Receive message from other systems
 	void ReceiveMessage(Message* msg);
-
-	void SetDefaultShader(Shader* shader_p)
-	{
-		m_defaultShader_p = shader_p;
-	}
-
-	void SetSRVHeap(Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> srvHeap, Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> samplerHeap)
-	{
-		m_SRVHeap = srvHeap;
-		m_samplerHeap = samplerHeap;
-	}
 
 	void CreateDefaultTexture();
 
@@ -83,7 +67,6 @@ public:
 private:
 	std::unordered_map<std::string, Mesh*> m_meshes; // map of mesh name to Mesh pointer
 	MessageQueue m_messageQueue;
-	Shader* m_defaultShader_p = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_SRVHeap; // passed from Editor class, holds textures
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_samplerHeap; // passed from Editor class, holds samplers
 	std::vector<Instance*> m_instanceList; // list of all created instances

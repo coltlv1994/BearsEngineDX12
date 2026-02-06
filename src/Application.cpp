@@ -15,26 +15,11 @@
 
 constexpr wchar_t WINDOW_CLASS_NAME[] = L"DX12RenderWindowClass";
 
-//using WindowPtr = std::shared_ptr<Window>;
-//using WindowMap = std::map< HWND, WindowPtr >;
-//using WindowNameMap = std::map< std::wstring, WindowPtr >;
-
 static Application* gs_pSingelton = nullptr;
-//static WindowMap gs_Windows;
-//static WindowNameMap gs_WindowByName;
 
 static std::shared_ptr<BearWindow> gs_activeWindow = nullptr;
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
-
-// A wrapper struct to allow shared pointers for the window class.
-//struct MakeWindow : public Window
-//{
-//	MakeWindow(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync)
-//		: Window(hWnd, windowName, clientWidth, clientHeight, vSync)
-//	{
-//	}
-//};
 
 Application::Application(HINSTANCE hInst)
 	: m_hInstance(hInst)
@@ -239,89 +224,6 @@ bool Application::IsTearingSupported() const
 	return m_TearingSupported;
 }
 
-//std::shared_ptr<Window> Application::CreateRenderWindow(const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync)
-//{
-//	// First check if a window with the given name already exists.
-//	WindowNameMap::iterator windowIter = gs_WindowByName.find(windowName);
-//	if (windowIter != gs_WindowByName.end())
-//	{
-//		return windowIter->second;
-//	}
-//
-//	RECT windowRect = { 0, 0, clientWidth, clientHeight };
-//	AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
-//
-//	HWND hWnd = CreateWindowW(WINDOW_CLASS_NAME, windowName.c_str(),
-//		WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
-//		windowRect.right - windowRect.left,
-//		windowRect.bottom - windowRect.top,
-//		nullptr, nullptr, m_hInstance, nullptr);
-//
-//	if (!hWnd)
-//	{
-//		MessageBoxA(NULL, "Could not create the render window.", "Error", MB_OK | MB_ICONERROR);
-//		return nullptr;
-//	}
-//
-//	WindowPtr pWindow = std::make_shared<MakeWindow>(hWnd, windowName, clientWidth, clientHeight, vSync);
-//
-//	gs_Windows.insert(WindowMap::value_type(hWnd, pWindow));
-//	gs_WindowByName.insert(WindowNameMap::value_type(windowName, pWindow));
-//
-//	return pWindow;
-//}
-//
-//void Application::DestroyWindow(std::shared_ptr<Window> window)
-//{
-//	if (window) window->Destroy();
-//}
-//
-//void Application::DestroyWindow(const std::wstring& windowName)
-//{
-//	WindowPtr pWindow = GetWindowByName(windowName);
-//	if (pWindow)
-//	{
-//		DestroyWindow(pWindow);
-//	}
-//}
-//
-//std::shared_ptr<Window> Application::GetWindowByName(const std::wstring& windowName)
-//{
-//	std::shared_ptr<Window> window;
-//	WindowNameMap::iterator iter = gs_WindowByName.find(windowName);
-//	if (iter != gs_WindowByName.end())
-//	{
-//		window = iter->second;
-//	}
-//
-//	return window;
-//}
-//
-//
-//int Application::Run(std::shared_ptr<Editor> editor)
-//{
-//	if (!editor->Initialize()) return 1;
-//	if (!editor->LoadContent()) return 2;
-//
-//	MSG msg = { 0 };
-//	while (msg.message != WM_QUIT)
-//	{
-//		if (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
-//		{
-//			TranslateMessage(&msg);
-//			DispatchMessage(&msg);
-//		}
-//	}
-//
-//	// Flush any commands in the commands queues before quiting.
-//	Flush();
-//
-//	editor->UnloadContent();
-//	editor->Destroy();
-//
-//	return static_cast<int>(msg.wParam);
-//}
-
 void Application::Quit(int exitCode)
 {
 	PostQuitMessage(exitCode);
@@ -378,18 +280,6 @@ UINT Application::GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE ty
 {
 	return m_d3d12Device->GetDescriptorHandleIncrementSize(type);
 }
-
-// Remove a window from our window lists.
-//static void RemoveWindow(HWND hWnd)
-//{
-//	WindowMap::iterator windowIter = gs_Windows.find(hWnd);
-//	if (windowIter != gs_Windows.end())
-//	{
-//		WindowPtr pWindow = windowIter->second;
-//		gs_WindowByName.erase(pWindow->GetWindowName());
-//		gs_Windows.erase(windowIter);
-//	}
-//}
 
 // Convert the message ID into a MouseButton ID
 //MouseButtonEventArgs::MouseButton DecodeMouseButton(UINT messageID)
@@ -537,7 +427,6 @@ int Application::RunWithBearWindow(const std::wstring& p_windowName, int p_width
 	// Boot up listener threads and other preparations like Editor class
 	m_mainWindow->Show();
 
-	//MeshManager::Get().SetSRVHeap(m_SRVHeap, m_samplersHeap); // only used in MeshManager, 2nd pass rendering
 	MeshManager::Get().CreateDefaultTexture();
 	UIManager::Get().InitializeD3D12(device, commandQueue, m_srvHeap, BearWindow::BufferCount); // IMGUI
 
