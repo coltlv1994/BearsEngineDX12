@@ -440,12 +440,12 @@ void MeshManager::_sendInstanceFailedMessage(const std::string& meshName)
 
 void MeshManager::CreateDefaultTexture()
 {
-	m_textureMap["default_white"] = new Texture("default_white", 0, m_SRVHeap);
+	m_textureMap["default_white"] = new Texture("default_white", 0);
 }
 
 bool MeshManager::ReadAndUploadTexture(const char* textureName)
 {
-	Texture* newTexture = new Texture(textureName, m_textureMap.size(), m_SRVHeap);
+	Texture* newTexture = new Texture(textureName, m_textureMap.size());
 
 	m_textureMap[textureName] = newTexture;
 

@@ -2,39 +2,75 @@
 #include <Helpers.h>
 #include <Application.h>
 #include <CommandQueue.h>
+#include <UIManager.h>
+#include <MeshManager.h>
 
 #include <d3dx12.h>
+#include <WinUser.h>
 
 #include <algorithm>
 
-BearWindow::BearWindow(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync)
-	: m_hWnd(hWnd)
-	, m_windowName(windowName)
+BearWindow::BearWindow(const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync, bool isPhysicsEnabled)
+	: m_windowName(windowName)
 	, m_width(clientWidth)
 	, m_height(clientHeight)
 	, m_isVSync(vSync)
+	, m_isPhysicsEnabled(isPhysicsEnabled)
 	, m_isFullscreen(false)
 {
-	Application& app = Application::Get();
+	m_isTearingSupported = Application::Get().IsTearingSupported();
+}
 
-	m_isTearingSupported = app.IsTearingSupported();
+bool BearWindow::Initialize(const wchar_t* p_windowClassName, HINSTANCE p_hInstance)
+{
+	// create hwnd
+	RECT windowRect = { 0, 0, m_width, m_height };
+	AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
+
+	m_hWnd = CreateWindowW(p_windowClassName, m_windowName.c_str(),
+		WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
+		windowRect.right - windowRect.left,
+		windowRect.bottom - windowRect.top,
+		nullptr, nullptr, p_hInstance, nullptr);
+
+	if (!m_hWnd)
+	{
+		MessageBoxA(NULL, "Could not create the render window.", "Error", MB_OK | MB_ICONERROR);
+		return false;
+	}
 
 	m_dxgiSwapChain = CreateSwapChain();
 
+	Application& app = Application::Get();
 	m_rtvHeap = app.CreateDescriptorHeap(TotalRTVCount, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	m_rtvDescriptorSize = app.GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 	m_dsvHeap = app.CreateDescriptorHeap(1, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE);
 
-	 m_offsetInSRVHeap = app.AllocateInSRVHeap(RequiredSizeInSRVHeap);
+	m_offsetInSRVHeap = app.AllocateInSRVHeap(RequiredSizeInSRVHeap);
 
-	 if (m_offsetInSRVHeap == 0)
-	 {
-		 ThrowIfFailed(E_FAIL);
-	 }
-	 
-	 CreateBackBuffersAndViewport();
-	 UpdateRTVAndDSV();
+	if (m_offsetInSRVHeap == 0)
+	{
+		ThrowIfFailed(E_FAIL);
+	}
+
+	CreateBackBuffersAndViewport();
+	UpdateRTVAndDSV();
+	UpdateRenderResource();
+
+	if (m_isPhysicsEnabled == false)
+	{
+		// Editor windows do not have physics enabled by default
+		// Set IMGUI UI
+		UIManager::Get().InitializeWindow(m_hWnd);
+		UIManager::Get().SetMainCamera(&m_camera);
+
+		XMFLOAT4 camPosition = XMFLOAT4(0.0f, 0.0f, -10.0f, 1.0f);
+		m_camera.SetPosition(XMLoadFloat4(&camPosition));
+
+		UIManager::Get().SetMainCamera(&m_camera);
+		MeshManager::Get().InitializeLightManager(camPosition);
+	}
 }
 
 void BearWindow::UpdateRenderResource()
@@ -140,6 +176,39 @@ void BearWindow::UpdateRTVAndDSV()
 
 	device->CreateDepthStencilView(m_windowResources[TotalRTVCount].Get(), &dsvDesc,
 		m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
+
+	// update SRVs for the first pass RTVs and depth buffer
+	CD3DX12_CPU_DESCRIPTOR_HANDLE srvHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(Application::Get().GetSRVHeapCPUHandle(m_offsetInSRVHeap));
+	static const unsigned int incrementSize = Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	Application& app = Application::Get();
+	auto device = app.GetDevice();
+
+	DXGI_FORMAT mRtvFormat[3] = {
+	DXGI_FORMAT_R32G32B32A32_FLOAT, // diffuse
+	DXGI_FORMAT_R32_FLOAT, // specular
+	DXGI_FORMAT_R32G32B32A32_FLOAT // normal
+	};
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC descSRV;
+
+	ZeroMemory(&descSRV, sizeof(descSRV));
+	descSRV.Texture2D.MipLevels = 1;
+	descSRV.Texture2D.MostDetailedMip = 0;
+	descSRV.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	descSRV.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+	for (UINT i = 0; i < BufferCount; i++) {
+		for (UINT j = 0; j < FirstPassRTVCount; j++) {
+			descSRV.Format = mRtvFormat[j];
+			device->CreateShaderResourceView(m_windowResources[i * 3 + j].Get(), &descSRV, srvHandle);
+			srvHandle.Offset(1, incrementSize);
+		}
+	}
+
+	// depth buffer SRV
+	descSRV.Format = DXGI_FORMAT_R32_FLOAT;
+	device->CreateShaderResourceView(m_windowResources[TotalRTVCount].Get(), &descSRV, srvHandle);
 }
 
 void BearWindow::CreateBackBuffersAndViewport()

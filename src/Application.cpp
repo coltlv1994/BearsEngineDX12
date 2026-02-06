@@ -315,14 +315,6 @@ int Application::Run(std::shared_ptr<Editor> editor)
 	// Flush any commands in the commands queues before quiting.
 	Flush();
 
-	// Cleanup
-	//Message* msgMM = new Message();
-	//Message* msgUM = new Message();
-	//msgMM->type = MSG_TYPE_EDITOR_QUIT;
-	//msgUM->type = MSG_TYPE_EDITOR_QUIT;
-	//MeshManager::Get().ReceiveMessage(msgMM);
-	//UIManager::Get().ReceiveMessage(msgUM);
-
 	editor->UnloadContent();
 	editor->Destroy();
 
@@ -525,28 +517,60 @@ unsigned int Application::AllocateInSRVHeap(unsigned int p_requiredSize)
 	return returnedOffset;
 }
 
+D3D12_CPU_DESCRIPTOR_HANDLE Application::GetSRVHeapCPUHandle(unsigned int offset) const
+{
+	return CD3DX12_CPU_DESCRIPTOR_HANDLE(
+		m_srvHeap->GetCPUDescriptorHandleForHeapStart(), offset, sizeOfSrvHeapOffset);
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE Application::GetSRVHeapGPUHandle(unsigned int offset) const
+{
+	return CD3DX12_GPU_DESCRIPTOR_HANDLE(
+		m_srvHeap->GetGPUDescriptorHandleForHeapStart(), offset, sizeOfSrvHeapOffset);
+}
+
 int Application::RunWithBearWindow(const std::wstring& p_windowName, int p_width, int p_height, bool p_isVSync)
 {
 	// This assumes Create() has successfully completed and the application singleton has been created.
 
-	//m_mainWindow = std::make_shared<BearWindow>(CreateRenderWindow(L"Main Window", 1280, 720, true)->GetHWND(), L"Main Window", 1280, 720, true);
-	RECT windowRect = { 0, 0, p_width, p_height };
-	AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
+	auto device = GetDevice();
+	auto commandQueue = GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT)->GetD3D12CommandQueue();
 
-	HWND hWnd = CreateWindowW(WINDOW_CLASS_NAME, p_windowName.c_str(),
-		WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
-		windowRect.right - windowRect.left,
-		windowRect.bottom - windowRect.top,
-		nullptr, nullptr, m_hInstance, nullptr);
-
-	if (!hWnd)
-	{
-		MessageBoxA(NULL, "Could not create the render window.", "Error", MB_OK | MB_ICONERROR);
-		return 1;
-	}
-
-	m_mainWindow = std::make_shared<BearWindow>(hWnd, p_windowName, p_width, p_height, p_isVSync);
+	// move hwnd creation inside
+	// main window is editor window, physics is not enabled by default
+	m_mainWindow = std::make_shared<BearWindow>(p_windowName, p_width, p_height, p_isVSync, false);
+	m_mainWindow->Initialize(WINDOW_CLASS_NAME, m_hInstance);
 
 	// Create D3D12 Renderer
+	m_renderer_p = new D3D12Renderer(L"FirstPassVertexShader", L"FirstPassPixelShader",
+		L"SecondPassVertexShader", L"SecondPassPixelShader");
 
+	// Boot up listener threads and other preparations like Editor class
+	m_mainWindow->Show();
+
+	//MeshManager::Get().SetSRVHeap(m_SRVHeap, m_samplersHeap); // only used in MeshManager, 2nd pass rendering
+	MeshManager::Get().CreateDefaultTexture();
+	UIManager::Get().InitializeD3D12(device, commandQueue, m_srvHeap, Window::BufferCount); // IMGUI
+
+	UIManager::Get().StartListeningThread();
+	MeshManager::Get().StartListeningThread();
+
+	// Window loop
+	MSG msg = { 0 };
+	while (msg.message != WM_QUIT)
+	{
+		if (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+	}
+
+	// Flush any commands in the commands queues before quiting.
+	Flush();
+
+	//editor->UnloadContent();
+	m_mainWindow->Destroy();
+
+	return static_cast<int>(msg.wParam);
 }

@@ -79,7 +79,8 @@ void Texture::_createSRV(unsigned int p_internalResourceIndex)
 {
 	static ID3D12Device2* device = Application::Get().GetDevice().Get();
 	static UINT descriptorIncrementSize = Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	static D3D12_CPU_DESCRIPTOR_HANDLE srvHeapHandle = m_SRVHeap->GetCPUDescriptorHandleForHeapStart();
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE srvHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(Application::Get().GetSRVHeapCPUHandle(m_srvHeapOffset + p_internalResourceIndex));
 
 	// Create shader resource view (SRV)
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -90,7 +91,5 @@ void Texture::_createSRV(unsigned int p_internalResourceIndex)
 	srvDesc.Texture2D.MipLevels = m_resources[p_internalResourceIndex]->GetDesc().MipLevels;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(m_SRVHeap->GetCPUDescriptorHandleForHeapStart());
-	hDescriptor.Offset(m_srvHeapOffset + p_internalResourceIndex, descriptorIncrementSize);
-	device->CreateShaderResourceView(m_resources[p_internalResourceIndex].Get(), &srvDesc, hDescriptor);
+	device->CreateShaderResourceView(m_resources[p_internalResourceIndex].Get(), &srvDesc, srvHandle);
 }

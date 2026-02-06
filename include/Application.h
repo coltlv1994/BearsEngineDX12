@@ -19,6 +19,7 @@ class CommandQueue;
 
 #include "ResourceUploadBatch.h"
 #include "BearWindow.h"
+#include "D3D12Renderer.h"
 
 class Application
 {
@@ -108,6 +109,8 @@ public:
 	// big srv heap management
 	static const unsigned int MAX_SIZE_IN_SRV_HEAP = 65536;
 	unsigned int AllocateInSRVHeap(unsigned int size);
+	D3D12_CPU_DESCRIPTOR_HANDLE GetSRVHeapCPUHandle(unsigned int offset) const;
+	D3D12_GPU_DESCRIPTOR_HANDLE GetSRVHeapGPUHandle(unsigned int offset) const;
 
 protected:
 
@@ -149,4 +152,5 @@ private:
 
 	// New BearWindow system
 	std::shared_ptr<BearWindow> m_mainWindow; // this is the main window created at application start, UNLESS OTHERWISE SPECIFIED
+	D3D12Renderer* m_renderer_p; // the renderer
 };

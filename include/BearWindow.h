@@ -11,12 +11,16 @@ using namespace Microsoft::WRL;
 #include <string>
 #include "HighResolutionClock.h"
 #include "Helpers.h"
+#include <Camera.h>
 
 class BearWindow
 {
 public:
 	BearWindow() = delete;
-	BearWindow(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync);
+	BearWindow(const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync, bool isPhysicsEnabled);
+
+	// create hwnd and other contents
+	bool Initialize(const wchar_t* p_windowClassName, HINSTANCE p_hInstance);
 
 	void UpdateRenderResource();
 	// Window manipulation methods
@@ -81,6 +85,7 @@ private:
 	ComPtr<ID3D12Resource> m_windowResources[TotalRTVCount + 1]; // one more for depth buffer
 	D3D12_VIEWPORT m_viewport;
 	HighResolutionClock m_windowClock;
+	Camera m_camera;
 
 	// output to Application/Editor to render
 	RenderResource m_renderResources[BufferCount];
