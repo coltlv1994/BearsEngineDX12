@@ -1,14 +1,18 @@
 #pragma once
 #include <d3d12.h>
 #include <d3dx12.h>
+#include <DirectXMath.h>
+using namespace DirectX;
 
 #include <wrl.h>
 using namespace Microsoft::WRL;
 
+#include <vector>
+
 #include "Helpers.h"
-#include "Application.h"
 #include "Shader.h"
 #include "BearWindow.h"
+#include "EntityInstance.h"
 
 class D3D12Renderer
 {
@@ -35,8 +39,17 @@ private:
 	void _clearDepthBuffer(ComPtr<ID3D12GraphicsCommandList2> commandList,
 		D3D12_CPU_DESCRIPTOR_HANDLE dsv, FLOAT depth = 1.0f);
 
+	void _renderFirstPass(ComPtr<ID3D12GraphicsCommandList2> commandList, const std::vector<Instance*>& instanceList, const XMMATRIX& vpMatrix);
+
+	void _renderSecondPass(ComPtr<ID3D12GraphicsCommandList2> commandList, const XMMATRIX& invSPVMatrix, const RenderResource& currentRR);
+
+	void _prepare2ndPassResources();
+
 	uint64_t m_fenceValues[BearWindow::BufferCount] = {};
 	D3D12_RECT m_scissorRect;
 
 	Shader* m_shader_p;
+
+	ComPtr<ID3D12Resource> m_2ndPassVertexBuffer;
+	D3D12_VERTEX_BUFFER_VIEW m_2ndPassVertexBufferView;
 };

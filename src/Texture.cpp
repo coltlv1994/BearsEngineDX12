@@ -1,8 +1,11 @@
-#include <Texture.h>
-#include <DDSTextureLoader.h>
-#include <WICTextureLoader.h>
-#include <ResourceUploadBatch.h>
 #include <cstdlib>
+
+#include "Texture.h"
+#include "Application.h"
+#include "CommandQueue.h"
+#include "DDSTextureLoader.h"
+#include "WICTextureLoader.h"
+#include "ResourceUploadBatch.h"
 
 void Texture::_initialize()
 {
@@ -92,4 +95,9 @@ void Texture::_createSRV(unsigned int p_internalResourceIndex)
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 
 	device->CreateShaderResourceView(m_resources[p_internalResourceIndex].Get(), &srvDesc, srvHandle);
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE Texture::GetSrvHeapStart()
+{
+	return Application::Get().GetSRVHeapGPUHandle(m_srvHeapOffset);
 }

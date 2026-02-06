@@ -1,9 +1,8 @@
 #pragma once
 #include <string>
 
-#include <Helpers.h>
-#include <Application.h>
-#include <CommandQueue.h>
+#include "Helpers.h"
+
 #include <d3d12.h>
 #include <d3dx12.h>
 
@@ -37,14 +36,11 @@ public:
 
 	const std::string& GetName() const { return m_name; }
 
-	D3D12_GPU_DESCRIPTOR_HANDLE GetSrvHeapStart()
-	{
-		return Application::Get().GetSRVHeapGPUHandle(m_srvHeapOffset);
-	}
+	D3D12_GPU_DESCRIPTOR_HANDLE GetSrvHeapStart();
 
 private:
 	std::string m_name;
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_resources[ResourceIndex::MAX_NO]; //one for each RTV-mapped SRV
+	ComPtr<ID3D12Resource> m_resources[ResourceIndex::MAX_NO]; //one for each RTV-mapped SRV
 
 	unsigned int m_textureIndex = 0; // to calculate the offset in SRV heap
 	unsigned int m_srvHeapOffset = 1; // default value

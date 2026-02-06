@@ -40,7 +40,6 @@ static char textureObjectToLoad[128] = "";
 static int selectedMeshIndex = 0;
 static int selectedTextureIndex = 0;
 static int selectedInstanceIndex = -1;
-static unsigned int selectedSamplerIndex = 0;
 
 static char mapNameToLoad[128] = "default";
 
@@ -113,9 +112,6 @@ void UIManager::InitializeD3D12(ComPtr<ID3D12Device>device, ComPtr<ID3D12Command
 	// always default white texture at first
 	listOfMeshes.push_back("null_object");
 	listOfTextures.push_back("default_white");
-	listOfSamplers.push_back("Linear");
-	listOfSamplers.push_back("Point");
-	listOfSamplers.push_back("Anisotropic");
 }
 
 void UIManager::NewFrame()
@@ -262,29 +258,6 @@ void UIManager::CreateImGuiWindowContent()
 			_clampRotation(camParam[1]);
 			m_mainCamRef->SetRotation(XMVectorSet(camParam[1][0], camParam[1][1], camParam[1][2], 0.0f) * PI_DIV_180);
 			m_mainCamRef->SetFOV(cameraFOV);
-		}
-
-		// set sampler
-		ImGui::Text("Samplers:");
-		if (ImGui::BeginListBox("##listbox samplers"))
-		{
-			int idx = 0;
-			for (auto samplerName : listOfSamplers)
-			{
-				const bool is_selected = (selectedSamplerIndex == idx);
-				if (ImGui::Selectable(samplerName.c_str(), is_selected))
-					selectedSamplerIndex = idx;
-				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-				if (is_selected)
-					ImGui::SetItemDefaultFocus();
-				idx++;
-			}
-			ImGui::EndListBox();
-		}
-
-		if (selectedSamplerIndex >= 0 && selectedSamplerIndex < listOfSamplers.size())
-		{
-			MeshManager::Get().SetSamplerIndex(selectedSamplerIndex);
 		}
 
 		ImGui::EndTabItem();

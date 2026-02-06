@@ -23,7 +23,7 @@ static Application* gs_pSingelton = nullptr;
 static WindowMap gs_Windows;
 static WindowNameMap gs_WindowByName;
 
-static std::shared_ptr<BearWindow> gs_activeWindow;
+static std::shared_ptr<BearWindow> gs_activeWindow = nullptr;
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -435,23 +435,12 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 
 	// any message that imgui won't handle goes down here
 
-	WindowPtr pWindow;
-	{
-		WindowMap::iterator iter = gs_Windows.find(hwnd);
-		if (iter != gs_Windows.end())
-		{
-			pWindow = iter->second;
-		}
-	}
-
-	if (pWindow)
+	if (gs_activeWindow)
 	{
 		switch (message)
 		{
 		case WM_PAINT:
 		{
-			// Delta time will be filled in by the Window.
-			// TODO: change to BearWindow?
 			Application::Get().RenderBearWindow(gs_activeWindow);
 		}
 		break;
@@ -460,21 +449,22 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 			int width = ((int)(short)LOWORD(lParam));
 			int height = ((int)(short)HIWORD(lParam));
 
-			ResizeEventArgs resizeEventArgs(width, height);
-			pWindow->OnResize(resizeEventArgs);
+			gs_activeWindow->OnResize(width, height);
 		}
 		break;
 		case WM_DESTROY:
 		{
 			// If a window is being destroyed, remove it from the 
 			// window maps.
-			RemoveWindow(hwnd);
+			gs_activeWindow->Destroy();
+			gs_activeWindow = nullptr;
+			PostQuitMessage(0);
 
-			if (gs_Windows.empty())
-			{
-				// If there are no more windows, quit the application.
-				PostQuitMessage(0);
-			}
+			//if (gs_Windows.empty())
+			//{
+			//	// If there are no more windows, quit the application.
+			//	PostQuitMessage(0);
+			//}
 		}
 		break;
 		default:
@@ -494,7 +484,7 @@ DirectX::ResourceUploadBatch& Application::GetRUB()
 	return *m_resourceUploadBatch;
 }
 
-unsigned int Application::AllocateInSRVHeap(unsigned int p_requiredSize) 
+unsigned int Application::AllocateInSRVHeap(unsigned int p_requiredSize)
 {
 	// 0 in this heap is reserved to ImGui;
 	// if return is 0, means the allocation failed.

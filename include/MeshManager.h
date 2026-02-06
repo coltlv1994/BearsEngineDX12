@@ -65,6 +65,21 @@ public:
 
 	void SetSamplerIndex(unsigned int p_samplerIndex);
 
+	std::vector<Instance*>& GetInstanceList()
+	{
+		return m_instanceList;
+	}
+
+	D3D12_GPU_VIRTUAL_ADDRESS GetLightCBVGPUAddress()
+	{
+		if (m_lightManager_p == nullptr)
+		{
+			return 0;
+		}
+
+		return m_lightManager_p->GetLightCBVGPUAddress();
+	}
+
 private:
 	std::unordered_map<std::string, Mesh*> m_meshes; // map of mesh name to Mesh pointer
 	MessageQueue m_messageQueue;

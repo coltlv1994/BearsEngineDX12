@@ -78,6 +78,9 @@ void BearWindow::UpdateRenderResource()
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvStartHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = m_dsvHeap->GetCPUDescriptorHandleForHeapStart();
 
+	D3D12_GPU_DESCRIPTOR_HANDLE srvStartHandle = Application::Get().GetSRVHeapGPUHandle(m_offsetInSRVHeap);
+	static const unsigned int srvIncrementSize = Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
 	for (unsigned int i = 0; i < BufferCount; ++i)
 	{
 		RenderResource& renderResource = m_renderResources[i];
@@ -94,12 +97,16 @@ void BearWindow::UpdateRenderResource()
 		renderResource.backBufferResourceIndex = BufferCount * FirstPassRTVCount + i;
 		renderResource.firstPassRTV = CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvStartHandle, renderResource.firstPassResourceStartIndex, m_rtvDescriptorSize);
 		renderResource.secondPassRTV = CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvStartHandle, renderResource.backBufferResourceIndex, m_rtvDescriptorSize);
+
+		renderResource.secondPassSRV = CD3DX12_GPU_DESCRIPTOR_HANDLE(srvStartHandle, renderResource.firstPassResourceStartIndex, srvIncrementSize);
+		renderResource.depthBufferSRV = CD3DX12_GPU_DESCRIPTOR_HANDLE(srvStartHandle, renderResource.depthBufferResourceIndex, srvIncrementSize);
 	}
 }
 
 void BearWindow::UpdateRTVAndDSV()
 {
-	auto device = Application::Get().GetDevice();
+	Application& app = Application::Get();
+	auto device = app.GetDevice();
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
 
@@ -181,17 +188,7 @@ void BearWindow::UpdateRTVAndDSV()
 	CD3DX12_CPU_DESCRIPTOR_HANDLE srvHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(Application::Get().GetSRVHeapCPUHandle(m_offsetInSRVHeap));
 	static const unsigned int incrementSize = Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-	Application& app = Application::Get();
-	auto device = app.GetDevice();
-
-	DXGI_FORMAT mRtvFormat[3] = {
-	DXGI_FORMAT_R32G32B32A32_FLOAT, // diffuse
-	DXGI_FORMAT_R32_FLOAT, // specular
-	DXGI_FORMAT_R32G32B32A32_FLOAT // normal
-	};
-
 	D3D12_SHADER_RESOURCE_VIEW_DESC descSRV;
-
 	ZeroMemory(&descSRV, sizeof(descSRV));
 	descSRV.Texture2D.MipLevels = 1;
 	descSRV.Texture2D.MostDetailedMip = 0;

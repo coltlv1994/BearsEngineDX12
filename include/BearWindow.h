@@ -7,11 +7,15 @@ using namespace Microsoft::WRL;
 
 #include <d3d12.h>
 #include <dxgi1_5.h>
+#include <DirectXMath.h>
+using namespace DirectX;
 
 #include <string>
+#include <functional>
+
 #include "HighResolutionClock.h"
 #include "Helpers.h"
-#include <Camera.h>
+#include "Camera.h"
 
 class BearWindow
 {
@@ -63,6 +67,33 @@ public:
 	bool IsPhysicsEnabled() const
 	{
 		return m_isPhysicsEnabled;
+	}
+
+	XMMATRIX GetViewProjectionMatrix() const
+	{
+		if (m_isPhysicsEnabled == false)
+		{
+			// Editor windows do not have physics enabled by default
+			return m_camera.GetViewProjectionMatrix();
+		}
+		else
+		{
+			// TODO: get these from an object's position and rotation
+			return XMMatrixIdentity();
+		}
+	}
+
+	XMMATRIX GetInvPVMatrix() const
+	{
+		if (m_isPhysicsEnabled == false)
+		{
+			return m_camera.GetInvPVMatrix();
+		}
+		else
+		{
+			// TODO: get these from an object's position and rotation
+			return XMMatrixIdentity();
+		}
 	}
 
 	// public accessible variables

@@ -23,7 +23,6 @@ void Instance::Render(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XM
 	}
 
 	auto textureHandle = m_texture_p->GetSrvHeapStart();
-	static UINT srvSize = Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	p_commandList->SetGraphicsRootDescriptorTable(0, textureHandle);
 

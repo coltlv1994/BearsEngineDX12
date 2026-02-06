@@ -111,6 +111,10 @@ public:
 	unsigned int AllocateInSRVHeap(unsigned int size);
 	D3D12_CPU_DESCRIPTOR_HANDLE GetSRVHeapCPUHandle(unsigned int offset) const;
 	D3D12_GPU_DESCRIPTOR_HANDLE GetSRVHeapGPUHandle(unsigned int offset) const;
+	ID3D12DescriptorHeap* GetSRVHeap() const
+	{
+		return m_srvHeap.Get();
+	}
 
 	// BearWindow system
 	void RenderBearWindow(std::shared_ptr<BearWindow> window);

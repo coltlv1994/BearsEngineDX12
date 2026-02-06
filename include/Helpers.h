@@ -33,6 +33,10 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h> // For HRESULT
 
+#include <d3d12.h>
+#include <wrl.h>
+using namespace Microsoft::WRL;
+
 #include <DirectXMath.h>
 using namespace DirectX;
 
@@ -169,6 +173,8 @@ struct RenderResource
 	D3D12_CPU_DESCRIPTOR_HANDLE firstPassRTV;
 	D3D12_CPU_DESCRIPTOR_HANDLE secondPassRTV;
     D3D12_CPU_DESCRIPTOR_HANDLE dsv;
+    D3D12_GPU_DESCRIPTOR_HANDLE secondPassSRV;
+	D3D12_GPU_DESCRIPTOR_HANDLE depthBufferSRV;
     ComPtr<ID3D12Resource>* resourceArray;
 	unsigned int firstPassResourceStartIndex;
     unsigned int backBufferResourceIndex;
