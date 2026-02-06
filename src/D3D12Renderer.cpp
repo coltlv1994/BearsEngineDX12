@@ -105,7 +105,6 @@ void D3D12Renderer::Render(BearWindow& window)
 
 	if (currentRR.isPhysicsEnabled == false)
 	{
-		//UIManager::Get().CreateImGuiWindowContent();
 		UIManager::Get().Draw(commandList);
 	}
 

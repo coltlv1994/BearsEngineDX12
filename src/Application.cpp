@@ -320,6 +320,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 {
 	if (ImGui_ImplWin32_WndProcHandler(hwnd, message, wParam, lParam))
 		return true;
+	
+	Application::Get().PendingWindowSwitchCheck();
 
 	// any message that imgui won't handle goes down here
 
@@ -433,7 +435,6 @@ int Application::RunWithBearWindow(const std::wstring& p_windowName, int p_width
 	UIManager::Get().StartListeningThread();
 	MeshManager::Get().StartListeningThread();
 
-	m_activeWindow = m_mainWindow;
 	gs_activeWindow = m_mainWindow;
 
 	// Window loop
@@ -468,4 +469,48 @@ void Application::RenderBearWindow(std::shared_ptr<BearWindow> window)
 	}
 
 	renderer.Render(bw);
+}
+
+void Application::SwitchToDemoWindow()
+{
+	m_pendingSwitchToDemoWindow = true;
+}
+
+void Application::SwitchToMainWindow()
+{
+	m_pendingSwitchToMainWindow = true;
+}
+
+void Application::PendingWindowSwitchCheck()
+{
+	if (m_pendingSwitchToMainWindow)
+	{
+		gs_activeWindow = m_mainWindow;
+		m_pendingSwitchToMainWindow = false;
+		if (m_demoWindow)
+		{
+			m_demoWindow->Hide();
+		}
+
+		// main window should always exist
+		m_mainWindow->Show();
+	}
+	else if (m_pendingSwitchToDemoWindow)
+	{
+		if (m_demoWindow == nullptr)
+		{
+			m_demoWindow = std::make_shared<BearWindow>(L"Demo Window", 1280, 720, true, true);
+			m_demoWindow->Initialize(WINDOW_CLASS_NAME, m_hInstance);
+		}
+		else
+		{
+			gs_activeWindow = m_demoWindow;
+		}
+
+		gs_activeWindow = m_demoWindow;
+		m_mainWindow->Hide();
+		m_demoWindow->Show();
+
+		m_pendingSwitchToDemoWindow = false;
+	}
 }

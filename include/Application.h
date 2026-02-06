@@ -84,6 +84,11 @@ public:
 	// BearWindow system
 	void RenderBearWindow(std::shared_ptr<BearWindow> window);
 
+	void SwitchToDemoWindow();
+	void SwitchToMainWindow();
+
+	void PendingWindowSwitchCheck();
+
 protected:
 
 	// Create an application instance.
@@ -125,5 +130,9 @@ private:
 	// New BearWindow system
 	std::shared_ptr<BearWindow> m_mainWindow; // this is the main window created at application start, UNLESS OTHERWISE SPECIFIED
 	D3D12Renderer* m_renderer_p; // the renderer
-	std::weak_ptr<BearWindow> m_activeWindow;
+
+	std::shared_ptr<BearWindow> m_demoWindow; // this window should have physics enabled
+
+	bool m_pendingSwitchToDemoWindow = false;
+	bool m_pendingSwitchToMainWindow = false;
 };

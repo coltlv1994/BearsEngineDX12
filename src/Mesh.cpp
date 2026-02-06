@@ -262,11 +262,6 @@ void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 	LoadDataToGPU();
 }
 
-void Mesh::UseShader(Shader* shader_p)
-{
-	m_shader_p = shader_p;
-}
-
 void Mesh::LoadDataToGPU()
 {
 	// prepare upload

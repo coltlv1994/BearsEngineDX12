@@ -14,7 +14,6 @@ class Mesh
 public:
 	bool Initialize(const wchar_t* p_objFilePath);
 	void LoadOBJFile(const wchar_t* p_objFilePath);
-	void UseShader(Shader* shader_p);
 	void LoadDataToGPU();
 	void ReadFromBinaryFile(const wchar_t* p_binFilePath);
 	void WriteToBinaryFile(const wchar_t* p_binFilePath);
@@ -44,8 +43,6 @@ private:
 	// Index buffer for the mesh.
 	ComPtr<ID3D12Resource> m_indexBuffer;
 	D3D12_INDEX_BUFFER_VIEW m_indexBufferView;
-
-	Shader* m_shader_p;
 
 	// Create a GPU buffer.
 	void UpdateBufferResource(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList,

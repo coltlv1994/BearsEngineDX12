@@ -127,12 +127,6 @@ void UIManager::CreateImGuiWindowContent()
 {
 	NewFrame();
 
-	//ImGuiIO& io = ImGui::GetIO();
-	//float displayX = io.DisplaySize.x;
-	//float displayY = io.DisplaySize.y;
-	//ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, io.DisplaySize.y), ImGuiCond_Once);
-	//ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Once);
-
 	ImGuiWindowFlags window_flags = ImGuiWindowFlags_None;
 	window_flags |= ImGuiWindowFlags_NoCollapse;
 
@@ -186,6 +180,12 @@ void UIManager::CreateImGuiWindowContent()
 			msg->type = MSG_TYPE_REBUILD_SHADERS;
 			MeshManager::Get().ReceiveMessage(msg);
 		}
+
+		if (ImGui::Button("Switch to demo window"))
+		{
+			Application::Get().SwitchToDemoWindow();
+		}
+
 		ImGui::EndTabItem();
 	}
 
