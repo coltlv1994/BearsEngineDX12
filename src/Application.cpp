@@ -23,6 +23,8 @@ static Application* gs_pSingelton = nullptr;
 static WindowMap gs_Windows;
 static WindowNameMap gs_WindowByName;
 
+static std::shared_ptr<BearWindow> gs_activeWindow;
+
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 // A wrapper struct to allow shared pointers for the window class.
@@ -450,8 +452,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 		{
 			// Delta time will be filled in by the Window.
 			// TODO: change to BearWindow?
-			pWindow->OnUpdate();
-			pWindow->OnRender();
+			Application::Get().RenderBearWindow(gs_activeWindow);
 		}
 		break;
 		case WM_SIZE:
@@ -555,6 +556,8 @@ int Application::RunWithBearWindow(const std::wstring& p_windowName, int p_width
 	UIManager::Get().StartListeningThread();
 	MeshManager::Get().StartListeningThread();
 
+	m_activeWindow = m_mainWindow;
+
 	// Window loop
 	MSG msg = { 0 };
 	while (msg.message != WM_QUIT)
@@ -573,4 +576,18 @@ int Application::RunWithBearWindow(const std::wstring& p_windowName, int p_width
 	m_mainWindow->Destroy();
 
 	return static_cast<int>(msg.wParam);
+}
+
+void Application::RenderBearWindow(std::shared_ptr<BearWindow> window)
+{
+	D3D12Renderer& renderer = *m_renderer_p;
+	BearWindow& bw = *window;
+
+	// physics update
+	if (bw.IsPhysicsEnabled() == true)
+	{
+		// update physics system
+	}
+
+	renderer.Render(bw);
 }

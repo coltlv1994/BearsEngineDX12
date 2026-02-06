@@ -60,6 +60,11 @@ public:
 		return m_offsetInSRVHeap;
 	}
 
+	bool IsPhysicsEnabled() const
+	{
+		return m_isPhysicsEnabled;
+	}
+
 	// public accessible variables
 	static const unsigned int BufferCount = 3;
 	static const unsigned int FirstPassRTVCount = 3;

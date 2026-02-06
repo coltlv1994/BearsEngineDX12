@@ -112,6 +112,9 @@ public:
 	D3D12_CPU_DESCRIPTOR_HANDLE GetSRVHeapCPUHandle(unsigned int offset) const;
 	D3D12_GPU_DESCRIPTOR_HANDLE GetSRVHeapGPUHandle(unsigned int offset) const;
 
+	// BearWindow system
+	void RenderBearWindow(std::shared_ptr<BearWindow> window);
+
 protected:
 
 	// Create an application instance.
@@ -153,4 +156,5 @@ private:
 	// New BearWindow system
 	std::shared_ptr<BearWindow> m_mainWindow; // this is the main window created at application start, UNLESS OTHERWISE SPECIFIED
 	D3D12Renderer* m_renderer_p; // the renderer
+	std::weak_ptr<BearWindow> m_activeWindow;
 };
