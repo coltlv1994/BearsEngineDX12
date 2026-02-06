@@ -211,7 +211,7 @@ void BearWindow::UpdateRTVAndDSV()
 void BearWindow::CreateBackBuffersAndViewport()
 {
 	static ComPtr<ID3D12Device2> device = Application::Get().GetDevice();
-	static CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), BufferCount * FirstPassRTVCount, m_rtvDescriptorSize);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), BufferCount * FirstPassRTVCount, m_rtvDescriptorSize);
 
 	// then back buffers
 	for (int i = 0; i < BufferCount; ++i)
@@ -243,8 +243,9 @@ void BearWindow::ResizeBackBuffersAndViewport()
 		m_height, swapChainDesc.BufferDesc.Format, swapChainDesc.Flags));
 
 	m_currentBackBufferIndex = m_dxgiSwapChain->GetCurrentBackBufferIndex();
-
-	m_viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_width), static_cast<float>(m_height));
+	
+	CreateBackBuffersAndViewport();
+	UpdateRTVAndDSV();
 }
 
 void BearWindow::Show()
@@ -277,8 +278,6 @@ void BearWindow::OnResize(int p_newWidth, int p_newHeight)
 		Application::Get().Flush();
 
 		ResizeBackBuffersAndViewport();
-
-		UpdateRTVAndDSV();
 	}
 }
 
