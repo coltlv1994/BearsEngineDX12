@@ -9,10 +9,6 @@
 #include <CommandQueue.h>
 //#include <Window.h>
 
-#include "imgui.h"
-#include "imgui_impl_win32.h"
-#include "imgui_impl_dx12.h"
-
 constexpr wchar_t WINDOW_CLASS_NAME[] = L"DX12RenderWindowClass";
 
 static Application* gs_pSingelton = nullptr;
@@ -281,46 +277,8 @@ UINT Application::GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE ty
 	return m_d3d12Device->GetDescriptorHandleIncrementSize(type);
 }
 
-// Convert the message ID into a MouseButton ID
-//MouseButtonEventArgs::MouseButton DecodeMouseButton(UINT messageID)
-//{
-//	MouseButtonEventArgs::MouseButton mouseButton = MouseButtonEventArgs::None;
-//	switch (messageID)
-//	{
-//	case WM_LBUTTONDOWN:
-//	case WM_LBUTTONUP:
-//	case WM_LBUTTONDBLCLK:
-//	{
-//		mouseButton = MouseButtonEventArgs::Left;
-//	}
-//	break;
-//	case WM_RBUTTONDOWN:
-//	case WM_RBUTTONUP:
-//	case WM_RBUTTONDBLCLK:
-//	{
-//		mouseButton = MouseButtonEventArgs::Right;
-//	}
-//	break;
-//	case WM_MBUTTONDOWN:
-//	case WM_MBUTTONUP:
-//	case WM_MBUTTONDBLCLK:
-//	{
-//		mouseButton = MouseButtonEventArgs::Middel;
-//	}
-//	break;
-//	}
-//
-//	return mouseButton;
-//}
-
-// Forward declare message handler from imgui_impl_win32.cpp
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	if (ImGui_ImplWin32_WndProcHandler(hwnd, message, wParam, lParam))
-		return true;
-	
+{	
 	Application::Get().PendingWindowSwitchCheck();
 
 	// any message that imgui won't handle goes down here
@@ -352,7 +310,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 		}
 		break;
 		default:
-			return DefWindowProcW(hwnd, message, wParam, lParam);
+			return gs_activeWindow->WindowMessageHandler(hwnd, message, wParam, lParam);
 		}
 	}
 	else
@@ -481,13 +439,14 @@ void Application::PendingWindowSwitchCheck()
 	{
 		gs_activeWindow = m_mainWindow;
 		m_pendingSwitchToMainWindow = false;
+
+		// main window should always exist
+		m_mainWindow->Show();
+
 		if (m_demoWindow)
 		{
 			m_demoWindow->Hide();
 		}
-
-		// main window should always exist
-		m_mainWindow->Show();
 	}
 	else if (m_pendingSwitchToDemoWindow)
 	{

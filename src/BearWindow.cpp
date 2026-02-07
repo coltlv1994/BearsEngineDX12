@@ -10,6 +10,10 @@
 
 #include <algorithm>
 
+#include "imgui.h"
+#include "imgui_impl_win32.h"
+#include "imgui_impl_dx12.h"
+
 BearWindow::BearWindow(const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync, bool isPhysicsEnabled)
 	: m_windowName(windowName)
 	, m_width(clientWidth)
@@ -351,14 +355,28 @@ RenderResource& BearWindow::PrepareForRender()
 	return returnResource;
 }
 
-bool BearWindow::WindowMessageHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+// Forward declare message handler from imgui_impl_win32.cpp
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+LRESULT BearWindow::WindowMessageHandler(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	// return value decides if the message processing should pass on
 	// assume this function is called first
 	if (m_isPhysicsEnabled == false)
 	{
-		// this window is editor
-
+		ImGui_ImplWin32_WndProcHandler(hwnd, message, wParam, lParam);
 	}
+	else
+	{
+		// should be demo window
+		// it should handle game inputs
+		if (wParam == VK_ESCAPE && message == WM_KEYDOWN)
+		{
+			// switch back to main window
+			Application::Get().SwitchToMainWindow();
+		}
+	}
+
+	return DefWindowProcW(hwnd, message, wParam, lParam);
 
 }
