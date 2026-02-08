@@ -24,7 +24,13 @@ D3D12Renderer::D3D12Renderer(const wchar_t* p_1stVsPath, const wchar_t* p_1sPsPa
 void D3D12Renderer::Render(BearWindow& window)
 {
 	// acquire render resources, read-only
-	const RenderResource& currentRR = window.PrepareForRender();
+	RenderResource currentRR;
+
+	if (!window.Tick(currentRR))
+	{
+		return;
+	}
+
 	unsigned int currentBackBufferIndex = currentRR.currentBackBufferIndex;
 	static ID3D12DescriptorHeap* srvHeap = Application::Get().GetSRVHeap();
 

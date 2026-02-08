@@ -32,7 +32,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 
 	Application::Create(hInstance);
 
-	retCode = Application::Get().RunWithBearWindow(L"BearWindow Editor", 1280, 720, true);
+	retCode = Application::Get().RunWithBearWindow(L"BearWindow Editor", 1280, 720);
 
 	Application::Destroy();
 

@@ -27,6 +27,12 @@ Application::Application(HINSTANCE hInst)
 	// be rendered in a DPI sensitive fashion.
 	SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
+	auto desktopDc = GetDC(nullptr);
+
+	m_dpiScale = static_cast<float>(GetDeviceCaps(desktopDc, LOGPIXELSY)) / 96.0f;
+
+	m_frameTimeInSeconds = 1.0 / static_cast<double>(std::min<int>(GetDeviceCaps(desktopDc, VREFRESH), 60));
+
 #if defined(_DEBUG)
 	// Always enable the debug layer before doing anything DX12 related
 	// so all possible errors generated while creating DX12 objects
@@ -362,7 +368,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE Application::GetSRVHeapGPUHandle(unsigned int offset
 		m_srvHeap->GetGPUDescriptorHandleForHeapStart(), offset, sizeOfSrvHeapOffset);
 }
 
-int Application::RunWithBearWindow(const std::wstring& p_windowName, int p_width, int p_height, bool p_isVSync)
+int Application::RunWithBearWindow(const std::wstring& p_windowName, int p_width, int p_height)
 {
 	// This assumes Create() has successfully completed and the application singleton has been created.
 
@@ -371,7 +377,11 @@ int Application::RunWithBearWindow(const std::wstring& p_windowName, int p_width
 
 	// move hwnd creation inside
 	// main window is editor window, physics is not enabled by default
-	m_mainWindow = std::make_shared<BearWindow>(p_windowName, p_width, p_height, p_isVSync, false);
+	// DPI should be handled here
+	int adjustedWidth = static_cast<int>(p_width * m_dpiScale);
+	int adjustedHeight = static_cast<int>(p_height * m_dpiScale);
+
+	m_mainWindow = std::make_shared<BearWindow>(p_windowName, adjustedWidth, adjustedHeight, false, m_frameTimeInSeconds);
 	m_mainWindow->Initialize(WINDOW_CLASS_NAME, m_hInstance);
 
 	// Create D3D12 Renderer
@@ -452,7 +462,9 @@ void Application::PendingWindowSwitchCheck()
 	{
 		if (m_demoWindow == nullptr)
 		{
-			m_demoWindow = std::make_shared<BearWindow>(L"Demo Window", 1280, 720, true, true);
+			int adjustedWidth = static_cast<int>(1024 * m_dpiScale);
+			int adjustedHeight = static_cast<int>(768 * m_dpiScale);
+			m_demoWindow = std::make_shared<BearWindow>(L"Demo Window", adjustedWidth, adjustedHeight, true, m_frameTimeInSeconds);
 			m_demoWindow->Initialize(WINDOW_CLASS_NAME, m_hInstance);
 		}
 		else

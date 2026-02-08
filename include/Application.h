@@ -45,7 +45,7 @@ public:
 	bool IsTearingSupported() const;
 
 	// New BearWindow system implementation
-	int RunWithBearWindow(const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync = true);
+	int RunWithBearWindow(const std::wstring& windowName, int clientWidth, int clientHeight);
 
 	/**
 	* Request to quit the application and close all windows.
@@ -135,4 +135,10 @@ private:
 
 	bool m_pendingSwitchToDemoWindow = false;
 	bool m_pendingSwitchToMainWindow = false;
+
+	// HiDPI support
+	float m_dpiScale = 1.0f;
+
+	// refresh rate control
+	double m_frameTimeInSeconds = 1.0 / 60.0;
 };

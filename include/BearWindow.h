@@ -21,7 +21,7 @@ class BearWindow
 {
 public:
 	BearWindow() = delete;
-	BearWindow(const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync, bool isPhysicsEnabled);
+	BearWindow(const std::wstring& windowName, int clientWidth, int clientHeight, bool isPhysicsEnabled, double p_tickInterval);
 
 	// create hwnd and other contents
 	bool Initialize(const wchar_t* p_windowClassName, HINSTANCE p_hInstance);
@@ -44,7 +44,7 @@ public:
 
 	// Pass the resources needed in Application/Editor
 	// physics is not handled here, but the window can decide whether to update physics or not based on the flag
-	RenderResource& PrepareForRender();
+	bool Tick(RenderResource& out_RR);
 
 	/**
 	 * Present the swapchain's back buffer to the screen.
@@ -135,10 +135,15 @@ private:
 	std::wstring m_windowName;
 	int m_width;
 	int m_height;
-	bool m_isVSync;
 	bool m_isFullscreen;
 	bool m_isTearingSupported;
 	bool m_isPhysicsEnabled;
 	unsigned int m_rtvDescriptorSize;
 	RECT m_windowRect;
+	double m_timeSinceLastTick = 0.0;
+	double m_tickInterval = 0.0;
+
+	// Performance monitoring
+	unsigned int m_frameCount = 0;
+	double m_totalTime = 0.0;
 };
