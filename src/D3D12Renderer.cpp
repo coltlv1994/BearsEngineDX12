@@ -63,8 +63,8 @@ void D3D12Renderer::Render(BearWindow& window)
 	commandList->OMSetRenderTargets(BearWindow::FirstPassRTVCount, &currentRR.firstPassRTV, TRUE, &currentRR.dsv);
 
 	// Camera information needed from BearWindow
-	XMMATRIX vpMatrix = window.GetViewProjectionMatrix();
-	XMMATRIX invPVMatrix = window.GetInvPVMatrix();
+	XMMATRIX vpMatrix, invPVMatrix;
+	window.GetCameraMatrices(vpMatrix, invPVMatrix);
 
 	// treat the texture coord:
 	// (screen space) x = 2u - 1, y = 1 - 2v

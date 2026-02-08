@@ -69,32 +69,7 @@ public:
 		return m_isPhysicsEnabled;
 	}
 
-	XMMATRIX GetViewProjectionMatrix() const
-	{
-		if (m_isPhysicsEnabled == false)
-		{
-			// Editor windows do not have physics enabled by default
-			return m_camera.GetViewProjectionMatrix();
-		}
-		else
-		{
-			// TODO: get these from an object's position and rotation
-			return XMMatrixIdentity();
-		}
-	}
-
-	XMMATRIX GetInvPVMatrix() const
-	{
-		if (m_isPhysicsEnabled == false)
-		{
-			return m_camera.GetInvPVMatrix();
-		}
-		else
-		{
-			// TODO: get these from an object's position and rotation
-			return XMMatrixIdentity();
-		}
-	}
+	void GetCameraMatrices(XMMATRIX& out_viewProjMatrix, XMMATRIX& out_invPVMatrix) const;
 
 	LRESULT WindowMessageHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -146,4 +121,8 @@ private:
 	// Performance monitoring
 	unsigned int m_frameCount = 0;
 	double m_totalTime = 0.0;
+
+	// Camera handling
+	XMVECTOR(*GetCameraPositionFunc)() = nullptr;
+	XMVECTOR(*GetCameraRotationFunc)() = nullptr;
 };

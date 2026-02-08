@@ -414,3 +414,18 @@ LRESULT BearWindow::WindowMessageHandler(HWND hwnd, UINT message, WPARAM wParam,
 	return DefWindowProcW(hwnd, message, wParam, lParam);
 
 }
+
+void BearWindow::GetCameraMatrices(XMMATRIX& out_viewProjMatrix, XMMATRIX& out_invPVMatrix) const
+{
+	if (m_isPhysicsEnabled == false)
+	{
+		// Editor windows do not have physics enabled by default
+		out_viewProjMatrix = m_camera.GetViewProjectionMatrix();
+		out_invPVMatrix = m_camera.GetInvPVMatrix();
+	}
+	else
+	{
+		out_viewProjMatrix = XMMatrixIdentity();
+		out_invPVMatrix = XMMatrixIdentity();
+	}
+}
