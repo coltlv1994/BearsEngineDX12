@@ -149,7 +149,6 @@ void BearWindow::_updateRTVAndDSV()
 	for (int i = 0; i < BufferCount; ++i)
 	{
 		// first pass render targets
-		// ComPtr<ID3D12Resource> will automatically release
 		for (UINT j = 0; j < FirstPassRTVCount; ++j)
 		{
 			// Create a texture to be used as the first pass render target.

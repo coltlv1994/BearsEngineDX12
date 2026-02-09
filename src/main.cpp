@@ -19,6 +19,15 @@ void ReportLiveObjects()
 
 int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nCmdShow)
 {
+#if defined(_DEBUG)
+	// Load the WinPixGpuCapturer.dll for GPU capture in PIX. Adjust the path as needed.
+	// ONLY WORKS IN DEBUG MODE.
+	if (GetModuleHandle(L"WinPixGpuCapturer.dll") == 0)
+	{
+		LoadLibrary(L"C:\\Program Files\\Microsoft PIX\\2601.15\\WinPixGpuCapturer.dll");
+	}
+#endif
+
 	int retCode = 0;
 
 	// Set the working directory to the path of the executable.
