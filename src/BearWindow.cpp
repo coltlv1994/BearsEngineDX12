@@ -66,6 +66,7 @@ bool BearWindow::Initialize(const wchar_t* p_windowClassName, HINSTANCE p_hInsta
 	UIManager::Get().SetMainCamera(&m_camera);
 	XMFLOAT4 camPosition = XMFLOAT4(m_camera.GetPosition().m128_f32);
 	MeshManager::Get().InitializeLightManager(camPosition);
+	m_camera.SetAspectRatio(static_cast<float>(m_width) / m_height);
 
 	if (m_isPhysicsEnabled == false)
 	{
@@ -251,14 +252,15 @@ void BearWindow::_resizeBackBuffersAndViewport()
 
 		for (int i = 0; i < BufferCount; ++i)
 		{
-			d3d11On12Device->ReleaseWrappedResources(m_wrappedBackBuffers[i].GetAddressOf(), 1);
+			//d3d11On12Device->ReleaseWrappedResources(m_wrappedBackBuffers[m_currentBackBufferIndex].GetAddressOf(), 1);
 			m_wrappedBackBuffers[i].Reset();
 			m_d2dRenderTargets[i].Reset();
 		}
 
-		UIManager::Get().FlushD3D11DeviceContext();
-		Application::Get().Flush();
+		UIManager::Get().CleanD3D11DeviceContextForResize();
 	}
+
+	Application::Get().Flush();
 
 	for (int i = 0; i < BufferCount; ++i)
 	{
@@ -271,7 +273,7 @@ void BearWindow::_resizeBackBuffersAndViewport()
 		m_height, swapChainDesc.BufferDesc.Format, swapChainDesc.Flags));
 
 	m_currentBackBufferIndex = m_dxgiSwapChain->GetCurrentBackBufferIndex();
-	
+
 	_createBackBuffersAndViewport();
 	if (m_isPhysicsEnabled == true)
 	{
@@ -307,7 +309,7 @@ void BearWindow::OnResize(int p_newWidth, int p_newHeight)
 		m_width = std::max<int>(1, p_newWidth);
 		m_height = std::max<int>(1, p_newHeight);
 
-		Application::Get().Flush();
+		//Application::Get().Flush();
 
 		_resizeBackBuffersAndViewport();
 
@@ -440,22 +442,13 @@ LRESULT BearWindow::WindowMessageHandler(HWND hwnd, UINT message, WPARAM wParam,
 	}
 
 	return DefWindowProcW(hwnd, message, wParam, lParam);
-
 }
 
 void BearWindow::GetCameraMatrices(XMMATRIX& out_viewProjMatrix, XMMATRIX& out_invPVMatrix) const
 {
-	if (m_isPhysicsEnabled == false)
-	{
-		// Editor windows do not have physics enabled by default
-		out_viewProjMatrix = m_camera.GetViewProjectionMatrix();
-		out_invPVMatrix = m_camera.GetInvPVMatrix();
-	}
-	else
-	{
-		out_viewProjMatrix = XMMatrixIdentity();
-		out_invPVMatrix = XMMatrixIdentity();
-	}
+	// Editor windows do not have physics enabled by default
+	out_viewProjMatrix = m_camera.GetViewProjectionMatrix();
+	out_invPVMatrix = m_camera.GetInvPVMatrix();
 }
 
 void BearWindow::_createD3D11on12Resources()
@@ -472,11 +465,11 @@ void BearWindow::_createD3D11on12Resources()
 	static Microsoft::WRL::ComPtr<ID3D11On12Device> d3d11On12Device = UIManager::Get().GetD3D11On12Device();
 	static Microsoft::WRL::ComPtr<ID2D1DeviceContext2> d2d1DeviceContext = UIManager::Get().GetD2DDeviceContext();
 
-	// Create a wrapped 11On12 resource of this back buffer. Since we are 
-	// rendering all D3D12 content first and then all D2D content, we specify 
-	// the In resource state as RENDER_TARGET - because D3D12 will have last 
-	// used it in this state - and the Out resource state as PRESENT. When 
-	// ReleaseWrappedResources() is called on the 11On12 device, the resource 
+	// Create a wrapped 11On12 resource of this back buffer. Since we are
+	// rendering all D3D12 content first and then all D2D content, we specify
+	// the In resource state as RENDER_TARGET - because D3D12 will have last
+	// used it in this state - and the Out resource state as PRESENT. When
+	// ReleaseWrappedResources() is called on the 11On12 device, the resource
 	// will be transitioned to the PRESENT state.
 	for (UINT i = 0; i < BufferCount; ++i)
 	{

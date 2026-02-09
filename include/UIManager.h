@@ -94,7 +94,7 @@ public:
 	Microsoft::WRL::ComPtr<ID3D11On12Device> GetD3D11On12Device() const { return m_d3d11On12Device; }
 	Microsoft::WRL::ComPtr<ID2D1DeviceContext2> GetD2DDeviceContext() const { return m_d2dDeviceContext; }
 
-	void FlushD3D11DeviceContext()
+	void CleanD3D11DeviceContextForResize()
 	{
 		ID3D11RenderTargetView* nullViews[] = { nullptr };
 		m_d3d11DeviceContext->OMSetRenderTargets(ARRAYSIZE(nullViews), nullViews, nullptr);

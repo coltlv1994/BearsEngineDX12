@@ -155,7 +155,7 @@ void UIManager::InitializeD3D11On12(ComPtr<ID3D12Device> p_d3d12device, ComPtr<I
 	{
 		ThrowIfFailed(m_d2dDeviceContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), &m_textBrush));
 		ThrowIfFailed(m_dWriteFactory->CreateTextFormat(
-			L"Verdana",
+			L"Times New Roman",
 			NULL,
 			DWRITE_FONT_WEIGHT_NORMAL,
 			DWRITE_FONT_STYLE_NORMAL,
@@ -1072,7 +1072,7 @@ void UIManager::DrawD2DContent(RenderResource& currentRR)
 	ThrowIfFailed(m_d2dDeviceContext->EndDraw());
 	//m_d2dDeviceContext->EndDraw();
 
-	// Release our wrapped render target resource. Releasing 
+	// Release our wrapped render target resource. Releasing
 	// transitions the back buffer resource to the state specified
 	// as the OutState when the wrapped resource was created.
 	m_d3d11On12Device->ReleaseWrappedResources(&currentRR.d3d11wrappedBackBuffer, 1);

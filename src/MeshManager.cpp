@@ -408,7 +408,14 @@ Mesh* MeshManager::GetMeshByName(const std::string& meshName)
 
 void MeshManager::InitializeLightManager(XMFLOAT4& p_mainCameraLocation)
 {
-	m_lightManager_p = new LightManager(p_mainCameraLocation);
+	if (!m_lightManager_p)
+	{
+		m_lightManager_p = new LightManager(p_mainCameraLocation);
+	}
+	else
+	{
+		m_lightManager_p->UpdateCameraPosition(p_mainCameraLocation);
+	}
 }
 
 void MeshManager::SetSamplerIndex(unsigned int p_samplerIndex)

@@ -284,7 +284,7 @@ UINT Application::GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE ty
 }
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
-{	
+{
 	Application::Get().PendingWindowSwitchCheck();
 
 	// any message that imgui won't handle goes down here

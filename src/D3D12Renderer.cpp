@@ -137,12 +137,10 @@ void D3D12Renderer::Render(BearWindow& window)
 		m_fenceValues[currentBackBufferIndex] = commandQueue->ExecuteCommandList(commandList);
 
 		UIManager::Get().DrawD2DContent(currentRR);
-
 	}
 
 	currentBackBufferIndex = window.Present(); // it has moved to next buffer
 	commandQueue->WaitForFenceValue(m_fenceValues[currentBackBufferIndex]);
-
 }
 
 void D3D12Renderer::_transitionResource(
