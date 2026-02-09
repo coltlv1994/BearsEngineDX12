@@ -37,8 +37,14 @@
 #include <wrl.h>
 using namespace Microsoft::WRL;
 
+#include <d3d11.h>
+#include <d2d1_3.h>
+
 #include <DirectXMath.h>
 using namespace DirectX;
+
+#include <wrl.h>
+using namespace Microsoft::WRL;
 
 #include <exception>
 
@@ -180,4 +186,6 @@ struct RenderResource
 	unsigned int backBufferResourceIndex;
 	unsigned int depthBufferResourceIndex;
 	D3D12_VIEWPORT viewport;
+	ID3D11Resource* d3d11wrappedBackBuffer;
+	ID2D1Bitmap1* d2dRenderTarget;
 };

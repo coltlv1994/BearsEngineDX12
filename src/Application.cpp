@@ -5,9 +5,7 @@
 #include <MeshManager.h>
 #include <MessageQueue.h>
 
-//#include <Editor.h>
 #include <CommandQueue.h>
-//#include <Window.h>
 
 constexpr wchar_t WINDOW_CLASS_NAME[] = L"DX12RenderWindowClass";
 
@@ -29,7 +27,8 @@ Application::Application(HINSTANCE hInst)
 
 	auto desktopDc = GetDC(nullptr);
 
-	m_dpiScale = static_cast<float>(GetDeviceCaps(desktopDc, LOGPIXELSY)) / 96.0f;
+	m_dpi = GetDeviceCaps(desktopDc, LOGPIXELSY);
+	m_dpiScale = static_cast<float>(m_dpi) / 96.0f;
 
 	m_frameTimeInSeconds = 1.0 / static_cast<double>(std::min<int>(GetDeviceCaps(desktopDc, VREFRESH), 60));
 
@@ -337,6 +336,7 @@ unsigned int Application::AllocateInSRVHeap(unsigned int p_requiredSize)
 	// 0 in this heap is reserved to ImGui;
 	// if return is 0, means the allocation failed.
 	unsigned int returnedOffset = 0;
+	wchar_t buffer[512];
 
 	m_srvHeapMutex.lock();
 
@@ -353,6 +353,8 @@ unsigned int Application::AllocateInSRVHeap(unsigned int p_requiredSize)
 
 	m_srvHeapMutex.unlock();
 
+	swprintf_s(buffer, 512, L"SRV heap allocation. Starting offset: %u, required size: %u, new top: %u\n", returnedOffset, p_requiredSize, m_topOfSrvHeap);
+	OutputDebugStringW(buffer);
 	return returnedOffset;
 }
 
@@ -393,6 +395,7 @@ int Application::RunWithBearWindow(const std::wstring& p_windowName, int p_width
 
 	MeshManager::Get().CreateDefaultTexture();
 	UIManager::Get().InitializeD3D12(device, commandQueue, m_srvHeap, BearWindow::BufferCount); // IMGUI
+	UIManager::Get().InitializeD3D11On12(device, commandQueue, m_dpiScale); // D3D11on12 for demo window UI
 
 	UIManager::Get().StartListeningThread();
 	MeshManager::Get().StartListeningThread();

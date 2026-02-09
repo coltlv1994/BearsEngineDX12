@@ -11,8 +11,6 @@
 #include <thread>
 #include <mutex>
 
-#include <d3d11.h>
-
 class CommandQueue;
 
 #include "ResourceUploadBatch.h"
@@ -89,6 +87,17 @@ public:
 
 	void PendingWindowSwitchCheck();
 
+	// HIDPI APIs
+	int  GetDPI() const
+	{
+		return m_dpi;
+	}
+
+	float GetDPIScale() const
+	{
+		return m_dpiScale;
+	}
+
 protected:
 
 	// Create an application instance.
@@ -109,9 +118,6 @@ private:
 
 	Microsoft::WRL::ComPtr<IDXGIAdapter4> m_dxgiAdapter;
 	Microsoft::WRL::ComPtr<ID3D12Device2> m_d3d12Device;
-
-	// D3D11on12 for Direct2D interoperability
-	Microsoft::WRL::ComPtr<ID3D11Device> m_d3d11Device;
 
 	std::shared_ptr<CommandQueue> m_DirectCommandQueue;
 	std::shared_ptr<CommandQueue> m_ComputeCommandQueue;
@@ -137,6 +143,7 @@ private:
 	bool m_pendingSwitchToMainWindow = false;
 
 	// HiDPI support
+	int  m_dpi = 96;
 	float m_dpiScale = 1.0f;
 
 	// refresh rate control

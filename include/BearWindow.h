@@ -10,6 +10,10 @@ using namespace Microsoft::WRL;
 #include <DirectXMath.h>
 using namespace DirectX;
 
+#include <d3d11.h>
+#include <d3d11on12.h>
+#include <d2d1_3.h>
+
 #include <string>
 #include <functional>
 
@@ -82,11 +86,14 @@ public:
 
 private:
 	// Update the RTVs (except back buffers) and DSV
-	void UpdateRTVAndDSV();
+	void _updateRTVAndDSV();
 
 	// back buffer needs some special handling
-	void CreateBackBuffersAndViewport();
-	void ResizeBackBuffersAndViewport();
+	void _createBackBuffersAndViewport();
+	void _resizeBackBuffersAndViewport();
+
+	// d3d11 resouces
+	void _createD3D11on12Resources();
 
 	HWND m_hWnd;
 
@@ -122,7 +129,7 @@ private:
 	unsigned int m_frameCount = 0;
 	double m_totalTime = 0.0;
 
-	// Camera handling
-	XMVECTOR(*GetCameraPositionFunc)() = nullptr;
-	XMVECTOR(*GetCameraRotationFunc)() = nullptr;
+	// D3D11on12 resources
+	ComPtr<ID3D11Resource> m_wrappedBackBuffers[BufferCount];
+	ComPtr<ID2D1Bitmap1> m_d2dRenderTargets[BufferCount];
 };

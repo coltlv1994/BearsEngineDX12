@@ -9,6 +9,7 @@
 #include <WinUser.h>
 
 #include <algorithm>
+#include <functional>
 
 #include "imgui.h"
 #include "imgui_impl_win32.h"
@@ -58,27 +59,31 @@ bool BearWindow::Initialize(const wchar_t* p_windowClassName, HINSTANCE p_hInsta
 		ThrowIfFailed(E_FAIL);
 	}
 
-	CreateBackBuffersAndViewport();
-	UpdateRTVAndDSV();
-	UpdateRenderResource();
+	_createBackBuffersAndViewport();
+	_updateRTVAndDSV();
+
+	// Camera control
+	UIManager::Get().SetMainCamera(&m_camera);
+	XMFLOAT4 camPosition = XMFLOAT4(m_camera.GetPosition().m128_f32);
+	MeshManager::Get().InitializeLightManager(camPosition);
 
 	if (m_isPhysicsEnabled == false)
 	{
 		// Editor windows do not have physics enabled by default
 		// Set IMGUI UI
 		UIManager::Get().InitializeWindow(m_hWnd);
-		UIManager::Get().SetMainCamera(&m_camera);
-
-		XMFLOAT4 camPosition = XMFLOAT4(0.0f, 0.0f, -10.0f, 1.0f);
-		m_camera.SetPosition(XMLoadFloat4(&camPosition));
-
-		UIManager::Get().SetMainCamera(&m_camera);
-		MeshManager::Get().InitializeLightManager(camPosition);
 	}
+	else
+	{
+		_createD3D11on12Resources();
+	}
+
+	UpdateRenderResource();
 }
 
 void BearWindow::UpdateRenderResource()
 {
+	std::wstring debugStr;
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvStartHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = m_dsvHeap->GetCPUDescriptorHandleForHeapStart();
 
@@ -95,6 +100,8 @@ void BearWindow::UpdateRenderResource()
 		renderResource.isPhysicsEnabled = m_isPhysicsEnabled;
 		renderResource.depthBufferResourceIndex = TotalRTVCount; // the last one is for depth buffer
 		renderResource.dsv = dsvHandle;
+		// the SRV for depth buffer is right after all the SRVs for first pass RTVs, which is 9+1
+		renderResource.depthBufferSRV = CD3DX12_GPU_DESCRIPTOR_HANDLE(srvStartHandle, BufferCount * FirstPassRTVCount, srvIncrementSize);
 
 		// these values will change between frames
 		renderResource.firstPassResourceStartIndex = i * FirstPassRTVCount;
@@ -103,11 +110,14 @@ void BearWindow::UpdateRenderResource()
 		renderResource.secondPassRTV = CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvStartHandle, renderResource.backBufferResourceIndex, m_rtvDescriptorSize);
 
 		renderResource.secondPassSRV = CD3DX12_GPU_DESCRIPTOR_HANDLE(srvStartHandle, renderResource.firstPassResourceStartIndex, srvIncrementSize);
-		renderResource.depthBufferSRV = CD3DX12_GPU_DESCRIPTOR_HANDLE(srvStartHandle, renderResource.depthBufferResourceIndex, srvIncrementSize);
+
+		// Done already; keep for a reference
+		//renderResource.d3d11wrappedBackBuffer = m_wrappedBackBuffers[i].Get();
+		//renderResource.d2dRenderTarget = m_d2dRenderTargets[i].Get();
 	}
 }
 
-void BearWindow::UpdateRTVAndDSV()
+void BearWindow::_updateRTVAndDSV()
 {
 	Application& app = Application::Get();
 	auto device = app.GetDevice();
@@ -212,7 +222,7 @@ void BearWindow::UpdateRTVAndDSV()
 	device->CreateShaderResourceView(m_windowResources[TotalRTVCount].Get(), &descSRV, srvHandle);
 }
 
-void BearWindow::CreateBackBuffersAndViewport()
+void BearWindow::_createBackBuffersAndViewport()
 {
 	static ComPtr<ID3D12Device2> device = Application::Get().GetDevice();
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), BufferCount * FirstPassRTVCount, m_rtvDescriptorSize);
@@ -234,8 +244,23 @@ void BearWindow::CreateBackBuffersAndViewport()
 	m_viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_width), static_cast<float>(m_height));
 }
 
-void BearWindow::ResizeBackBuffersAndViewport()
+void BearWindow::_resizeBackBuffersAndViewport()
 {
+	if (m_isPhysicsEnabled)
+	{
+		auto d3d11On12Device = UIManager::Get().GetD3D11On12Device();
+
+		for (int i = 0; i < BufferCount; ++i)
+		{
+			d3d11On12Device->ReleaseWrappedResources(m_wrappedBackBuffers[i].GetAddressOf(), 1);
+			m_wrappedBackBuffers[i].Reset();
+			m_d2dRenderTargets[i].Reset();
+		}
+
+		UIManager::Get().FlushD3D11DeviceContext();
+		Application::Get().Flush();
+	}
+
 	for (int i = 0; i < BufferCount; ++i)
 	{
 		m_windowResources[BufferCount * FirstPassRTVCount + i].Reset();
@@ -248,8 +273,12 @@ void BearWindow::ResizeBackBuffersAndViewport()
 
 	m_currentBackBufferIndex = m_dxgiSwapChain->GetCurrentBackBufferIndex();
 	
-	CreateBackBuffersAndViewport();
-	UpdateRTVAndDSV();
+	_createBackBuffersAndViewport();
+	if (m_isPhysicsEnabled == true)
+	{
+		_createD3D11on12Resources();
+	}
+	_updateRTVAndDSV();
 }
 
 void BearWindow::Show()
@@ -281,7 +310,7 @@ void BearWindow::OnResize(int p_newWidth, int p_newHeight)
 
 		Application::Get().Flush();
 
-		ResizeBackBuffersAndViewport();
+		_resizeBackBuffersAndViewport();
 
 		m_camera.SetAspectRatio(static_cast<float>(m_width) / static_cast<float>(m_height));
 	}
@@ -427,5 +456,48 @@ void BearWindow::GetCameraMatrices(XMMATRIX& out_viewProjMatrix, XMMATRIX& out_i
 	{
 		out_viewProjMatrix = XMMatrixIdentity();
 		out_invPVMatrix = XMMatrixIdentity();
+	}
+}
+
+void BearWindow::_createD3D11on12Resources()
+{
+	static const float dpi = static_cast<float>(Application::Get().GetDPI());
+	static D3D11_RESOURCE_FLAGS d3d11Flags = { D3D11_BIND_RENDER_TARGET };
+
+	static D2D1_BITMAP_PROPERTIES1 bitmapProperties = D2D1::BitmapProperties1(
+		D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+		D2D1::PixelFormat(DXGI_FORMAT_UNKNOWN, D2D1_ALPHA_MODE_PREMULTIPLIED),
+		dpi,
+		dpi);
+
+	static Microsoft::WRL::ComPtr<ID3D11On12Device> d3d11On12Device = UIManager::Get().GetD3D11On12Device();
+	static Microsoft::WRL::ComPtr<ID2D1DeviceContext2> d2d1DeviceContext = UIManager::Get().GetD2DDeviceContext();
+
+	// Create a wrapped 11On12 resource of this back buffer. Since we are 
+	// rendering all D3D12 content first and then all D2D content, we specify 
+	// the In resource state as RENDER_TARGET - because D3D12 will have last 
+	// used it in this state - and the Out resource state as PRESENT. When 
+	// ReleaseWrappedResources() is called on the 11On12 device, the resource 
+	// will be transitioned to the PRESENT state.
+	for (UINT i = 0; i < BufferCount; ++i)
+	{
+		ThrowIfFailed(d3d11On12Device->CreateWrappedResource(
+			m_windowResources[BufferCount * FirstPassRTVCount + i].Get(),
+			&d3d11Flags,
+			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			D3D12_RESOURCE_STATE_PRESENT,
+			IID_PPV_ARGS(&m_wrappedBackBuffers[i])
+		));
+
+		ComPtr<IDXGISurface> surface;
+		ThrowIfFailed(m_wrappedBackBuffers[i].As(&surface));
+		ThrowIfFailed(d2d1DeviceContext->CreateBitmapFromDxgiSurface(
+			surface.Get(),
+			&bitmapProperties,
+			&m_d2dRenderTargets[i]
+		));
+
+		m_renderResources[i].d3d11wrappedBackBuffer = m_wrappedBackBuffers[i].Get();
+		m_renderResources[i].d2dRenderTarget = m_d2dRenderTargets[i].Get();
 	}
 }

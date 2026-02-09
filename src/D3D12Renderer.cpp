@@ -76,11 +76,6 @@ void D3D12Renderer::Render(BearWindow& window)
 
 	XMMATRIX invScreenPVMatrix = XMMatrixMultiply(matS, invPVMatrix);
 
-	if (currentRR.isPhysicsEnabled == false)
-	{
-		UIManager::Get().CreateImGuiWindowContent();
-	}
-
 	if (instanceList.size() > 0)
 	{
 		_renderFirstPass(commandList, instanceList, vpMatrix);
@@ -109,14 +104,6 @@ void D3D12Renderer::Render(BearWindow& window)
 		_renderSecondPass(commandList, invScreenPVMatrix, currentRR);
 	}
 
-	if (currentRR.isPhysicsEnabled == false)
-	{
-		UIManager::Get().Draw(commandList);
-	}
-
-	_transitionResource(commandList, currentRR.resourceArray[currentRR.backBufferResourceIndex],
-		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-
 	// clean-up for next run, resource transition back to original states
 	for (UINT i = 0; i < BearWindow::FirstPassRTVCount; i++)
 	{
@@ -125,14 +112,37 @@ void D3D12Renderer::Render(BearWindow& window)
 			D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	}
 
+	// clean-up depth buffer state
 	_transitionResource(commandList,
 		currentRR.resourceArray[currentRR.depthBufferResourceIndex],
 		D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
-	// let GPU finish its work
-	m_fenceValues[currentBackBufferIndex] = commandQueue->ExecuteCommandList(commandList);
+	if (currentRR.isPhysicsEnabled == false)
+	{
+		UIManager::Get().CreateImGuiWindowContent();
+		UIManager::Get().Draw(commandList);
+
+		_transitionResource(commandList, currentRR.resourceArray[currentRR.backBufferResourceIndex],
+			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+
+		// send command list to commandQueue
+		m_fenceValues[currentBackBufferIndex] = commandQueue->ExecuteCommandList(commandList);
+
+		//UIManager::Get().DrawD2DContent(currentRR);
+	}
+	else
+	{
+		// render D2D content to back buffer
+		// DO NOT TRANSIT RESOURCE TO PRESENT STATE, D2D needs it to be in render target state
+		m_fenceValues[currentBackBufferIndex] = commandQueue->ExecuteCommandList(commandList);
+
+		UIManager::Get().DrawD2DContent(currentRR);
+
+	}
+
 	currentBackBufferIndex = window.Present(); // it has moved to next buffer
 	commandQueue->WaitForFenceValue(m_fenceValues[currentBackBufferIndex]);
+
 }
 
 void D3D12Renderer::_transitionResource(

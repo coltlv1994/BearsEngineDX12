@@ -2,9 +2,14 @@
 #include <exception>
 #include <vector>
 #include <MeshManager.h>
+#include <CommandQueue.h>
 
 #include <iostream>
 #include <fstream>
+
+#include <dwrite_3.h>
+#include <d3d11on12.h>
+#include <d2d1_3.h>
 
 // UIManager singleton instance
 static UIManager* gs_pSingleton = nullptr;
@@ -112,6 +117,56 @@ void UIManager::InitializeD3D12(ComPtr<ID3D12Device>device, ComPtr<ID3D12Command
 	// always default white texture at first
 	listOfMeshes.push_back("null_object");
 	listOfTextures.push_back("default_white");
+}
+
+void UIManager::InitializeD3D11On12(ComPtr<ID3D12Device> p_d3d12device, ComPtr<ID3D12CommandQueue> commandQueue, float dpi)
+{
+	// Init D3D11on12
+	//m_d3d11DeviceContext->Flush();
+	UINT d3d11DeviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+
+	ThrowIfFailed(D3D11On12CreateDevice(
+		p_d3d12device.Get(),
+		d3d11DeviceFlags,
+		nullptr,
+		0,
+		reinterpret_cast<IUnknown**>(commandQueue.GetAddressOf()),
+		1,
+		0,
+		&m_d3d11Device,
+		&m_d3d11DeviceContext,
+		nullptr));
+
+	ThrowIfFailed(m_d3d11Device.As(&m_d3d11On12Device));
+
+	// Create D2D/DWrite components.
+	D2D1_FACTORY_OPTIONS d2dFactoryOptions = {};
+	D2D1_DEVICE_CONTEXT_OPTIONS deviceOptions = D2D1_DEVICE_CONTEXT_OPTIONS_NONE;
+	ThrowIfFailed(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory3), &d2dFactoryOptions, &m_d2dFactory));
+	ComPtr<IDXGIDevice> dxgiDevice;
+	ThrowIfFailed(m_d3d11On12Device.As(&dxgiDevice));
+	// D2D will give out warning here, ignore
+	//ThrowIfFailed(m_d2dFactory->CreateDevice(dxgiDevice.Get(), &m_d2dDevice));
+	m_d2dFactory->CreateDevice(dxgiDevice.Get(), &m_d2dDevice);
+	ThrowIfFailed(m_d2dDevice->CreateDeviceContext(deviceOptions, &m_d2dDeviceContext));
+	ThrowIfFailed(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), &m_dWriteFactory));
+
+	// Create D2D/DWrite objects for rendering text.
+	{
+		ThrowIfFailed(m_d2dDeviceContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), &m_textBrush));
+		ThrowIfFailed(m_dWriteFactory->CreateTextFormat(
+			L"Verdana",
+			NULL,
+			DWRITE_FONT_WEIGHT_NORMAL,
+			DWRITE_FONT_STYLE_NORMAL,
+			DWRITE_FONT_STRETCH_NORMAL,
+			50,
+			L"en-us",
+			&m_textFormat
+		));
+		ThrowIfFailed(m_textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER));
+		ThrowIfFailed(m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER));
+	}
 }
 
 void UIManager::NewFrame()
@@ -989,4 +1044,39 @@ void UIManager::SetMainCamera(Camera* cam)
 static inline bool _checkNumOfLights(LightConstants& p_lightConstant)
 {
 	return (p_lightConstant.NumOfDirectionalLights + p_lightConstant.NumOfPointLights + p_lightConstant.NumOfSpotLights) < MAX_LIGHTS;
+}
+
+void UIManager::DrawD2DContent(RenderResource& currentRR)
+{
+	D2D1_SIZE_F rtSize = currentRR.d2dRenderTarget->GetSize();
+	D2D1_RECT_F textRect = D2D1::RectF(0, 0, rtSize.width, rtSize.height);
+	//static const WCHAR text[] = L"11On12";
+	std::wstring testString = std::to_wstring(currentRR.deltaTime);
+
+	// Acquire our wrapped render target resource for the current back buffer.
+	m_d3d11On12Device->AcquireWrappedResources(&currentRR.d3d11wrappedBackBuffer, 1);
+
+	// Render text directly to the back buffer.
+	m_d2dDeviceContext->SetTarget(currentRR.d2dRenderTarget);
+	m_d2dDeviceContext->BeginDraw();
+	m_d2dDeviceContext->SetTransform(D2D1::Matrix3x2F::Identity());
+	m_d2dDeviceContext->DrawText(
+		testString.c_str(),
+		testString.size() - 1,
+		m_textFormat.Get(),
+		&textRect,
+		m_textBrush.Get()
+	);
+
+	// ignore d2d warning; it is implementation fault, nothing we can do about MS.
+	ThrowIfFailed(m_d2dDeviceContext->EndDraw());
+	//m_d2dDeviceContext->EndDraw();
+
+	// Release our wrapped render target resource. Releasing 
+	// transitions the back buffer resource to the state specified
+	// as the OutState when the wrapped resource was created.
+	m_d3d11On12Device->ReleaseWrappedResources(&currentRR.d3d11wrappedBackBuffer, 1);
+
+	// Flush to submit the 11 command list to the shared command queue.
+	m_d3d11DeviceContext->Flush();
 }

@@ -11,7 +11,7 @@ void Texture::_initialize()
 {
 	// first in this SRV heap is for imgui
 	// after that, each Texture has 3 textures: diffuse, normal, specular
-	m_srvHeapOffset = m_textureIndex * 3 + 11;
+	m_srvHeapOffset = Application::Get().AllocateInSRVHeap(3);
 
 	for (unsigned int i = 0; i < ResourceIndex::MAX_NO; i++)
 	{

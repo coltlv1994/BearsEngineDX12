@@ -12,6 +12,12 @@ using namespace Microsoft::WRL;
 #include <MessageQueue.h>
 #include <EntityInstance.h>
 #include <map>
+#include <Helpers.h>
+
+#include <d3d11.h>
+#include <d3d11on12.h>
+#include <d2d1_3.h>
+#include <d3d12.h>
 
 struct ExampleDescriptorHeapAllocator
 {
@@ -69,17 +75,33 @@ public:
 
 	void InitializeD3D12(ComPtr<ID3D12Device>device, ComPtr<ID3D12CommandQueue> commandQueue, ComPtr<ID3D12DescriptorHeap> srvHeap, int numFramesInFlight);
 
+	void InitializeD3D11On12(ComPtr<ID3D12Device> device, ComPtr<ID3D12CommandQueue> commandQueue, float dpi);
+
 	void NewFrame();
 
 	void CreateImGuiWindowContent();
 
 	void Draw(ComPtr<ID3D12GraphicsCommandList2> commandList);
 
+	void DrawD2DContent(RenderResource& currentRR);
+
 	void SetMainCamera(Camera* cam);
 
 	void StartListeningThread();
 
 	void ReceiveMessage(Message* msg);
+
+	Microsoft::WRL::ComPtr<ID3D11On12Device> GetD3D11On12Device() const { return m_d3d11On12Device; }
+	Microsoft::WRL::ComPtr<ID2D1DeviceContext2> GetD2DDeviceContext() const { return m_d2dDeviceContext; }
+
+	void FlushD3D11DeviceContext()
+	{
+		ID3D11RenderTargetView* nullViews[] = { nullptr };
+		m_d3d11DeviceContext->OMSetRenderTargets(ARRAYSIZE(nullViews), nullViews, nullptr);
+		m_d2dDeviceContext->SetTarget(nullptr);
+		m_d3d11DeviceContext->Flush();
+	}
+
 private:
 	Camera* m_mainCamRef = nullptr;
 	MessageQueue m_messageQueue;
@@ -98,4 +120,15 @@ private:
 	bool _loadMap();
 	void _clampRotation(float* rotation_p);
 	void _clampScale(float* scale_p);
+
+	// D3D11on12 for demo window UI
+	ComPtr<ID3D11Device> m_d3d11Device;
+	ComPtr<ID3D11DeviceContext> m_d3d11DeviceContext;
+	ComPtr<ID3D11On12Device> m_d3d11On12Device;
+	ComPtr<ID2D1Factory3> m_d2dFactory;
+	ComPtr<ID2D1Device2> m_d2dDevice;
+	ComPtr<ID2D1DeviceContext2> m_d2dDeviceContext;
+	ComPtr<IDWriteFactory> m_dWriteFactory;
+	ComPtr<ID2D1SolidColorBrush> m_textBrush;
+	ComPtr<IDWriteTextFormat> m_textFormat;
 };
