@@ -512,7 +512,8 @@ void BearWindow::GetCameraMatrices(XMMATRIX& out_viewProjMatrix, XMMATRIX& out_i
 
 void BearWindow::_createD3D11on12Resources()
 {
-	static const float dpi = static_cast<float>(Application::Get().GetDPI());
+	//static const float dpi = static_cast<float>(Application::Get().GetDPI());
+	static const float dpi = 96.0f;
 	static D3D11_RESOURCE_FLAGS d3d11Flags = { D3D11_BIND_RENDER_TARGET };
 
 	static D2D1_BITMAP_PROPERTIES1 bitmapProperties = D2D1::BitmapProperties1(

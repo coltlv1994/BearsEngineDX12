@@ -147,7 +147,7 @@ void UIManager::InitializeD3D11On12(ComPtr<ID3D12Device> p_d3d12device, ComPtr<I
 	//ThrowIfFailed(m_d2dFactory->CreateDevice(dxgiDevice.Get(), &m_d2dDevice));
 	m_d2dFactory->CreateDevice(dxgiDevice.Get(), &m_d2dDevice);
 	ThrowIfFailed(m_d2dDevice->CreateDeviceContext(deviceOptions, &m_d2dDeviceContext));
-	ThrowIfFailed(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), &m_dWriteFactory));
+	ThrowIfFailed(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory5), &m_dWriteFactory));
 
 	// Create D2D/DWrite objects for rendering text.
 	{
@@ -1068,6 +1068,25 @@ void UIManager::DrawD2DContent(RenderResource& currentRR)
 		m_textBrush.Get()
 	);
 
+	// a crosshair rectangle
+	float dpiScale = std::max<float>(1.0f, Application::Get().GetDPIScale());
+	float crosshairRadius = 10.0f * dpiScale;
+	float crosshairThickness = 2.0f * dpiScale;
+	// horizontal line
+	m_d2dDeviceContext->DrawLine(
+		D2D1::Point2F(rtSize.width / 2 - crosshairRadius, rtSize.height / 2),
+		D2D1::Point2F(rtSize.width / 2 + crosshairRadius, rtSize.height / 2),
+		m_textBrush.Get(),
+		crosshairThickness
+	);
+	// vertical line
+	m_d2dDeviceContext->DrawLine(
+		D2D1::Point2F(rtSize.width / 2, rtSize.height / 2 - crosshairRadius),
+		D2D1::Point2F(rtSize.width / 2, rtSize.height / 2 + crosshairRadius),
+		m_textBrush.Get(),
+		crosshairThickness
+	);
+
 	// ignore d2d warning; it is implementation fault, nothing we can do about MS.
 	ThrowIfFailed(m_d2dDeviceContext->EndDraw());
 	//m_d2dDeviceContext->EndDraw();
@@ -1081,12 +1100,10 @@ void UIManager::DrawD2DContent(RenderResource& currentRR)
 	m_d3d11DeviceContext->Flush();
 }
 
-void UIManager::ResetImGuiDPIAware()
+void UIManager::CleanD3D11DeviceContextForResize()
 {
-	ImGui_ImplWin32_EnableDpiAwareness();
-	float main_scale = ImGui_ImplWin32_GetDpiScaleForMonitor(::MonitorFromPoint(POINT{ 0, 0 }, MONITOR_DEFAULTTOPRIMARY));
-
-	ImGuiStyle& style = ImGui::GetStyle();
-	style.ScaleAllSizes(main_scale);
-	style.FontScaleDpi = main_scale;
+	ID3D11RenderTargetView* nullViews[] = { nullptr };
+	m_d3d11DeviceContext->OMSetRenderTargets(ARRAYSIZE(nullViews), nullViews, nullptr);
+	m_d2dDeviceContext->SetTarget(nullptr);
+	m_d3d11DeviceContext->Flush();
 }

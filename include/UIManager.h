@@ -18,6 +18,7 @@ using namespace Microsoft::WRL;
 #include <d3d11on12.h>
 #include <d2d1_3.h>
 #include <d3d12.h>
+#include <dwrite_3.h>
 
 struct ExampleDescriptorHeapAllocator
 {
@@ -94,15 +95,7 @@ public:
 	Microsoft::WRL::ComPtr<ID3D11On12Device> GetD3D11On12Device() const { return m_d3d11On12Device; }
 	Microsoft::WRL::ComPtr<ID2D1DeviceContext2> GetD2DDeviceContext() const { return m_d2dDeviceContext; }
 
-	void CleanD3D11DeviceContextForResize()
-	{
-		ID3D11RenderTargetView* nullViews[] = { nullptr };
-		m_d3d11DeviceContext->OMSetRenderTargets(ARRAYSIZE(nullViews), nullViews, nullptr);
-		m_d2dDeviceContext->SetTarget(nullptr);
-		m_d3d11DeviceContext->Flush();
-	}
-
-	void ResetImGuiDPIAware();
+	void CleanD3D11DeviceContextForResize();
 
 private:
 	Camera* m_mainCamRef = nullptr;
@@ -130,7 +123,7 @@ private:
 	ComPtr<ID2D1Factory3> m_d2dFactory;
 	ComPtr<ID2D1Device2> m_d2dDevice;
 	ComPtr<ID2D1DeviceContext2> m_d2dDeviceContext;
-	ComPtr<IDWriteFactory> m_dWriteFactory;
+	ComPtr<IDWriteFactory5> m_dWriteFactory;
 	ComPtr<ID2D1SolidColorBrush> m_textBrush;
 	ComPtr<IDWriteTextFormat> m_textFormat;
 };
