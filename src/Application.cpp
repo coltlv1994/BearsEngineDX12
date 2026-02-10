@@ -465,6 +465,7 @@ bool Application::PendingWindowSwitchCheck()
 		}
 		m_mainWindow->ResetWindowClock();
 		m_mainWindow->Show();
+		ClipCursor(nullptr);
 		
 		return false;
 	}

@@ -46,13 +46,13 @@ bool BearWindow::Initialize(const wchar_t* p_windowClassName, HINSTANCE p_hInsta
 		startY = monitorInfo.rcMonitor.top;
 	}
 
-	RECT windowRect = { 0, 0, m_width, m_height };
-	AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
+	m_windowRect = { 0, 0, m_width, m_height };
+	AdjustWindowRect(&m_windowRect, WS_OVERLAPPEDWINDOW, FALSE);
 
 	m_hWnd = CreateWindowW(p_windowClassName, m_windowName.c_str(),
 		WS_OVERLAPPEDWINDOW, startX, startY,
-		windowRect.right - windowRect.left,
-		windowRect.bottom - windowRect.top,
+		m_windowRect.right - m_windowRect.left,
+		m_windowRect.bottom - m_windowRect.top,
 		nullptr, nullptr, p_hInstance, nullptr);
 
 	if (!m_hWnd)
@@ -93,10 +93,13 @@ bool BearWindow::Initialize(const wchar_t* p_windowClassName, HINSTANCE p_hInsta
 	}
 	else
 	{
+		// DEMO window
 		_createD3D11on12Resources();
 		UINT windowStyle = WS_OVERLAPPEDWINDOW & ~(WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
 
 		::SetWindowLongW(m_hWnd, GWL_STYLE, windowStyle);
+
+		ClipCursor(&m_windowRect);
 	}
 
 	UpdateRenderResource();
@@ -306,6 +309,9 @@ void BearWindow::Show()
 {
 	if (m_isFullscreen)
 	{
+		CenterCursor();
+		ClipCursor(&m_windowRect);
+		m_camera.SetRotation(XMVectorZero());
 		::ShowWindow(m_hWnd, SW_MAXIMIZE);
 	}
 	else
@@ -463,10 +469,15 @@ LRESULT BearWindow::WindowMessageHandler(HWND hwnd, UINT message, WPARAM wParam,
 		{
 		case WM_KEYDOWN:
 		{
-			if (wParam == VK_ESCAPE)
+			switch (wParam)
 			{
-				// switch back to main window
+			case VK_ESCAPE:
 				Application::Get().SwitchToMainWindow();
+				break;
+			case 'R':
+				// reset cam
+				m_camera.SetRotation(XMVectorZero());
+				break;
 			}
 			break;
 		}
@@ -476,8 +487,13 @@ LRESULT BearWindow::WindowMessageHandler(HWND hwnd, UINT message, WPARAM wParam,
 			int x = ((int)(short)LOWORD(lParam));
 			int y = ((int)(short)HIWORD(lParam));
 
-			m_camera.AddRotation(x, y);
+			int centerX = m_width / 2;
+			int centerY = m_height / 2;
+
+			m_camera.AddRotation(static_cast<float>(y) / centerY - 1.0f, static_cast<float>(x) / centerX - 1.0f);
 			OutputDebugStringW((L"Mouse move: " + std::to_wstring(x) + L", " + std::to_wstring(y) + L"\n").c_str());
+
+			SetCursorPos(1920, 1080);
 
 			break;
 		}

@@ -83,6 +83,12 @@ public:
 		m_windowClock.Reset();
 	}
 
+	void CenterCursor()
+	{
+		POINT centerPoint = { m_windowRect.left + (m_windowRect.right - m_windowRect.left) / 2, m_windowRect.top + (m_windowRect.bottom - m_windowRect.top) / 2 };
+		SetCursorPos(centerPoint.x, centerPoint.y);
+	}
+
 	void GetCameraMatrices(XMMATRIX& out_viewProjMatrix, XMMATRIX& out_invPVMatrix) const;
 
 	LRESULT WindowMessageHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
