@@ -189,3 +189,5 @@ struct RenderResource
 	ID3D11Resource* d3d11wrappedBackBuffer;
 	ID2D1Bitmap1* d2dRenderTarget;
 };
+
+constexpr float PI_DIV_180 = 0.01745329f; // PI / 180.0f

@@ -85,7 +85,7 @@ public:
 	void SwitchToDemoWindow();
 	void SwitchToMainWindow();
 
-	void PendingWindowSwitchCheck();
+	bool PendingWindowSwitchCheck();
 
 	// HIDPI APIs
 	int  GetDPI() const

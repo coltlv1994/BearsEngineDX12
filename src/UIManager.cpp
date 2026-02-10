@@ -14,8 +14,6 @@
 // UIManager singleton instance
 static UIManager* gs_pSingleton = nullptr;
 
-constexpr float PI_DIV_180 = 0.01745329f; // PI / 180.0f
-
 // copy-paste, no idea
 static ExampleDescriptorHeapAllocator g_pd3dSrvDescHeapAlloc;
 
@@ -1051,7 +1049,9 @@ void UIManager::DrawD2DContent(RenderResource& currentRR)
 	D2D1_SIZE_F rtSize = currentRR.d2dRenderTarget->GetSize();
 	D2D1_RECT_F textRect = D2D1::RectF(0, 0, rtSize.width, rtSize.height);
 	//static const WCHAR text[] = L"11On12";
-	std::wstring testString = std::to_wstring(currentRR.deltaTime);
+	XMVECTOR camRotation = m_mainCamRef->GetRotation() / PI_DIV_180; // to degrees
+	wchar_t buffer[512];
+	int writeSize = swprintf_s(buffer, 512, L"Camera Rotation (degrees):\nX: %.2f\nY: %.2f\nZ: %.2f", camRotation.m128_f32[0], camRotation.m128_f32[1], camRotation.m128_f32[2]);
 
 	// Acquire our wrapped render target resource for the current back buffer.
 	m_d3d11On12Device->AcquireWrappedResources(&currentRR.d3d11wrappedBackBuffer, 1);
@@ -1061,8 +1061,8 @@ void UIManager::DrawD2DContent(RenderResource& currentRR)
 	m_d2dDeviceContext->BeginDraw();
 	m_d2dDeviceContext->SetTransform(D2D1::Matrix3x2F::Identity());
 	m_d2dDeviceContext->DrawText(
-		testString.c_str(),
-		testString.size() - 1,
+		buffer,
+		writeSize - 1,
 		m_textFormat.Get(),
 		&textRect,
 		m_textBrush.Get()
@@ -1079,4 +1079,14 @@ void UIManager::DrawD2DContent(RenderResource& currentRR)
 
 	// Flush to submit the 11 command list to the shared command queue.
 	m_d3d11DeviceContext->Flush();
+}
+
+void UIManager::ResetImGuiDPIAware()
+{
+	ImGui_ImplWin32_EnableDpiAwareness();
+	float main_scale = ImGui_ImplWin32_GetDpiScaleForMonitor(::MonitorFromPoint(POINT{ 0, 0 }, MONITOR_DEFAULTTOPRIMARY));
+
+	ImGuiStyle& style = ImGui::GetStyle();
+	style.ScaleAllSizes(main_scale);
+	style.FontScaleDpi = main_scale;
 }

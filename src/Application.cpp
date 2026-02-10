@@ -285,8 +285,6 @@ UINT Application::GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE ty
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	Application::Get().PendingWindowSwitchCheck();
-
 	// any message that imgui won't handle goes down here
 
 	if (gs_activeWindow)
@@ -300,9 +298,13 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 		break;
 		case WM_SIZE:
 		{
+			if (hwnd != gs_activeWindow->GetHWND())
+			{
+				break;
+			}
+
 			int width = ((int)(short)LOWORD(lParam));
 			int height = ((int)(short)HIWORD(lParam));
-
 			gs_activeWindow->OnResize(width, height);
 		}
 		break;
@@ -384,7 +386,7 @@ int Application::RunWithBearWindow(const std::wstring& p_windowName, int p_width
 	int adjustedWidth = static_cast<int>(p_width * m_dpiScale);
 	int adjustedHeight = static_cast<int>(p_height * m_dpiScale);
 
-	m_mainWindow = std::make_shared<BearWindow>(p_windowName, adjustedWidth, adjustedHeight, false, m_frameTimeInSeconds);
+	m_mainWindow = std::make_shared<BearWindow>(p_windowName, adjustedWidth, adjustedHeight, false, false, m_frameTimeInSeconds);
 	m_mainWindow->Initialize(WINDOW_CLASS_NAME, m_hInstance);
 
 	// Create D3D12 Renderer
@@ -429,10 +431,11 @@ void Application::RenderBearWindow(std::shared_ptr<BearWindow> window)
 	BearWindow& bw = *window;
 
 	// physics update
-	if (bw.IsPhysicsEnabled() == true)
-	{
+	//if (bw.IsPhysicsEnabled() == true)
+	//{
 		// update physics system
-	}
+		// move to window tick function later
+	//}
 
 	renderer.Render(bw);
 }
@@ -447,28 +450,32 @@ void Application::SwitchToMainWindow()
 	m_pendingSwitchToMainWindow = true;
 }
 
-void Application::PendingWindowSwitchCheck()
+bool Application::PendingWindowSwitchCheck()
 {
 	if (m_pendingSwitchToMainWindow)
 	{
-		gs_activeWindow = m_mainWindow;
 		m_pendingSwitchToMainWindow = false;
-
+		gs_activeWindow = m_mainWindow;
+		int returnValue = ShowCursor(true);
+		
 		// main window should always exist
-		m_mainWindow->Show();
-
 		if (m_demoWindow)
 		{
 			m_demoWindow->Hide();
 		}
+		m_mainWindow->ResetWindowClock();
+		m_mainWindow->Show();
+		
+		return false;
 	}
 	else if (m_pendingSwitchToDemoWindow)
 	{
+		m_pendingSwitchToDemoWindow = false;
 		if (m_demoWindow == nullptr)
 		{
 			int adjustedWidth = static_cast<int>(1024 * m_dpiScale);
 			int adjustedHeight = static_cast<int>(768 * m_dpiScale);
-			m_demoWindow = std::make_shared<BearWindow>(L"Demo Window", adjustedWidth, adjustedHeight, true, m_frameTimeInSeconds);
+			m_demoWindow = std::make_shared<BearWindow>(L"Demo Window", adjustedWidth, adjustedHeight, true, true, m_frameTimeInSeconds);
 			m_demoWindow->Initialize(WINDOW_CLASS_NAME, m_hInstance);
 		}
 		else
@@ -478,8 +485,13 @@ void Application::PendingWindowSwitchCheck()
 
 		gs_activeWindow = m_demoWindow;
 		m_mainWindow->Hide();
+		m_demoWindow->ResetWindowClock();
 		m_demoWindow->Show();
+		int returnValue = ShowCursor(false);
 
-		m_pendingSwitchToDemoWindow = false;
+		return false;
 	}
+
+	// render should continue
+	return true;
 }

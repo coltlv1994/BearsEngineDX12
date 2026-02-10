@@ -31,6 +31,11 @@ void D3D12Renderer::Render(BearWindow& window)
 		return;
 	}
 
+	if (!Application::Get().PendingWindowSwitchCheck())
+	{
+		return;
+	}
+
 	unsigned int currentBackBufferIndex = currentRR.currentBackBufferIndex;
 	static ID3D12DescriptorHeap* srvHeap = Application::Get().GetSRVHeap();
 

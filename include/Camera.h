@@ -32,6 +32,8 @@ public:
 	XMVECTOR GetPosition() const;
 	XMVECTOR GetRotation() const;
 
+	void AddRotation(float x, float y);
+
 private:
 	XMVECTOR m_position;
 	XMVECTOR m_rotation;

@@ -15,12 +15,12 @@
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx12.h"
 
-BearWindow::BearWindow(const std::wstring& windowName, int clientWidth, int clientHeight, bool isPhysicsEnabled, double tickInterval)
+BearWindow::BearWindow(const std::wstring& windowName, int clientWidth, int clientHeight, bool isPhysicsEnabled, bool isDefaultFullScreen, double tickInterval)
 	: m_windowName(windowName)
 	, m_width(clientWidth)
 	, m_height(clientHeight)
 	, m_isPhysicsEnabled(isPhysicsEnabled)
-	, m_isFullscreen(false)
+	, m_isFullscreen(isDefaultFullScreen)
 	, m_tickInterval(tickInterval)
 {
 	m_isTearingSupported = Application::Get().IsTearingSupported();
@@ -29,11 +29,28 @@ BearWindow::BearWindow(const std::wstring& windowName, int clientWidth, int clie
 bool BearWindow::Initialize(const wchar_t* p_windowClassName, HINSTANCE p_hInstance)
 {
 	// create hwnd
+	UINT startX = CW_USEDEFAULT;
+	UINT startY = CW_USEDEFAULT;
+
+	if (m_isFullscreen)
+	{
+		POINT pt = { 0, 0 };
+		HMONITOR hMonitor = ::MonitorFromPoint(pt, MONITOR_DEFAULTTOPRIMARY);
+		MONITORINFOEX monitorInfo = {};
+		monitorInfo.cbSize = sizeof(MONITORINFOEX);
+		::GetMonitorInfo(hMonitor, &monitorInfo);
+		m_width = monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left;
+		m_height = monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top;
+
+		startX = monitorInfo.rcMonitor.left;
+		startY = monitorInfo.rcMonitor.top;
+	}
+
 	RECT windowRect = { 0, 0, m_width, m_height };
 	AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
 
 	m_hWnd = CreateWindowW(p_windowClassName, m_windowName.c_str(),
-		WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
+		WS_OVERLAPPEDWINDOW, startX, startY,
 		windowRect.right - windowRect.left,
 		windowRect.bottom - windowRect.top,
 		nullptr, nullptr, p_hInstance, nullptr);
@@ -77,6 +94,9 @@ bool BearWindow::Initialize(const wchar_t* p_windowClassName, HINSTANCE p_hInsta
 	else
 	{
 		_createD3D11on12Resources();
+		UINT windowStyle = WS_OVERLAPPEDWINDOW & ~(WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
+
+		::SetWindowLongW(m_hWnd, GWL_STYLE, windowStyle);
 	}
 
 	UpdateRenderResource();
@@ -284,7 +304,14 @@ void BearWindow::_resizeBackBuffersAndViewport()
 
 void BearWindow::Show()
 {
-	::ShowWindow(m_hWnd, SW_SHOW);
+	if (m_isFullscreen)
+	{
+		::ShowWindow(m_hWnd, SW_MAXIMIZE);
+	}
+	else
+	{
+		::ShowWindow(m_hWnd, SW_SHOW);
+	}
 }
 
 void BearWindow::Hide()
@@ -432,12 +459,28 @@ LRESULT BearWindow::WindowMessageHandler(HWND hwnd, UINT message, WPARAM wParam,
 	}
 	else
 	{
-		// should be demo window
-		// it should handle game inputs
-		if (wParam == VK_ESCAPE && message == WM_KEYDOWN)
+		switch (message)
 		{
-			// switch back to main window
-			Application::Get().SwitchToMainWindow();
+		case WM_KEYDOWN:
+		{
+			if (wParam == VK_ESCAPE)
+			{
+				// switch back to main window
+				Application::Get().SwitchToMainWindow();
+			}
+			break;
+		}
+
+		case WM_MOUSEMOVE:
+		{
+			int x = ((int)(short)LOWORD(lParam));
+			int y = ((int)(short)HIWORD(lParam));
+
+			m_camera.AddRotation(x, y);
+			OutputDebugStringW((L"Mouse move: " + std::to_wstring(x) + L", " + std::to_wstring(y) + L"\n").c_str());
+
+			break;
+		}
 		}
 	}
 

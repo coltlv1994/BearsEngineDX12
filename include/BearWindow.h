@@ -25,7 +25,7 @@ class BearWindow
 {
 public:
 	BearWindow() = delete;
-	BearWindow(const std::wstring& windowName, int clientWidth, int clientHeight, bool isPhysicsEnabled, double p_tickInterval);
+	BearWindow(const std::wstring& windowName, int clientWidth, int clientHeight, bool isPhysicsEnabled, bool isDefaultFullScreen, double p_tickInterval);
 
 	// create hwnd and other contents
 	bool Initialize(const wchar_t* p_windowClassName, HINSTANCE p_hInstance);
@@ -71,6 +71,16 @@ public:
 	bool IsPhysicsEnabled() const
 	{
 		return m_isPhysicsEnabled;
+	}
+
+	HWND GetHWND() const
+	{
+		return m_hWnd;
+	}
+
+	void ResetWindowClock()
+	{
+		m_windowClock.Reset();
 	}
 
 	void GetCameraMatrices(XMMATRIX& out_viewProjMatrix, XMMATRIX& out_invPVMatrix) const;

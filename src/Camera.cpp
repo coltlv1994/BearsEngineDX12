@@ -71,6 +71,12 @@ XMVECTOR Camera::GetRotation() const
 	return m_rotation;
 }
 
+void Camera::AddRotation(float x, float y)
+{
+	m_rotation = XMVectorAdd(m_rotation, XMVectorSet(x, y, 0.0f, 0.0f));
+	_updateVPMatrix();
+}
+
 void Camera::_updateVPMatrix()
 {
 	//x - axis(pitch), then y - axis(yaw), and then z - axis(roll)

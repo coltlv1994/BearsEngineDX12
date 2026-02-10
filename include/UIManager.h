@@ -102,6 +102,8 @@ public:
 		m_d3d11DeviceContext->Flush();
 	}
 
+	void ResetImGuiDPIAware();
+
 private:
 	Camera* m_mainCamRef = nullptr;
 	MessageQueue m_messageQueue;
