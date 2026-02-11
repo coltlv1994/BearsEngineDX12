@@ -176,7 +176,6 @@
     <ClInclude Include="include\GraphicsMemory.h" />
     <ClInclude Include="include\Helpers.h" />
     <ClInclude Include="include\HighResolutionClock.h" />
-    <ClInclude Include="include\KeyCodes.h" />
     <ClInclude Include="include\LightManager.h" />
     <ClInclude Include="include\Mesh.h" />
     <ClInclude Include="include\MeshManager.h" />

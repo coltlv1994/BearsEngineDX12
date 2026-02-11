@@ -133,9 +133,6 @@
     <ClInclude Include="include\HighResolutionClock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\KeyCodes.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
