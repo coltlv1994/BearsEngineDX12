@@ -109,6 +109,11 @@ private:
 	uint64_t m_memInfo[2] = { 0 }; // used and total memory info
 	LightConstants m_lightConstants;
 
+	// For DEBUG purposes
+	static const int MAX_DEBUG_INFO_LENGTH = 4096;
+	int GenerateOverlayDebugInfo();
+	wchar_t m_debugInfoBuffer[MAX_DEBUG_INFO_LENGTH] = { 0 };
+
 	void _listen();
 	void _processMessage(Message& msg);
 	void _saveMap();
@@ -124,6 +129,6 @@ private:
 	ComPtr<ID2D1Device2> m_d2dDevice;
 	ComPtr<ID2D1DeviceContext2> m_d2dDeviceContext;
 	ComPtr<IDWriteFactory5> m_dWriteFactory;
-	ComPtr<ID2D1SolidColorBrush> m_textBrush;
+	ComPtr<ID2D1SolidColorBrush> m_whiteBrush;
 	ComPtr<IDWriteTextFormat> m_textFormat;
 };

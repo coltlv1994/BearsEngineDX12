@@ -187,6 +187,10 @@
     <ClInclude Include="include\Texture.h" />
     <ClInclude Include="include\UIManager.h" />
     <ClInclude Include="include\WICTextureLoader.h" />
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="BearsEngineDX12.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

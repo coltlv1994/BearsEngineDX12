@@ -151,7 +151,7 @@ void UIManager::InitializeD3D11On12(ComPtr<ID3D12Device> p_d3d12device, ComPtr<I
 
 	// Create D2D/DWrite objects for rendering text.
 	{
-		ThrowIfFailed(m_d2dDeviceContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), &m_textBrush));
+		ThrowIfFailed(m_d2dDeviceContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), &m_whiteBrush));
 		ThrowIfFailed(m_dWriteFactory->CreateTextFormat(
 			L"Times New Roman",
 			NULL,
@@ -162,8 +162,8 @@ void UIManager::InitializeD3D11On12(ComPtr<ID3D12Device> p_d3d12device, ComPtr<I
 			L"en-us",
 			&m_textFormat
 		));
-		ThrowIfFailed(m_textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER));
-		ThrowIfFailed(m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER));
+		ThrowIfFailed(m_textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING));
+		ThrowIfFailed(m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_FAR));
 	}
 }
 
@@ -1049,9 +1049,6 @@ void UIManager::DrawD2DContent(RenderResource& currentRR)
 	D2D1_SIZE_F rtSize = currentRR.d2dRenderTarget->GetSize();
 	D2D1_RECT_F textRect = D2D1::RectF(0, 0, rtSize.width, rtSize.height);
 	//static const WCHAR text[] = L"11On12";
-	XMVECTOR camRotation = m_mainCamRef->GetRotation() / PI_DIV_180; // to degrees
-	wchar_t buffer[512];
-	int writeSize = swprintf_s(buffer, 512, L"Camera Rotation (degrees):\nX: %.2f\nY: %.2f\nZ: %.2f", camRotation.m128_f32[0], camRotation.m128_f32[1], camRotation.m128_f32[2]);
 
 	// Acquire our wrapped render target resource for the current back buffer.
 	m_d3d11On12Device->AcquireWrappedResources(&currentRR.d3d11wrappedBackBuffer, 1);
@@ -1060,13 +1057,6 @@ void UIManager::DrawD2DContent(RenderResource& currentRR)
 	m_d2dDeviceContext->SetTarget(currentRR.d2dRenderTarget);
 	m_d2dDeviceContext->BeginDraw();
 	m_d2dDeviceContext->SetTransform(D2D1::Matrix3x2F::Identity());
-	m_d2dDeviceContext->DrawText(
-		buffer,
-		writeSize - 1,
-		m_textFormat.Get(),
-		&textRect,
-		m_textBrush.Get()
-	);
 
 	// a crosshair rectangle
 	float dpiScale = std::max<float>(1.0f, Application::Get().GetDPIScale());
@@ -1076,16 +1066,27 @@ void UIManager::DrawD2DContent(RenderResource& currentRR)
 	m_d2dDeviceContext->DrawLine(
 		D2D1::Point2F(rtSize.width / 2 - crosshairRadius, rtSize.height / 2),
 		D2D1::Point2F(rtSize.width / 2 + crosshairRadius, rtSize.height / 2),
-		m_textBrush.Get(),
+		m_whiteBrush.Get(),
 		crosshairThickness
 	);
 	// vertical line
 	m_d2dDeviceContext->DrawLine(
 		D2D1::Point2F(rtSize.width / 2, rtSize.height / 2 - crosshairRadius),
 		D2D1::Point2F(rtSize.width / 2, rtSize.height / 2 + crosshairRadius),
-		m_textBrush.Get(),
+		m_whiteBrush.Get(),
 		crosshairThickness
 	);
+
+#if defined(_DEBUG)
+	int writeSize = GenerateOverlayDebugInfo();
+	m_d2dDeviceContext->DrawText(
+		m_debugInfoBuffer,
+		writeSize - 1,
+		m_textFormat.Get(),
+		&textRect,
+		m_whiteBrush.Get()
+	);
+#endif
 
 	// ignore d2d warning; it is implementation fault, nothing we can do about MS.
 	ThrowIfFailed(m_d2dDeviceContext->EndDraw());
@@ -1106,4 +1107,15 @@ void UIManager::CleanD3D11DeviceContextForResize()
 	m_d3d11DeviceContext->OMSetRenderTargets(ARRAYSIZE(nullViews), nullViews, nullptr);
 	m_d2dDeviceContext->SetTarget(nullptr);
 	m_d3d11DeviceContext->Flush();
+}
+
+int UIManager::GenerateOverlayDebugInfo()
+{
+	// return value is write size
+	wchar_t formattedString[] = L"Camera rotation: %.2f, %.2f, %.2f\nCamera lookat (normalized): %.2f, %.2f, %.2f";
+	XMVECTOR lookat = m_mainCamRef->GetLookAtDirection();
+	XMVECTOR rot = m_mainCamRef->GetRotation() / PI_DIV_180; // to degrees
+	const float* const lookat_f = lookat.m128_f32;
+	const float* const rot_f = rot.m128_f32;
+	return swprintf_s(m_debugInfoBuffer, MAX_DEBUG_INFO_LENGTH, formattedString, rot_f[0], rot_f[1], rot_f[2], lookat_f[0], lookat_f[1], lookat_f[2]);
 }

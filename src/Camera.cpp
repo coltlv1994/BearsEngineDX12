@@ -82,7 +82,7 @@ void Camera::_updateVPMatrix()
 	//x - axis(pitch), then y - axis(yaw), and then z - axis(roll)
 	XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYawFromVector(m_rotation);
 	XMVECTOR lookAt = XMVector3TransformCoord(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), rotationMatrix);
-	lookAt = XMVector3Normalize(lookAt);
+	m_lookAtDirection = XMVector3Normalize(lookAt);
 	XMVECTOR upDirection = XMVector3TransformCoord(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), rotationMatrix);
 	upDirection = XMVector3Normalize(upDirection);
 
@@ -117,4 +117,9 @@ Camera& Camera::operator=(const Camera& other)
 		m_viewProjectionMatrix = other.m_viewProjectionMatrix;
 	}
 	return *this;
+}
+
+XMVECTOR Camera::GetLookAtDirection() const
+{
+	return m_lookAtDirection;
 }

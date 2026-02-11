@@ -27,6 +27,8 @@ public:
 
 	XMMATRIX GetInvPVMatrix() const;
 
+	XMVECTOR GetLookAtDirection() const;
+
 	Camera& operator=(const Camera& other);
 
 	XMVECTOR GetPosition() const;
@@ -41,6 +43,7 @@ private:
 	float m_aspectRatio;
 	float m_nearPlane;
 	float m_farPlane;
+	XMVECTOR m_lookAtDirection;
 
 	// 3D matrices
 /*
