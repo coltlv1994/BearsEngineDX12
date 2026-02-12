@@ -96,6 +96,7 @@ bool BearWindow::Initialize(const wchar_t* p_windowClassName, HINSTANCE p_hInsta
 		// DEMO window
 		_createD3D11on12Resources();
 		UINT windowStyle = WS_OVERLAPPEDWINDOW & ~(WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
+		//AdjustWindowRect(&m_windowRect, windowStyle, FALSE);
 
 		::SetWindowLongW(m_hWnd, GWL_STYLE, windowStyle);
 
@@ -487,13 +488,12 @@ LRESULT BearWindow::WindowMessageHandler(HWND hwnd, UINT message, WPARAM wParam,
 			int x = ((int)(short)LOWORD(lParam));
 			int y = ((int)(short)HIWORD(lParam));
 
-			int centerX = m_width / 2;
-			int centerY = m_height / 2;
+			POINT centerPoint = { (m_windowRect.right + m_windowRect.left) / 2, (m_windowRect.bottom + m_windowRect.top) / 2 };
 
-			m_camera.AddRotation(static_cast<float>(y) / centerY - 1.0f, static_cast<float>(x) / centerX - 1.0f);
-			OutputDebugStringW((L"Mouse move: " + std::to_wstring(x) + L", " + std::to_wstring(y) + L"\n").c_str());
+			m_camera.AddRotation(static_cast<float>(y) / centerPoint.y - 1.0f, static_cast<float>(x) / centerPoint.x - 1.0f);
 
-			SetCursorPos(1920, 1080);
+			// center mouse cursor
+			SetCursorPos(centerPoint.x, centerPoint.y);
 
 			break;
 		}

@@ -17,6 +17,28 @@ class CommandQueue;
 #include "BearWindow.h"
 #include "D3D12Renderer.h"
 
+// The Jolt headers don't include Jolt.h. Always include Jolt.h before including any other Jolt header.
+// You can use Jolt.h in your precompiled header to speed up compilation.
+#include <Jolt/Jolt.h>
+
+// Jolt includes
+#include <Jolt/RegisterTypes.h>
+#include <Jolt/Core/Factory.h>
+#include <Jolt/Core/TempAllocator.h>
+#include <Jolt/Core/JobSystemThreadPool.h>
+#include <Jolt/Physics/PhysicsSettings.h>
+#include <Jolt/Physics/PhysicsSystem.h>
+#include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include <Jolt/Physics/Body/BodyActivationListener.h>
+
+// Disable common warnings triggered by Jolt, you can use JPH_SUPPRESS_WARNING_PUSH / JPH_SUPPRESS_WARNING_POP to store and restore the warning state
+JPH_SUPPRESS_WARNINGS
+
+// All Jolt symbols are in the JPH namespace
+using namespace JPH;
+
 class Application
 {
 public:
@@ -147,5 +169,8 @@ private:
 	float m_dpiScale = 1.0f;
 
 	// refresh rate control
-	double m_frameTimeInSeconds = 1.0 / 60.0;
+	double m_frameTimeInSeconds = 1.0 / 60.0; // 60 frames per second
+
+	// Jolt physics system
+
 };
