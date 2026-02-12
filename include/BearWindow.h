@@ -85,7 +85,7 @@ public:
 
 	void CenterCursor()
 	{
-		POINT centerPoint = { m_windowRect.left + (m_windowRect.right - m_windowRect.left) / 2, m_windowRect.top + (m_windowRect.bottom - m_windowRect.top) / 2 };
+		POINT centerPoint = { (m_windowRect.right + m_windowRect.left) / 2, (m_windowRect.bottom + m_windowRect.top) / 2 };
 		SetCursorPos(centerPoint.x, centerPoint.y);
 	}
 
