@@ -9,6 +9,8 @@
 
 #include <string>
 
+#include <JoltHelper.h>
+
 constexpr wchar_t WINDOW_CLASS_NAME[] = L"DX12RenderWindowClass";
 
 static Application* gs_pSingelton = nullptr;
@@ -510,6 +512,37 @@ bool Application::PendingWindowSwitchCheck()
 
 void Application::InitializeJoltPhysics()
 {
+	RegisterDefaultAllocator();
+
+	// Install trace and assert callbacks
+	Trace = TraceImpl;
+	JPH_IF_ENABLE_ASSERTS(AssertFailed = AssertFailedImpl);
+
+	Factory::sInstance = new Factory();
+	RegisterTypes();
+	m_tempAllocator_p = new TempAllocatorImpl(10 * 1024 * 1024);
+	m_jobSystem_p = new JobSystemThreadPool(cMaxPhysicsJobs, cMaxPhysicsBarriers, thread::hardware_concurrency() - 1);
+
+	const uint cMaxBodies = 1024;
+	const uint cNumBodyMutexes = 0;
+	const uint cMaxBodyPairs = 1024;
+	const uint cMaxContactConstraints = 1024;
+
+	// Now we can create the actual physics system.
+	m_physicsSystem.Init(
+		cMaxBodies,
+		cNumBodyMutexes,
+		cMaxBodyPairs,
+		cMaxContactConstraints,
+		m_broadPhaseLayerInterface,
+		m_objectVsBroadPhaseLayerFilter,
+		m_objectVsObjectLayerFilter);
+
+	m_physicsSystem.SetBodyActivationListener(&m_bodyActivationListener);
+
+	m_physicsSystem.SetContactListener(&m_contactListener);
+
+	BodyInterface& body_interface = m_physicsSystem.GetBodyInterface();
 
 }
 

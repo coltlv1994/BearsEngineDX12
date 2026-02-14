@@ -40,6 +40,8 @@ JPH_SUPPRESS_WARNINGS
 // All Jolt symbols are in the JPH namespace
 using namespace JPH;
 
+#include "JoltHelper.h"
+
 class Application
 {
 public:
@@ -185,5 +187,12 @@ private:
 	double m_totalTime = 0.0;
 
 	// Jolt physics system
-
+	PhysicsSystem m_physicsSystem;
+	TempAllocatorImpl* m_tempAllocator_p;
+	JobSystemThreadPool* m_jobSystem_p;
+	BPLayerInterfaceImpl m_broadPhaseLayerInterface;
+	ObjectVsBroadPhaseLayerFilterImpl m_objectVsBroadPhaseLayerFilter;
+	ObjectLayerPairFilterImpl m_objectVsObjectLayerFilter;
+	MyBodyActivationListener m_bodyActivationListener;
+	MyContactListener m_contactListener;
 };
