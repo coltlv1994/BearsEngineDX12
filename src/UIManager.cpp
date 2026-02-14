@@ -1112,10 +1112,10 @@ void UIManager::CleanD3D11DeviceContextForResize()
 int UIManager::GenerateOverlayDebugInfo()
 {
 	// return value is write size
-	wchar_t formattedString[] = L"Camera rotation: %.2f, %.2f, %.2f\nCamera lookat (normalized): %.2f, %.2f, %.2f";
-	XMVECTOR lookat = m_mainCamRef->GetLookAtDirection();
+	wchar_t formattedString[] = L"Camera rotation: %.2f, %.2f, %.2f\nCamera front (normalized): %.2f, %.2f, %.2f";
+	XMVECTOR front = m_mainCamRef->GetFrontDirection();
 	XMVECTOR rot = m_mainCamRef->GetRotation() / PI_DIV_180; // to degrees
-	const float* const lookat_f = lookat.m128_f32;
+	const float* const front_f = front.m128_f32;
 	const float* const rot_f = rot.m128_f32;
-	return swprintf_s(m_debugInfoBuffer, MAX_DEBUG_INFO_LENGTH, formattedString, rot_f[0], rot_f[1], rot_f[2], lookat_f[0], lookat_f[1], lookat_f[2]);
+	return swprintf_s(m_debugInfoBuffer, MAX_DEBUG_INFO_LENGTH, formattedString, rot_f[0], rot_f[1], rot_f[2], front_f[0], front_f[1], front_f[2]);
 }

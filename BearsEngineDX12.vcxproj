@@ -172,7 +172,6 @@
     <ClInclude Include="include\DDSTextureLoader.h" />
     <ClInclude Include="include\DX12LibPCH.h" />
     <ClInclude Include="include\EntityInstance.h" />
-    <ClInclude Include="include\Events.h" />
     <ClInclude Include="include\GraphicsMemory.h" />
     <ClInclude Include="include\Helpers.h" />
     <ClInclude Include="include\HighResolutionClock.h" />

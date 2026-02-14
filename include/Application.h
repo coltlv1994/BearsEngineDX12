@@ -16,6 +16,7 @@ class CommandQueue;
 #include "ResourceUploadBatch.h"
 #include "BearWindow.h"
 #include "D3D12Renderer.h"
+#include "HighResolutionClock.h"
 
 // The Jolt headers don't include Jolt.h. Always include Jolt.h before including any other Jolt header.
 // You can use Jolt.h in your precompiled header to speed up compilation.
@@ -120,6 +121,15 @@ public:
 		return m_dpiScale;
 	}
 
+	void InitializeJoltPhysics();
+
+	bool Tick(float& out_frameTime);
+
+	void ResetTimer()
+	{
+		m_windowClock.Reset();
+	}
+
 protected:
 
 	// Create an application instance.
@@ -169,7 +179,10 @@ private:
 	float m_dpiScale = 1.0f;
 
 	// refresh rate control
+	HighResolutionClock m_windowClock;
 	double m_frameTimeInSeconds = 1.0 / 60.0; // 60 frames per second
+	double m_timeSinceLastTick = 0.0;
+	double m_totalTime = 0.0;
 
 	// Jolt physics system
 

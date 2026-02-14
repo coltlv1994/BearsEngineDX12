@@ -21,7 +21,6 @@ BearWindow::BearWindow(const std::wstring& windowName, int clientWidth, int clie
 	, m_height(clientHeight)
 	, m_isPhysicsEnabled(isPhysicsEnabled)
 	, m_isFullscreen(isDefaultFullScreen)
-	, m_tickInterval(tickInterval)
 {
 	m_isTearingSupported = Application::Get().IsTearingSupported();
 }
@@ -74,6 +73,7 @@ bool BearWindow::Initialize(const wchar_t* p_windowClassName, HINSTANCE p_hInsta
 	if (m_offsetInSRVHeap == 0)
 	{
 		ThrowIfFailed(E_FAIL);
+		return false;
 	}
 
 	_createBackBuffersAndViewport();
@@ -104,6 +104,7 @@ bool BearWindow::Initialize(const wchar_t* p_windowClassName, HINSTANCE p_hInsta
 	}
 
 	UpdateRenderResource();
+	return true;
 }
 
 void BearWindow::UpdateRenderResource()
@@ -408,49 +409,12 @@ unsigned int BearWindow::Present()
 	return m_currentBackBufferIndex;
 }
 
-bool BearWindow::Tick(RenderResource& out_RR)
+void BearWindow::GetCurrentRenderResource(RenderResource& out_RR)
 {
-	// return value is bool
-	// if false, no tick
-	// if true, update
-	bool returnValue = false;
+	out_RR = m_renderResources[m_currentBackBufferIndex];
 
-	// only delta time and viewport may change between frames, so we update them here
-	m_windowClock.Tick();
-
-	double deltaSeconds = m_windowClock.GetDeltaSeconds();
-	m_totalTime += deltaSeconds;
-	m_timeSinceLastTick += deltaSeconds;
-
-	// frame rate control
-	if (m_timeSinceLastTick > m_tickInterval)
-	{
-		out_RR = m_renderResources[m_currentBackBufferIndex];
-
-		// only delta time and viewport may change between frames, so we update them here
-		out_RR.deltaTime = static_cast<float>(m_timeSinceLastTick);
-		out_RR.viewport = m_viewport;
-		++m_frameCount;
-
-		m_timeSinceLastTick = 0.0;
-
-		returnValue = true;
-	}
-	else
-	{
-		returnValue = false;
-	}
-
-	if (m_totalTime >= 1.0)
-	{
-		double fps = m_frameCount / m_totalTime;
-		std::wstring newTitle = m_windowName + L" - FPS: " + std::to_wstring(fps);
-		SetWindowTextW(m_hWnd, newTitle.c_str());
-		m_totalTime = 0.0;
-		m_frameCount = 0;
-	}
-
-	return returnValue;
+	// only viewport may change between frames, so we update them here
+	out_RR.viewport = m_viewport;
 }
 
 // Forward declare message handler from imgui_impl_win32.cpp
@@ -476,8 +440,9 @@ LRESULT BearWindow::WindowMessageHandler(HWND hwnd, UINT message, WPARAM wParam,
 				Application::Get().SwitchToMainWindow();
 				break;
 			case 'R':
-				// reset cam
-				m_camera.SetRotation(XMVectorZero());
+				// reset system;
+				Application::Get().ResetTimer();
+				ResetCamera();
 				break;
 			}
 			break;

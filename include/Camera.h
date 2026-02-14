@@ -27,7 +27,7 @@ public:
 
 	XMMATRIX GetInvPVMatrix() const;
 
-	XMVECTOR GetLookAtDirection() const;
+	XMVECTOR GetFrontDirection() const;
 
 	Camera& operator=(const Camera& other);
 
@@ -43,7 +43,8 @@ private:
 	float m_aspectRatio;
 	float m_nearPlane;
 	float m_farPlane;
-	XMVECTOR m_lookAtDirection;
+	XMVECTOR m_frontDirection; // Front
+	XMVECTOR m_upDirection; // Up
 
 	// 3D matrices
 /*

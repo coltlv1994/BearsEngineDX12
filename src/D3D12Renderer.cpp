@@ -25,16 +25,7 @@ void D3D12Renderer::Render(BearWindow& window)
 {
 	// acquire render resources, read-only
 	RenderResource currentRR;
-
-	if (!window.Tick(currentRR))
-	{
-		return;
-	}
-
-	if (!Application::Get().PendingWindowSwitchCheck())
-	{
-		return;
-	}
+	window.GetCurrentRenderResource(currentRR);
 
 	unsigned int currentBackBufferIndex = currentRR.currentBackBufferIndex;
 	static ID3D12DescriptorHeap* srvHeap = Application::Get().GetSRVHeap();

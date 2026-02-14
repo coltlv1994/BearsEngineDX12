@@ -7,6 +7,8 @@
 
 #include <CommandQueue.h>
 
+#include <string>
+
 constexpr wchar_t WINDOW_CLASS_NAME[] = L"DX12RenderWindowClass";
 
 static Application* gs_pSingelton = nullptr;
@@ -286,6 +288,7 @@ UINT Application::GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE ty
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	// any message that imgui won't handle goes down here
+	//static int wmpaintCount = 0;
 
 	if (gs_activeWindow)
 	{
@@ -293,7 +296,18 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 		{
 		case WM_PAINT:
 		{
-			Application::Get().RenderBearWindow(gs_activeWindow);
+			float frameTime = 0.0f;
+			Application& app = Application::Get();
+			if (app.Tick(frameTime))
+			{
+				if (!app.PendingWindowSwitchCheck())
+				{
+					break;
+				}
+				app.RenderBearWindow(gs_activeWindow);
+			}
+
+			break;
 		}
 		break;
 		case WM_SIZE:
@@ -390,12 +404,11 @@ int Application::RunWithBearWindow(const std::wstring& p_windowName, int p_width
 	m_mainWindow->Initialize(WINDOW_CLASS_NAME, m_hInstance);
 
 	// Create D3D12 Renderer
+	m_mainWindow->Show();
 	m_renderer_p = new D3D12Renderer(L"FirstPassVertexShader", L"FirstPassPixelShader",
 		L"SecondPassVertexShader", L"SecondPassPixelShader");
 
 	// Boot up listener threads and other preparations like Editor class
-	m_mainWindow->Show();
-
 	MeshManager::Get().CreateDefaultTexture();
 	UIManager::Get().InitializeD3D12(device, commandQueue, m_srvHeap, BearWindow::BufferCount); // IMGUI
 	UIManager::Get().InitializeD3D11On12(device, commandQueue, m_dpiScale); // D3D11on12 for demo window UI
@@ -404,6 +417,7 @@ int Application::RunWithBearWindow(const std::wstring& p_windowName, int p_width
 	MeshManager::Get().StartListeningThread();
 
 	gs_activeWindow = m_mainWindow;
+	m_windowClock.Reset();
 
 	// Window loop
 	MSG msg = { 0 };
@@ -427,17 +441,12 @@ int Application::RunWithBearWindow(const std::wstring& p_windowName, int p_width
 
 void Application::RenderBearWindow(std::shared_ptr<BearWindow> window)
 {
-	D3D12Renderer& renderer = *m_renderer_p;
-	BearWindow& bw = *window;
+	if (window->IsPhysicsEnabled())
+	{
+		// update physics
+	}
 
-	// physics update
-	//if (bw.IsPhysicsEnabled() == true)
-	//{
-		// update physics system
-		// move to window tick function later
-	//}
-
-	renderer.Render(bw);
+	m_renderer_p->Render(*window);
 }
 
 void Application::SwitchToDemoWindow()
@@ -463,7 +472,8 @@ bool Application::PendingWindowSwitchCheck()
 		{
 			m_demoWindow->Hide();
 		}
-		m_mainWindow->ResetWindowClock();
+		ResetTimer();
+		m_mainWindow->ResetCamera();
 		m_mainWindow->Show();
 		ClipCursor(nullptr);
 		
@@ -486,7 +496,8 @@ bool Application::PendingWindowSwitchCheck()
 
 		gs_activeWindow = m_demoWindow;
 		m_mainWindow->Hide();
-		m_demoWindow->ResetWindowClock();
+		ResetTimer();
+		m_mainWindow->ResetCamera();
 		m_demoWindow->Show();
 		int returnValue = ShowCursor(false);
 
@@ -495,4 +506,31 @@ bool Application::PendingWindowSwitchCheck()
 
 	// render should continue
 	return true;
+}
+
+void Application::InitializeJoltPhysics()
+{
+
+}
+
+bool Application::Tick(float& out_frameTime)
+{
+	// return value true means a tick is here
+	// false means no
+	// out_frameTime is only valid when return value is true
+
+	m_windowClock.Tick();
+
+	double deltaSeconds = m_windowClock.GetDeltaSeconds();
+	m_totalTime += deltaSeconds;
+	m_timeSinceLastTick += deltaSeconds;
+
+	if (m_timeSinceLastTick > m_frameTimeInSeconds)
+	{
+		out_frameTime = static_cast<float>(m_timeSinceLastTick);
+		m_timeSinceLastTick = 0.0;
+		return true;
+	}
+
+	return false;
 }

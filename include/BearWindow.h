@@ -17,7 +17,6 @@ using namespace DirectX;
 #include <string>
 #include <functional>
 
-#include "HighResolutionClock.h"
 #include "Helpers.h"
 #include "Camera.h"
 
@@ -48,7 +47,7 @@ public:
 
 	// Pass the resources needed in Application/Editor
 	// physics is not handled here, but the window can decide whether to update physics or not based on the flag
-	bool Tick(RenderResource& out_RR);
+	void GetCurrentRenderResource(RenderResource& out_RR);
 
 	/**
 	 * Present the swapchain's back buffer to the screen.
@@ -78,9 +77,11 @@ public:
 		return m_hWnd;
 	}
 
-	void ResetWindowClock()
+	void ResetCamera()
 	{
-		m_windowClock.Reset();
+		// and reset camera as well
+		m_camera.SetPosition(XMVectorSet(0.0f, 0.0f, -10.0f, 1.0f));
+		m_camera.SetRotation(XMVectorZero());
 	}
 
 	void CenterCursor()
@@ -120,7 +121,6 @@ private:
 	ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
 	ComPtr<ID3D12Resource> m_windowResources[TotalRTVCount + 1]; // one more for depth buffer
 	D3D12_VIEWPORT m_viewport;
-	HighResolutionClock m_windowClock;
 	Camera m_camera;
 
 	// output to Application/Editor to render
@@ -138,12 +138,10 @@ private:
 	bool m_isPhysicsEnabled;
 	unsigned int m_rtvDescriptorSize;
 	RECT m_windowRect;
-	double m_timeSinceLastTick = 0.0;
-	double m_tickInterval = 0.0;
 
 	// Performance monitoring
 	unsigned int m_frameCount = 0;
-	double m_totalTime = 0.0;
+
 
 	// D3D11on12 resources
 	ComPtr<ID3D11Resource> m_wrappedBackBuffers[BufferCount];

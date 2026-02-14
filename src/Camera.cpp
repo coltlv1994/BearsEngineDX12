@@ -81,12 +81,10 @@ void Camera::_updateVPMatrix()
 {
 	//x - axis(pitch), then y - axis(yaw), and then z - axis(roll)
 	XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYawFromVector(m_rotation);
-	XMVECTOR lookAt = XMVector3TransformCoord(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), rotationMatrix);
-	m_lookAtDirection = XMVector3Normalize(lookAt);
-	XMVECTOR upDirection = XMVector3TransformCoord(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), rotationMatrix);
-	upDirection = XMVector3Normalize(upDirection);
+	m_frontDirection = XMVector3Normalize(XMVector3TransformCoord(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), rotationMatrix));
+	m_upDirection = XMVector3Normalize(XMVector3TransformCoord(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), rotationMatrix));
 
-	XMMATRIX viewMatrix = XMMatrixLookToLH(m_position, lookAt, upDirection);
+	XMMATRIX viewMatrix = XMMatrixLookToLH(m_position, m_frontDirection, m_upDirection);
 	XMMATRIX projectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(m_fov), m_aspectRatio, m_nearPlane, m_farPlane);
 
 	m_viewProjectionMatrix = XMMatrixMultiply(viewMatrix, projectionMatrix);
@@ -119,7 +117,7 @@ Camera& Camera::operator=(const Camera& other)
 	return *this;
 }
 
-XMVECTOR Camera::GetLookAtDirection() const
+XMVECTOR Camera::GetFrontDirection() const
 {
-	return m_lookAtDirection;
+	return m_frontDirection;
 }

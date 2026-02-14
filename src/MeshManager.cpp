@@ -4,7 +4,6 @@
 #include <UIManager.h>
 #include <Application.h>
 #include <CommandQueue.h>
-#include <Window.h>
 
 // UIManager singleton instance
 static MeshManager* gs_pSingleton = nullptr;
