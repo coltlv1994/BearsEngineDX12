@@ -16,6 +16,7 @@ using namespace DirectX;
 
 #include <string>
 #include <functional>
+#include <mutex>
 
 #include "Helpers.h"
 #include "Camera.h"
@@ -90,6 +91,22 @@ public:
 		SetCursorPos(centerPoint.x, centerPoint.y);
 	}
 
+	bool IsRaycastRequested(float* out_startPosition, float* out_startDirection)
+	{
+		if (m_isRaycastRequested)
+		{
+			memcpy_s(out_startPosition, sizeof(float) * 3, m_raycastStart, sizeof(float) * 3);
+			memcpy_s(out_startDirection, sizeof(float) * 3, m_raycastDirection, sizeof(float) * 3);
+			m_isRaycastRequested = false; // reset the flag until next request
+			
+			return true; // raycast is required, and the caller can use the out parameters
+		}
+		else
+		{
+			return false;
+		}
+	}
+
 	void GetCameraMatrices(XMMATRIX& out_viewProjMatrix, XMMATRIX& out_invPVMatrix) const;
 
 	LRESULT WindowMessageHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
@@ -142,8 +159,13 @@ private:
 	// Performance monitoring
 	unsigned int m_frameCount = 0;
 
-
 	// D3D11on12 resources
 	ComPtr<ID3D11Resource> m_wrappedBackBuffers[BufferCount];
 	ComPtr<ID2D1Bitmap1> m_d2dRenderTargets[BufferCount];
+
+	// Physics system
+	std::mutex m_raycastMutex; // only one mutex can be queued
+	float m_raycastStart[3];
+	float m_raycastDirection[3];
+	bool m_isRaycastRequested = false;
 };

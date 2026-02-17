@@ -446,6 +446,24 @@ void Application::RenderBearWindow(std::shared_ptr<BearWindow> window)
 	if (window->IsPhysicsEnabled())
 	{
 		// update physics
+		JPH::Vec3 raycastStart;
+		JPH::Vec3 raycastDirection;
+		if (window->IsRaycastRequested(raycastStart.mF32, raycastDirection.mF32))
+		{
+			// 1. Define the ray
+			JPH::RRayCast ray;
+			ray.mOrigin = raycastStart; // Start 10 units up
+			ray.mDirection = raycastDirection * 100.0f; // Cast downwards for 100 units
+
+			JPH::RayCastResult hit;
+
+			if (m_physicsSystem.GetNarrowPhaseQuery().CastRay(ray, hit))
+			{
+				// Hit detected
+				JPH::Vec3 hitPosition = ray.GetPointOnRay(hit.mFraction);
+				// hit.mBodyID contains the hit object
+			}
+		}
 	}
 
 	m_renderer_p->Render(*window);
@@ -542,8 +560,7 @@ void Application::InitializeJoltPhysics()
 
 	m_physicsSystem.SetContactListener(&m_contactListener);
 
-	BodyInterface& body_interface = m_physicsSystem.GetBodyInterface();
-
+	m_physicsSystem.OptimizeBroadPhase();
 }
 
 bool Application::Tick(float& out_frameTime)
@@ -566,4 +583,11 @@ bool Application::Tick(float& out_frameTime)
 	}
 
 	return false;
+}
+
+void Application::initializePhysicsBody_DEBUG()
+{
+	BodyInterface& bodyInterface = m_physicsSystem.GetBodyInterface();
+	BodyCreationSettings sphere = BodyCreationSettings(new SphereShape(0.1f), RVec3(0.0_r, 0.0_r, 0.0_r), Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING);
+	BodyID sphere_id = bodyInterface.CreateAndAddBody(sphere, EActivation::Activate);
 }

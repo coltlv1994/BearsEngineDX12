@@ -157,6 +157,33 @@ public:
 	}
 };
 
+class MyBroadPhaseLayerFilter : public DefaultBroadPhaseLayerFilter
+{
+public:
+	virtual bool ShouldCollide(BroadPhaseLayer inLayer) const override
+	{
+		return true;
+	}
+};
+
+class MyDefaultObjectLayerFilter : public DefaultObjectLayerFilter
+{
+public:
+	virtual bool ShouldCollide(ObjectLayer inLayer) const override
+	{
+		return true;
+	}
+};
+
+class MyBodyFilter : public BodyFilter
+{
+	public:
+	virtual bool ShouldCollide(const BodyID& inBodyID) const override
+	{
+		return true;
+	}
+};
+
 // An example contact listener
 class MyContactListener : public ContactListener
 {

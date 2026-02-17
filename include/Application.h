@@ -29,8 +29,12 @@ class CommandQueue;
 #include <Jolt/Core/JobSystemThreadPool.h>
 #include <Jolt/Physics/PhysicsSettings.h>
 #include <Jolt/Physics/PhysicsSystem.h>
+#include <Jolt/Physics/Collision/RayCast.h>
+#include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <Jolt/Physics/Collision/Shape/ConvexShape.h>
+#include <Jolt/Physics/Collision/NarrowPhaseQuery.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>
 
@@ -147,6 +151,9 @@ private:
 	Application(const Application& copy) = delete;
 	Application& operator=(const Application& other) = delete;
 
+	// Jolt physics DEBUG
+	void initializePhysicsBody_DEBUG();
+
 	// The application instance handle that this application was created with.
 	HINSTANCE m_hInstance;
 
@@ -195,4 +202,7 @@ private:
 	ObjectLayerPairFilterImpl m_objectVsObjectLayerFilter;
 	MyBodyActivationListener m_bodyActivationListener;
 	MyContactListener m_contactListener;
+	//MyBroadPhaseLayerFilter m_broadPhaseLayerFilter;
+	//MyDefaultObjectLayerFilter m_defaultObjectLayerFilter;
+	//MyBodyFilter m_bodyFilter;
 };

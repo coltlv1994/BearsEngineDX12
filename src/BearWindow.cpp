@@ -462,6 +462,20 @@ LRESULT BearWindow::WindowMessageHandler(HWND hwnd, UINT message, WPARAM wParam,
 
 			break;
 		}
+
+		case WM_LBUTTONDOWN:
+		{
+			// start raycast
+			if (m_isRaycastRequested == false)
+			{
+				m_isRaycastRequested = true;
+
+				XMStoreFloat(m_raycastStart, m_camera.GetPosition());
+				XMStoreFloat(m_raycastDirection, m_camera.GetFrontDirection());
+			}
+			break;
+		}
+
 		}
 	}
 
