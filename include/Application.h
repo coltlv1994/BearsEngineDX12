@@ -34,6 +34,7 @@ class CommandQueue;
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/Collision/Shape/ConvexShape.h>
+//#include <Jolt/Physics/Collision/BroadPhaseQuery.h>
 #include <Jolt/Physics/Collision/NarrowPhaseQuery.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>

@@ -64,10 +64,12 @@ Application::Application(HINSTANCE hInst)
 	}
 
 	m_dxgiAdapter = GetAdapter(false);
+
 	if (m_dxgiAdapter)
 	{
 		m_d3d12Device = CreateDevice(m_dxgiAdapter);
 	}
+
 	if (m_d3d12Device)
 	{
 		m_DirectCommandQueue = std::make_shared<CommandQueue>(m_d3d12Device, D3D12_COMMAND_LIST_TYPE_DIRECT);
@@ -80,6 +82,8 @@ Application::Application(HINSTANCE hInst)
 
 		m_srvHeap = CreateDescriptorHeap(MAX_SIZE_IN_SRV_HEAP, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
 		sizeOfSrvHeapOffset = GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+		InitializeJoltPhysics();
 	}
 }
 
@@ -453,9 +457,11 @@ void Application::RenderBearWindow(std::shared_ptr<BearWindow> window)
 			// 1. Define the ray
 			JPH::RRayCast ray;
 			ray.mOrigin = raycastStart; // Start 10 units up
-			ray.mDirection = raycastDirection * 100.0f; // Cast downwards for 100 units
+			ray.mDirection = raycastDirection; // Cast downwards for 100 units
 
 			JPH::RayCastResult hit;
+
+			const JPH::NarrowPhaseQuery& narrowPhaseQuery = m_physicsSystem.GetNarrowPhaseQuery();
 
 			if (m_physicsSystem.GetNarrowPhaseQuery().CastRay(ray, hit))
 			{
@@ -537,6 +543,8 @@ void Application::InitializeJoltPhysics()
 	JPH_IF_ENABLE_ASSERTS(AssertFailed = AssertFailedImpl);
 
 	Factory::sInstance = new Factory();
+	// +		inFMT	0x00007ff77de1cf80 "Version mismatch, make sure you compile the client code with the same Jolt version and compiler definitions!"
+	// const char *
 	RegisterTypes();
 	m_tempAllocator_p = new TempAllocatorImpl(10 * 1024 * 1024);
 	m_jobSystem_p = new JobSystemThreadPool(cMaxPhysicsJobs, cMaxPhysicsBarriers, thread::hardware_concurrency() - 1);
