@@ -95,8 +95,8 @@ public:
 	{
 		if (m_isRaycastRequested)
 		{
-			memcpy_s(out_startPosition, sizeof(float) * 3, m_raycastStart, sizeof(float) * 3);
-			memcpy_s(out_startDirection, sizeof(float) * 3, m_raycastDirection, sizeof(float) * 3);
+			memcpy_s(out_startPosition, sizeof(float) * 4, m_raycastStart, sizeof(float) * 4);
+			memcpy_s(out_startDirection, sizeof(float) * 4, m_raycastDirection, sizeof(float) * 4);
 			m_isRaycastRequested = false; // reset the flag until next request
 			
 			return true; // raycast is required, and the caller can use the out parameters
@@ -165,7 +165,7 @@ private:
 
 	// Physics system
 	std::mutex m_raycastMutex; // only one mutex can be queued
-	float m_raycastStart[3];
-	float m_raycastDirection[3];
+	float m_raycastStart[4] = {0.0f, 0.0f , 0.0f ,0.0f };
+	float m_raycastDirection[4] = { 0.0f, 0.0f , 0.0f ,0.0f };
 	bool m_isRaycastRequested = false;
 };
