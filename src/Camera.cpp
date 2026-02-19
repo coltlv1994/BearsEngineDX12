@@ -8,6 +8,8 @@ Camera::Camera()
 	, m_farPlane(1000.0f)
 {
 	m_position = XMVectorSet(0.0f, 0.0f, -10.0f, 1.0f);
+	m_frontDirection = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+	m_upDirection = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 	_updateVPMatrix();
 }
 
@@ -81,8 +83,12 @@ void Camera::_updateVPMatrix()
 {
 	//x - axis(pitch), then y - axis(yaw), and then z - axis(roll)
 	XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYawFromVector(m_rotation);
-	m_frontDirection = XMVector3Normalize(XMVector3TransformCoord(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), rotationMatrix));
-	m_upDirection = XMVector3Normalize(XMVector3TransformCoord(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), rotationMatrix));
+
+	static XMVECTOR defaultFront = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+	static XMVECTOR defaultUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+	m_frontDirection = XMVector3Normalize(XMVector4Transform(defaultFront, rotationMatrix));
+	m_upDirection = XMVector3Normalize(XMVector4Transform(defaultUp, rotationMatrix));
 
 	XMMATRIX viewMatrix = XMMatrixLookToLH(m_position, m_frontDirection, m_upDirection);
 	XMMATRIX projectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(m_fov), m_aspectRatio, m_nearPlane, m_farPlane);
