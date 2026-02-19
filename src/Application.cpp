@@ -457,7 +457,7 @@ void Application::RenderBearWindow(std::shared_ptr<BearWindow> window)
 			// 1. Define the ray
 			JPH::RRayCast ray;
 			ray.mOrigin = raycastStart; // Start 10 units up
-			ray.mDirection = raycastDirection; // Cast downwards for 100 units
+			ray.mDirection = raycastDirection * 100.0f; // Cast downwards for 100 units
 
 			JPH::RayCastResult hit;
 
@@ -468,6 +468,7 @@ void Application::RenderBearWindow(std::shared_ptr<BearWindow> window)
 				// Hit detected
 				JPH::Vec3 hitPosition = ray.GetPointOnRay(hit.mFraction);
 				// hit.mBodyID contains the hit object
+				int abc = 123;
 			}
 		}
 	}
