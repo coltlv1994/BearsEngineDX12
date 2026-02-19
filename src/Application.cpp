@@ -569,6 +569,9 @@ void Application::InitializeJoltPhysics()
 	m_physicsSystem.SetContactListener(&m_contactListener);
 
 	m_physicsSystem.OptimizeBroadPhase();
+#if defined(_DEBUG)
+	initializePhysicsBody_DEBUG();
+#endif
 }
 
 bool Application::Tick(float& out_frameTime)

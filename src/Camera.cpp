@@ -6,6 +6,8 @@ Camera::Camera()
 	, m_aspectRatio(16.0f / 9.0f)
 	, m_nearPlane(0.1f)
 	, m_farPlane(1000.0f)
+	, m_frontDirection(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f))
+	, m_upDirection(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f))
 {
 	m_position = XMVectorSet(0.0f, 0.0f, -10.0f, 1.0f);
 	m_frontDirection = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);

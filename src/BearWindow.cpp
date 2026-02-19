@@ -469,9 +469,9 @@ LRESULT BearWindow::WindowMessageHandler(HWND hwnd, UINT message, WPARAM wParam,
 			if (m_isRaycastRequested == false)
 			{
 				m_isRaycastRequested = true;
-
-				XMStoreFloat(m_raycastStart, m_camera.GetPosition());
-				XMStoreFloat(m_raycastDirection, m_camera.GetFrontDirection());
+				
+				memcpy_s(m_raycastDirection, sizeof(float) * 4, m_camera.GetFrontDirection().m128_f32, sizeof(float) * 4);
+				memcpy_s(m_raycastStart, sizeof(float) * 4, m_camera.GetPosition().m128_f32, sizeof(float) * 4);
 			}
 			break;
 		}
