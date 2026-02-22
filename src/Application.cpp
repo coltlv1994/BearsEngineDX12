@@ -467,8 +467,7 @@ void Application::RenderBearWindow(std::shared_ptr<BearWindow> window)
 			{
 				// Hit detected
 				JPH::Vec3 hitPosition = ray.GetPointOnRay(hit.mFraction);
-				// hit.mBodyID contains the hit object
-				int abc = 123;
+				UIManager::Get().SetHitResult(hitPosition.mF32);
 			}
 		}
 	}
@@ -600,6 +599,7 @@ bool Application::Tick(float& out_frameTime)
 void Application::initializePhysicsBody_DEBUG()
 {
 	BodyInterface& bodyInterface = m_physicsSystem.GetBodyInterface();
-	BodyCreationSettings sphere = BodyCreationSettings(new SphereShape(0.1f), RVec3(0.0_r, 0.0_r, 0.0_r), Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING);
+	BodyCreationSettings sphere = BodyCreationSettings(new SphereShape(1.0f), RVec3(3.0_r, 3.0_r, 3.0_r), Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING);
 	BodyID sphere_id = bodyInterface.CreateAndAddBody(sphere, EActivation::Activate);
+	//bodyInterface.SetPosition(sphere_id, RVec3(3.0_r, 3.0_r, 3.0_r), EActivation::Activate);
 }

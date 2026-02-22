@@ -58,11 +58,13 @@ void Camera::SetAspectRatio(float aspectRatio)
 void Camera::SetNearPlane(float nearPlane)
 {
 	m_nearPlane = nearPlane;
+	_updateVPMatrix();
 }
 
 void Camera::SetFarPlane(float farPlane)
 {
 	m_farPlane = farPlane;
+	_updateVPMatrix();
 }
 
 XMVECTOR Camera::GetPosition() const
@@ -120,7 +122,10 @@ Camera& Camera::operator=(const Camera& other)
 		m_aspectRatio = other.m_aspectRatio;
 		m_nearPlane = other.m_nearPlane;
 		m_farPlane = other.m_farPlane;
+		m_frontDirection = other.m_frontDirection;
+		m_upDirection = other.m_upDirection;
 		m_viewProjectionMatrix = other.m_viewProjectionMatrix;
+		m_invPVMatrix = other.m_invPVMatrix;
 	}
 	return *this;
 }

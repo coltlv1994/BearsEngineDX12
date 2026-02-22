@@ -92,6 +92,8 @@ public:
 
 	void ReceiveMessage(Message* msg);
 
+	void SetHitResult(float* p_result);
+
 	Microsoft::WRL::ComPtr<ID3D11On12Device> GetD3D11On12Device() const { return m_d3d11On12Device; }
 	Microsoft::WRL::ComPtr<ID2D1DeviceContext2> GetD2DDeviceContext() const { return m_d2dDeviceContext; }
 
@@ -108,6 +110,8 @@ private:
 	char errorMessageBuffer[256] = { 0 };
 	uint64_t m_memInfo[2] = { 0 }; // used and total memory info
 	LightConstants m_lightConstants;
+	// debug, hit result
+	float m_hitResult[3] = { 0.0f, 0.0f, 0.0f };
 
 	// For DEBUG purposes
 	static const int MAX_DEBUG_INFO_LENGTH = 4096;

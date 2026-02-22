@@ -881,9 +881,13 @@ void UIManager::_saveMap()
 			XMStoreFloat3((XMFLOAT3*)instanceInfo_ptr[i].rotation, rot);
 			XMVECTOR scale = instance->GetScale();
 			XMStoreFloat3((XMFLOAT3*)instanceInfo_ptr[i].scale, scale);
+
+			instanceInfo_ptr[i].bodyShape = instance->GetBodyShape();
 		}
 
 		mapFile.write(reinterpret_cast<char*>(&reloadInfo), totalRequiredSize);
+
+		delete[] buffer;
 	}
 
 	mapFile.close();
@@ -1112,10 +1116,15 @@ void UIManager::CleanD3D11DeviceContextForResize()
 int UIManager::GenerateOverlayDebugInfo()
 {
 	// return value is write size
-	wchar_t formattedString[] = L"Camera rotation: %.2f, %.2f, %.2f\nCamera front (normalized): %.2f, %.2f, %.2f";
+	wchar_t formattedString[] = L"Camera front (normalized): %.2f, %.2f, %.2f\nHit result: %.2f, %.2f, %.2f";
 	XMVECTOR front = m_mainCamRef->GetFrontDirection();
 	XMVECTOR rot = m_mainCamRef->GetRotation() / PI_DIV_180; // to degrees
 	const float* const front_f = front.m128_f32;
 	const float* const rot_f = rot.m128_f32;
-	return swprintf_s(m_debugInfoBuffer, MAX_DEBUG_INFO_LENGTH, formattedString, rot_f[0], rot_f[1], rot_f[2], front_f[0], front_f[1], front_f[2]);
+	return swprintf_s(m_debugInfoBuffer, MAX_DEBUG_INFO_LENGTH, formattedString, front_f[0], front_f[1], front_f[2], m_hitResult[0], m_hitResult[1], m_hitResult[2]);
+}
+
+void UIManager::SetHitResult(float* p_result)
+{
+	memcpy_s(m_hitResult, sizeof(float) * 3, p_result, sizeof(float) * 3);
 }

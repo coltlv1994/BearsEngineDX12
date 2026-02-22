@@ -35,16 +35,12 @@
 
 #include <d3d12.h>
 #include <wrl.h>
-using namespace Microsoft::WRL;
 
 #include <d3d11.h>
 #include <d2d1_3.h>
 
 #include <DirectXMath.h>
 using namespace DirectX;
-
-#include <wrl.h>
-using namespace Microsoft::WRL;
 
 #include <exception>
 
@@ -181,7 +177,7 @@ struct RenderResource
 	D3D12_CPU_DESCRIPTOR_HANDLE dsv;
 	D3D12_GPU_DESCRIPTOR_HANDLE secondPassSRV;
 	D3D12_GPU_DESCRIPTOR_HANDLE depthBufferSRV;
-	ComPtr<ID3D12Resource>* resourceArray;
+	Microsoft::WRL::ComPtr<ID3D12Resource>* resourceArray;
 	unsigned int firstPassResourceStartIndex;
 	unsigned int backBufferResourceIndex;
 	unsigned int depthBufferResourceIndex;
@@ -191,3 +187,10 @@ struct RenderResource
 };
 
 constexpr float PI_DIV_180 = 0.01745329f; // PI / 180.0f
+
+enum JoltBodyShape : uint16_t
+{
+	Empty = 0,
+	Sphere = 1,
+	Cube = 2
+};

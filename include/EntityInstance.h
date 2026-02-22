@@ -6,6 +6,17 @@ using namespace DirectX;
 #include <Mesh.h>
 #include <Texture.h>
 
+#include <Helpers.h>
+
+#include <Jolt/Jolt.h>
+#include <Jolt/Physics/Body/BodyID.h>
+
+// Disable common warnings triggered by Jolt, you can use JPH_SUPPRESS_WARNING_PUSH / JPH_SUPPRESS_WARNING_POP to store and restore the warning state
+JPH_SUPPRESS_WARNINGS
+
+// All Jolt symbols are in the JPH namespace
+using namespace JPH;
+
 class Instance
 {
 public:
@@ -110,6 +121,11 @@ public:
 		m_texture_p = p_texture_p;
 	}
 
+	JoltBodyShape GetBodyShape()
+	{
+		return m_bodyShape;
+	}
+
 	void SetMeshByName(const std::string& p_meshName);
 
 	void SetTextureByName(const std::string& p_textureName);
@@ -125,5 +141,9 @@ private:
 	Mesh* m_mesh_p = nullptr;
 	Texture* m_texture_p = nullptr;
 
+	BodyID m_bodyID; // for physics, start with invalid
+	JoltBodyShape m_bodyShape = JoltBodyShape::Empty;
+
 	void _updateModelMatrix();
 };
+

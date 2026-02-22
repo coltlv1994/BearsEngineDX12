@@ -2,6 +2,13 @@
 #include <queue>
 #include <mutex>
 #include <iostream>
+#include <Helpers.h>
+
+#include <Jolt/Jolt.h>
+#include <Jolt/Physics/Body/BodyID.h>
+
+// Disable common warnings triggered by Jolt, you can use JPH_SUPPRESS_WARNING_PUSH / JPH_SUPPRESS_WARNING_POP to store and restore the warning state
+JPH_SUPPRESS_WARNINGS
 
 enum MessageType : uint32_t
 {
@@ -34,6 +41,7 @@ struct InstanceInfo
 	float position[3];
 	float rotation[3]; // in degrees
 	float scale[3];
+	JoltBodyShape bodyShape;
 };
 
 struct ReloadInfo
