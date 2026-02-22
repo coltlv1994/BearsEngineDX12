@@ -126,6 +126,11 @@ public:
 		return m_bodyShape;
 	}
 
+	void SetBodyId(BodyID& bodyID)
+	{
+		m_bodyID = bodyID;
+	}
+
 	void SetMeshByName(const std::string& p_meshName);
 
 	void SetTextureByName(const std::string& p_textureName);

@@ -124,7 +124,6 @@ void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 				break;
 			case 'f':
 				// read faces
-				// currently only work with polygons without vt, i.e. we expect "xxxx/yyyy/zzzz" and only three vertices per line
 				noOfVerticesInFace = 0;
 				while (iter != end)
 				{

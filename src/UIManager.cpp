@@ -836,6 +836,9 @@ void UIManager::_saveMap()
 	mapFile.write(textureData, textureNameDataSize);
 	delete[] textureData;
 
+	// write light info
+	mapFile.write(reinterpret_cast<char*>(&m_lightConstants), sizeof(LightConstants));
+
 	std::map<std::string, std::vector<Instance*>> instancesByMesh;
 
 	for (const auto meshName : listOfMeshes)
@@ -935,7 +938,7 @@ bool UIManager::_loadMap()
 	// always default white texture at first
 	listOfMeshes.push_back("null_object");
 	listOfTextures.push_back("default_white");
-
+	 
 	Message* message = new Message();
 	message->type = MSG_TYPE_CLEAN_MESHES;
 	MeshManager::Get().ReceiveMessage(message);
@@ -952,7 +955,7 @@ bool UIManager::_loadMap()
 	XMStoreFloat3((XMFLOAT3*)camParam[1], mainCamRot);
 
 	// to read others
-	offset += sizeof(Camera); // "mesh," take 5 bytes
+	offset += sizeof(Camera);
 
 	// read texture names
 	if (offset + sizeof(uint32_t) > size)
@@ -987,6 +990,25 @@ bool UIManager::_loadMap()
 			}
 			offset += textureNameDataSize;
 		}
+	}
+
+	if (offset + sizeof(LightConstants) > size)
+	{
+		std::cerr << "Map file too small to contain light constants." << std::endl;
+		delete[] mapData;
+		return false;
+	}
+	else
+	{
+		memcpy_s(&m_lightConstants, sizeof(LightConstants), mapData + offset, sizeof(LightConstants));
+
+		// send message to mesh manager for light modification
+		Message* msg = new Message();
+		msg->type = MSG_TYPE_MODIFY_LIGHT;
+		msg->SetData((unsigned char*)&m_lightConstants, sizeof(LightConstants));
+		MeshManager::Get().ReceiveMessage(msg);
+
+		offset += sizeof(LightConstants);
 	}
 
 	while (offset < size)

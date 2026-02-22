@@ -13,6 +13,7 @@
 
 class CommandQueue;
 
+#include <Helpers.h>
 #include "ResourceUploadBatch.h"
 #include "BearWindow.h"
 #include "D3D12Renderer.h"
@@ -136,6 +137,8 @@ public:
 	{
 		m_windowClock.Reset();
 	}
+
+	JPH::BodyID AddPhysicsBody(JoltBodyShape p_bodyShape, ...);
 
 protected:
 

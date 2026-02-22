@@ -5,6 +5,12 @@
 #include <Application.h>
 #include <CommandQueue.h>
 
+#include <Jolt/Jolt.h>
+#include <Jolt/Physics/Body/BodyID.h>
+
+// Disable common warnings triggered by Jolt, you can use JPH_SUPPRESS_WARNING_PUSH / JPH_SUPPRESS_WARNING_POP to store and restore the warning state
+JPH_SUPPRESS_WARNINGS
+
 // UIManager singleton instance
 static MeshManager* gs_pSingleton = nullptr;
 
@@ -106,6 +112,7 @@ void MeshManager::_processMessage(Message& msg)
 {
 	// message data is mesh name in char*
 	size_t dataSize = msg.GetSize();
+	Application& app = Application::Get();
 
 	switch (msg.type)
 	{
@@ -179,15 +186,32 @@ void MeshManager::_processMessage(Message& msg)
 		m_createdInstanceCount += reloadInfo.numOfInstances;
 		for (size_t i = 0; i < reloadInfo.numOfInstances; ++i)
 		{
-			std::string instanceName = instanceInfos_p[i].instanceName;
-			Texture* texture_p = GetTextureByName(std::string(instanceInfos_p[i].textureName));
+			InstanceInfo& instanceInfo = instanceInfos_p[i];
+			std::string instanceName = instanceInfo.instanceName;
+			Texture* texture_p = GetTextureByName(std::string(instanceInfo.textureName));
 			Instance* instance_p = new Instance(instanceName, texture_p, mesh_p);
 			if (instance_p)
 			{
-				instance_p->SetPosition(instanceInfos_p[i].position[0], instanceInfos_p[i].position[1], instanceInfos_p[i].position[2]);
+				instance_p->SetPosition(instanceInfo.position[0], instanceInfo.position[1], instanceInfo.position[2]);
 				// rotation is in radians already
-				instance_p->SetRotation(XMVectorSet(instanceInfos_p[i].rotation[0], instanceInfos_p[i].rotation[1], instanceInfos_p[i].rotation[2], 0.0f));
-				instance_p->SetScale(XMVectorSet(instanceInfos_p[i].scale[0], instanceInfos_p[i].scale[1], instanceInfos_p[i].scale[2], 0.0f));
+				instance_p->SetRotation(XMVectorSet(instanceInfo.rotation[0], instanceInfo.rotation[1], instanceInfo.rotation[2], 0.0f));
+				instance_p->SetScale(XMVectorSet(instanceInfo.scale[0], instanceInfo.scale[1], instanceInfo.scale[2], 0.0f));
+				JPH::BodyID bodyId;
+				switch (instanceInfo.bodyShape)
+				{
+					case JoltBodyShape::Empty:
+					// do nothing
+						break;
+					case JoltBodyShape::Cube:
+						bodyId = app.AddPhysicsBody(JoltBodyShape::Cube);
+						break;
+					case JoltBodyShape::Sphere:
+						bodyId = app.AddPhysicsBody(JoltBodyShape::Sphere);
+						break;
+				default: break;
+				}
+
+				instance_p->SetBodyId(bodyId);
 
 				m_instanceList.push_back(instance_p);
 				_sendInstanceReplyMessage(instance_p);
