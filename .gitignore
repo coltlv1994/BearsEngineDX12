@@ -78,6 +78,7 @@ StyleCopReport.xml
 *.meta
 # Required for reading obj mesh files
 # *.obj
+*.bin
 *.iobj
 *.pch
 *.pdb
