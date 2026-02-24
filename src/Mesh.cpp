@@ -7,6 +7,8 @@
 #include <fstream>
 #include <cstdlib>
 
+#include <openssl/sha.h>
+
 #include <DirectXMath.h>
 using namespace DirectX;
 
@@ -40,33 +42,40 @@ const std::string& Mesh::GetMeshClassName()
 
 void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 {
-	// check if binary file exists
+	std::ifstream objFile(p_objFilePath);
+
+	if (!objFile.is_open())
+	{
+		// open failed
+		exit(1);
+	}
+
+	// read until end of file
+	std::streamsize size = objFile.tellg();
+	objFile.seekg(0, std::ios::beg);
+
+	char* objFileData = new char[size];
+	if (!objFile.read(objFileData, size))
+	{
+		delete[] objFileData;
+		exit(1);
+	}
+
+	// calculate hash of the file content
+	char hash[SHA256_DIGEST_LENGTH + 1];
+	SHA256((unsigned char*)objFileData, size, (unsigned char*)hash);
+	hash[SHA256_DIGEST_LENGTH] = '\0'; // null-terminate the hash string
+
+	bool isBinaryReadSuccess = false;
+
+	// try to read bin file
 	std::wstring binFilePathStr(p_objFilePath);
 	binFilePathStr += L".bin";
-	std::ifstream binFile(binFilePathStr, std::ios::binary | std::ios::in);
-	if (binFile.is_open())
-	{
-		// binary file exists, read from it
-		binFile.close();
-		ReadFromBinaryFile(binFilePathStr.c_str());
-	}
-	else
-	{
-		// binary file does not exist, parse the obj file
-		/*
-	* TODO:
-	* 1. Make an individual thread and avoid unnecessary wait on main thread.
-	* 2. Handle more formats (use regex or other implementation since sscanf
-	*    cannot work with variable number of input format.
-	*/
-		std::ifstream objFile(p_objFilePath);
+	isBinaryReadSuccess = ReadFromBinaryFile(binFilePathStr.c_str(), hash);
 
-		if (!objFile.is_open())
-		{
-			// open failed
-			exit(1);
-		}
-
+	if (!isBinaryReadSuccess)
+	{
+		// read from obj file
 		std::string line;
 		std::regex delimiter(" ");
 		// buffers for faces
@@ -255,7 +264,7 @@ void Mesh::LoadOBJFile(const wchar_t* p_objFilePath)
 		m_triangleTexcoordIndex.clear();
 
 		// write to binary file for future use
-		WriteToBinaryFile(binFilePathStr.c_str());
+		WriteToBinaryFile(binFilePathStr.c_str(), hash);
 	}
 
 	LoadDataToGPU();
@@ -351,36 +360,48 @@ void Mesh::UpdateBufferResource(
 	}
 }
 
-void Mesh::ReadFromBinaryFile(const wchar_t* p_binFilePath)
+bool Mesh::ReadFromBinaryFile(const wchar_t* p_binFilePath, char* p_hashToCompare)
 {
 	// need to read index list and combined buffer from binary file
-	// binary filename should be sha1(objfilepath) + ".bin"
-	std::ifstream binFile(p_binFilePath, std::ios::binary | std::ios::in);
+	// binary filename should + ".bin"
+	std::ifstream binFile(p_binFilePath, std::ios::binary);
 	if (!binFile.is_open())
 	{
 		// open failed
-		exit(1);
+		return false;
 	}
-	std::string line;
-	std::getline(binFile, line);
-	size_t vertexCount = 0;
-	sscanf_s(line.c_str(), "vertices: %zu", &vertexCount);
+
+	// read hash from binary file and compare with the hash of the obj file
+	char hash[SHA256_DIGEST_LENGTH + 1];
+	binFile.read(reinterpret_cast<char*>(hash), SHA256_DIGEST_LENGTH);
+	hash[SHA256_DIGEST_LENGTH] = '\0'; // null-terminate the hash string
+
+	if (strcmp(p_hashToCompare, hash) != 0)
+	{
+		// hash does not match, need to read from obj file
+		binFile.close();
+		return false;
+	}
+
+	uint64_t vertexCount = 0;
+	binFile.read(reinterpret_cast<char*>(&vertexCount), sizeof(uint64_t));
 	combinedBuffer.resize(vertexCount);
 	binFile.read(reinterpret_cast<char*>(combinedBuffer.data()), vertexCount * sizeof(FirstPassVertexData));
-	std::getline(binFile, line); // read the newline
-	std::getline(binFile, line);
-	size_t indexCount = 0;
-	sscanf_s(line.c_str(), "indices: %zu", &indexCount);
+
+	uint64_t indexCount = 0;
+	binFile.read(reinterpret_cast<char*>(&indexCount), sizeof(uint64_t));
 	m_triangles.resize(indexCount);
+
 	binFile.read(reinterpret_cast<char*>(m_triangles.data()), indexCount * sizeof(uint32_t));
 	binFile.close();
+	return true;
 }
 
-void Mesh::WriteToBinaryFile(const wchar_t* p_binFilePath)
+void Mesh::WriteToBinaryFile(const wchar_t* p_binFilePath, char* p_hashTowrite)
 {
 	// need to write index list and combined buffer to binary file
 	// binary filename should be sha1(objfilepath) + ".bin"
-	std::ofstream binFile(p_binFilePath, std::ios::binary | std::ios::out);
+	std::ofstream binFile(p_binFilePath, std::ios::binary);
 
 	if (!binFile.is_open())
 	{
@@ -388,9 +409,15 @@ void Mesh::WriteToBinaryFile(const wchar_t* p_binFilePath)
 		exit(1);
 	}
 
-	binFile << "vertices: " << combinedBuffer.size() << "\n";
+	uint64_t vertexCount = combinedBuffer.size();
+	uint64_t indexCount = m_triangles.size();
+
+	binFile.write(reinterpret_cast<const char*>(p_hashTowrite), SHA256_DIGEST_LENGTH);
+
+	binFile.write(reinterpret_cast<const char*>(&vertexCount), sizeof(uint64_t));
 	binFile.write(reinterpret_cast<const char*>(combinedBuffer.data()), combinedBuffer.size() * sizeof(FirstPassVertexData));
-	binFile << "\nindices: " << m_triangles.size() << "\n";
+
+	binFile.write(reinterpret_cast<const char*>(&indexCount), sizeof(uint64_t));
 	binFile.write(reinterpret_cast<const char*>(m_triangles.data()), m_triangles.size() * sizeof(uint32_t));
 	binFile.close();
 }

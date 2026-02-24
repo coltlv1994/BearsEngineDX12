@@ -599,9 +599,13 @@ bool Application::Tick(float& out_frameTime)
 void Application::initializePhysicsBody_DEBUG()
 {
 	BodyInterface& bodyInterface = m_physicsSystem.GetBodyInterface();
-	BodyCreationSettings sphere = BodyCreationSettings(new SphereShape(1.0f), RVec3(3.0_r, 3.0_r, 3.0_r), Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING);
-	BodyID sphere_id = bodyInterface.CreateAndAddBody(sphere, EActivation::Activate);
+	//BodyCreationSettings sphere = BodyCreationSettings(new SphereShape(1.0f), RVec3(3.0_r, 3.0_r, 3.0_r), Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING);
+	//BodyID sphere_id = bodyInterface.CreateAndAddBody(sphere, EActivation::Activate);
 	//bodyInterface.SetPosition(sphere_id, RVec3(3.0_r, 3.0_r, 3.0_r), EActivation::Activate);
+
+	BodyCreationSettings cube = BodyCreationSettings(new BoxShape(Vec3(1.0f, 1.0f, 1.0f)), RVec3(0.0_r, 0.0_r, 0.0_r), Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING);
+	BodyID cube_id = bodyInterface.CreateAndAddBody(cube, EActivation::Activate);
+
 }
 
 JPH::BodyID Application::AddPhysicsBody(JoltBodyShape p_bodyShape, ...)

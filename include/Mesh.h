@@ -15,8 +15,8 @@ public:
 	bool Initialize(const wchar_t* p_objFilePath);
 	void LoadOBJFile(const wchar_t* p_objFilePath);
 	void LoadDataToGPU();
-	void ReadFromBinaryFile(const wchar_t* p_binFilePath);
-	void WriteToBinaryFile(const wchar_t* p_binFilePath);
+	bool ReadFromBinaryFile(const wchar_t* p_binFilePath, char* p_hashToCompare);
+	void WriteToBinaryFile(const wchar_t* p_binFilePath, char* p_hashToWrite);
 	void SetMeshClassName(const std::string& meshClassName);
 	const std::string& GetMeshClassName();
 
