@@ -69,22 +69,34 @@ void Instance::SetPosition(float x, float y, float z)
 void Instance::SetRotation(const XMVECTOR& rotation)
 {
 	m_rotation = rotation;
-	//BodyInterface& bodyInterface = Application::Get().GetBodyInterface();
-	//bodyInterface.SetRotation(m_bodyID, JPH::Quat(rotation.m128_f32[0], rotation.m128_f32[1], rotation.m128_f32[2], 1.0f), EActivation::Activate);
+	BodyInterface& bodyInterface = Application::Get().GetBodyInterface();
+	bodyInterface.SetRotation(m_bodyID, JPH::Quat(rotation.m128_f32[0], rotation.m128_f32[1], rotation.m128_f32[2], 1.0f), EActivation::Activate);
 	_updateModelMatrix();
 }
 
 void Instance::SetRotation(float xDegree, float yDegree, float zDegree)
 {
 	m_rotation = XMVectorSet(xDegree, yDegree, zDegree, 0.0f);
-	//BodyInterface& bodyInterface = Application::Get().GetBodyInterface();
-	//bodyInterface.SetRotation(m_bodyID, JPH::Quat(xDegree.m128_f32[0], rotation.m128_f32[1], rotation.m128_f32[2], 1.0f), EActivation::Activate);
+	BodyInterface& bodyInterface = Application::Get().GetBodyInterface();
+	bodyInterface.SetRotation(m_bodyID, JPH::Quat(xDegree, yDegree, zDegree, 1.0f), EActivation::Activate);
 	_updateModelMatrix();
 }
 
 void Instance::SetScale(const XMVECTOR& scale)
 {
 	m_scale = scale;
+	BodyInterface& bodyInterface = Application::Get().GetBodyInterface();
+	switch (m_bodyShape)
+	{
+	case JoltBodyShape::Sphere:
+		bodyInterface.SetShape(m_bodyID, new JPH::SphereShape(scale.m128_f32[0]), true, EActivation::Activate);
+		break;
+	case JoltBodyShape::Cube:
+		bodyInterface.SetShape(m_bodyID, new JPH::BoxShape(Vec3(scale.m128_f32[0], scale.m128_f32[1], scale.m128_f32[2])), true, EActivation::Activate);
+		break;
+	default:
+		break;
+	}
 	_updateModelMatrix();
 }
 
@@ -92,7 +104,17 @@ void Instance::SetScale(float x, float y, float z)
 {
 	m_scale = XMVectorSet(x, y, z, 0.0f);
 	BodyInterface& bodyInterface = Application::Get().GetBodyInterface();
-	bodyInterface.SetShape(m_bodyID, new JPH::BoxShape(Vec3(x, y, z)), true, EActivation::Activate);
+	switch (m_bodyShape)
+	{
+		case JoltBodyShape::Sphere:
+			bodyInterface.SetShape(m_bodyID, new JPH::SphereShape(x), true, EActivation::Activate);
+			break;
+		case JoltBodyShape::Cube:
+			bodyInterface.SetShape(m_bodyID, new JPH::BoxShape(Vec3(x, y, z)), true, EActivation::Activate);
+			break;
+		default:
+			break;
+	}
 	_updateModelMatrix();
 }
 
@@ -165,6 +187,10 @@ void Instance::Render(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XM
 void Instance::SetMeshByName(const std::string& p_meshName)
 {
 	Mesh* mesh_p = MeshManager::Get().GetMeshByName(p_meshName);
+	static BodyInterface& bodyInterface = Application::Get().GetBodyInterface();
+	bodyInterface.RemoveBody(m_bodyID);
+	bodyInterface.DestroyBody(m_bodyID);
+
 	if (mesh_p)
 	{
 		m_mesh_p = mesh_p;
@@ -172,6 +198,24 @@ void Instance::SetMeshByName(const std::string& p_meshName)
 	else
 	{
 		m_mesh_p = nullptr;
+	}
+
+	static std::string sphereString = "sphere";
+	static std::string cubeString = "cube";
+
+	if (p_meshName == sphereString)
+	{
+		SetBodyShape(JoltBodyShape::Sphere);
+		// add body
+	}
+	else if (p_meshName == cubeString)
+	{
+		SetBodyShape(JoltBodyShape::Cube);
+		// add body
+	}
+	else
+	{
+		SetBodyShape(JoltBodyShape::Empty);
 	}
 }
 
