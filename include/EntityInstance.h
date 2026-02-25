@@ -7,129 +7,52 @@ using namespace DirectX;
 #include <Texture.h>
 
 #include <Helpers.h>
-
-#include <Jolt/Jolt.h>
-#include <Jolt/Physics/Body/BodyID.h>
-
-// Disable common warnings triggered by Jolt, you can use JPH_SUPPRESS_WARNING_PUSH / JPH_SUPPRESS_WARNING_POP to store and restore the warning state
-JPH_SUPPRESS_WARNINGS
-
-// All Jolt symbols are in the JPH namespace
-using namespace JPH;
+#include <JoltHelper.h>
 
 class Instance
 {
 public:
 	Instance(std::string& p_name, Texture* p_texture_p, Mesh* p_mesh = nullptr);
 
-	const std::string& GetName()
-	{
-		return m_name;
-	}
+	const std::string& GetName();
 
-	void SetName(const std::string& name)
-	{
-		m_name = name;
-	}
+	void SetName(const std::string& name);
 
-	Mesh* GetMeshClassPointer()
-	{
-		return m_mesh_p;
-	}
+	Mesh* GetMeshClassPointer();
 
-	void SetMeshClassPointer(Mesh* mesh_p)
-	{
-		m_mesh_p = mesh_p;
-	}
+	void SetMeshClassPointer(Mesh* mesh_p);
 
-	XMVECTOR GetPosition() const
-	{
-		return m_position;
-	}
+	XMVECTOR GetPosition() const;
 
-	XMVECTOR GetRotation() const
-	{
-		return m_rotation;
-	}
+	XMVECTOR GetRotation() const;
 
-	XMVECTOR GetScale() const
-	{
-		return m_scale;
-	}
+	XMVECTOR GetScale() const;
 
-	XMMATRIX GetModelMatrix() const
-	{
-		return m_modelMatrix;
-	}
+	XMMATRIX GetModelMatrix() const;
 
-	void SetPosition(const XMVECTOR& position)
-	{
-		m_position = position;
-		_updateModelMatrix();
-	}
+	void SetPosition(const XMVECTOR& position);
 
-	void SetPosition(float x, float y, float z)
-	{
-		m_position = XMVectorSet(x, y, z, 0.0f);
-		_updateModelMatrix();
-	}
+	void SetPosition(float x, float y, float z);
 
-	void SetRotation(const XMVECTOR& rotation)
-	{
-		m_rotation = rotation;
-		_updateModelMatrix();
-	}
+	void SetRotation(const XMVECTOR& rotation);
 
-	void SetRotation(float xDegree, float yDegree, float zDegree)
-	{
-		m_rotation = XMVectorSet(xDegree, yDegree, zDegree, 0.0f);
-		_updateModelMatrix();
-	}
+	void SetRotation(float xDegree, float yDegree, float zDegree);
 
-	void SetScale(const XMVECTOR& scale)
-	{
-		m_scale = scale;
-		_updateModelMatrix();
-	}
+	void SetScale(const XMVECTOR& scale);
 
-	void SetScale(float x, float y, float z)
-	{
-		m_scale = XMVectorSet(x, y, z, 0.0f);
-		_updateModelMatrix();
-	}
+	void SetScale(float x, float y, float z);
 
-	const std::string GetTextureName()
-	{
-		return m_texture_p->GetName();
-	}
+	const std::string GetTextureName();
 
-	const std::string& GetMeshName()
-	{
-		if (m_mesh_p == nullptr)
-		{
-			static std::string emptyString = "null_object";
-			return emptyString;
-		}
-		else
-		{
-			return m_mesh_p->GetMeshClassName();
-		}
-	}
+	const std::string& GetMeshName();
 
-	void SetTexture(Texture* p_texture_p)
-	{
-		m_texture_p = p_texture_p;
-	}
+	void SetTexture(Texture* p_texture_p);
 
-	JoltBodyShape GetBodyShape()
-	{
-		return m_bodyShape;
-	}
+	JoltBodyShape GetBodyShape();
 
-	void SetBodyId(BodyID& bodyID)
-	{
-		m_bodyID = bodyID;
-	}
+	void SetBodyId(BodyID& bodyID);
+
+	void SetBodyShape(JoltBodyShape bodyShape);
 
 	void SetMeshByName(const std::string& p_meshName);
 

@@ -7,6 +7,7 @@
 #include <EntityInstance.h>
 #include <Texture.h>
 #include <LightManager.h>
+#include <Helpers.h>
 
 #include <ResourceUploadBatch.h>
 
@@ -28,6 +29,10 @@ public:
 	{
 		std::thread m_listenerThread(&MeshManager::Listen, this);
 		m_listenerThread.detach();
+
+		// hardcoded
+		m_bodyShapeMap["cube"] = JoltBodyShape::Cube;
+		m_bodyShapeMap["sphere"] = JoltBodyShape::Sphere;
 	}
 
 	// Receive message from other systems
@@ -72,6 +77,8 @@ private:
 	std::vector<Instance*> m_instanceList; // list of all created instances
 	std::unordered_map<std::string, Texture*> m_textureMap; // map of texture file path to texture resource
 	LightManager* m_lightManager_p = nullptr;
+
+	std::unordered_map<std::string, JoltBodyShape> m_bodyShapeMap; // map of body shape name to JoltBodyShape enum
 
 	unsigned int m_createdInstanceCount = 0; // for unique instance naming, this value should never decrease except map reloading
 

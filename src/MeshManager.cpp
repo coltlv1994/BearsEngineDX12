@@ -192,26 +192,25 @@ void MeshManager::_processMessage(Message& msg)
 			Instance* instance_p = new Instance(instanceName, texture_p, mesh_p);
 			if (instance_p)
 			{
+				JPH::BodyID bodyId;
+				switch (instanceInfo.bodyShape)
+				{
+				case JoltBodyShape::Cube:
+					bodyId = app.AddPhysicsBody(JoltBodyShape::Cube);
+					break;
+				case JoltBodyShape::Sphere:
+					bodyId = app.AddPhysicsBody(JoltBodyShape::Sphere);
+					break;
+				default: break;
+				}
+
+				instance_p->SetBodyShape(instanceInfo.bodyShape);
+				instance_p->SetBodyId(bodyId);
+
 				instance_p->SetPosition(instanceInfo.position[0], instanceInfo.position[1], instanceInfo.position[2]);
 				// rotation is in radians already
 				instance_p->SetRotation(XMVectorSet(instanceInfo.rotation[0], instanceInfo.rotation[1], instanceInfo.rotation[2], 0.0f));
 				instance_p->SetScale(XMVectorSet(instanceInfo.scale[0], instanceInfo.scale[1], instanceInfo.scale[2], 0.0f));
-				JPH::BodyID bodyId;
-				switch (instanceInfo.bodyShape)
-				{
-					case JoltBodyShape::Empty:
-					// do nothing
-						break;
-					case JoltBodyShape::Cube:
-						bodyId = app.AddPhysicsBody(JoltBodyShape::Cube);
-						break;
-					case JoltBodyShape::Sphere:
-						bodyId = app.AddPhysicsBody(JoltBodyShape::Sphere);
-						break;
-				default: break;
-				}
-
-				instance_p->SetBodyId(bodyId);
 
 				m_instanceList.push_back(instance_p);
 				_sendInstanceReplyMessage(instance_p);

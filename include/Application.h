@@ -138,7 +138,12 @@ public:
 		m_windowClock.Reset();
 	}
 
-	JPH::BodyID AddPhysicsBody(JoltBodyShape p_bodyShape, ...);
+	JPH::BodyInterface& GetBodyInterface()
+	{
+		return m_physicsSystem.GetBodyInterface();
+	}
+
+	JPH::BodyID AddPhysicsBody(JoltBodyShape p_bodyShape);
 
 protected:
 

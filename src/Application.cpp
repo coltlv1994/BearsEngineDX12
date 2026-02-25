@@ -608,41 +608,33 @@ void Application::initializePhysicsBody_DEBUG()
 
 }
 
-JPH::BodyID Application::AddPhysicsBody(JoltBodyShape p_bodyShape, ...)
+JPH::BodyID Application::AddPhysicsBody(JoltBodyShape p_bodyShape)
 {
-	BodyInterface& bodyInterface = m_physicsSystem.GetBodyInterface();
+	static BodyInterface& bodyInterface = m_physicsSystem.GetBodyInterface();
+	static BodyCreationSettings sphere = 
+		BodyCreationSettings(
+			new SphereShape(1.0f), // radius
+			RVec3(0.0f, 0.0f, 0.0f), // position
+			Quat::sIdentity(), // rotation
+			EMotionType::Static,
+			Layers::NON_MOVING);
+
+	static BodyCreationSettings cube =
+		BodyCreationSettings(
+			new BoxShape(RVec3(1.0f, 1.0f, 1.0f)), // half extents
+			RVec3(0.0f, 0.0f, 0.0f), // position
+			Quat::sIdentity(), // rotation
+			EMotionType::Static,
+			Layers::NON_MOVING);
 
 	switch (p_bodyShape)
 	{
 		case JoltBodyShape::Sphere:
 		{
-			// argument list: sphere radius, positionX/Y/Z
-			va_list args;
-			va_start(args, p_bodyShape);
-			float radius = va_arg(args, float); // float is promoted to double in varargs
-			float posX = va_arg(args, float);
-			float posY = va_arg(args, float);
-			float posZ = va_arg(args, float);
-			va_end(args);
-			BodyCreationSettings sphere = BodyCreationSettings(new SphereShape(radius), RVec3(posX, posY, posZ), Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING);
 			return bodyInterface.CreateAndAddBody(sphere, EActivation::Activate);
 		}
 		case JoltBodyShape::Cube:
 		{
-			// argument list: cube half extent X/Y/Z, positionX/Y/Z
-			va_list args;
-			va_start(args, p_bodyShape);
-			float halfExtentX = va_arg(args, float);
-			float halfExtentY = va_arg(args, float);
-			float halfExtentZ = va_arg(args, float);
-			float posX = va_arg(args, float);
-			float posY = va_arg(args, float);
-			float posZ = va_arg(args, float);
-			va_end(args);
-
-			JPH::Vec3Arg halfExtent(halfExtentX, halfExtentY, halfExtentZ);
-
-			BodyCreationSettings cube = BodyCreationSettings(new BoxShape(halfExtent), RVec3(posX, posY, posZ), Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING);
 			return bodyInterface.CreateAndAddBody(cube, EActivation::Activate);
 		}
 	default:
