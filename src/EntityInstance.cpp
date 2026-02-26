@@ -187,9 +187,15 @@ void Instance::Render(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XM
 void Instance::SetMeshByName(const std::string& p_meshName)
 {
 	Mesh* mesh_p = MeshManager::Get().GetMeshByName(p_meshName);
-	static BodyInterface& bodyInterface = Application::Get().GetBodyInterface();
-	bodyInterface.RemoveBody(m_bodyID);
-	bodyInterface.DestroyBody(m_bodyID);
+
+	static Application& app = Application::Get();
+	static BodyInterface& bodyInterface = app.GetBodyInterface();
+
+	if (!m_bodyID.IsInvalid())
+	{
+		bodyInterface.RemoveBody(m_bodyID);
+		bodyInterface.DestroyBody(m_bodyID);
+	}
 
 	if (mesh_p)
 	{
@@ -207,11 +213,14 @@ void Instance::SetMeshByName(const std::string& p_meshName)
 	{
 		SetBodyShape(JoltBodyShape::Sphere);
 		// add body
+		app.AddPhysicsBody(JoltBodyShape::Sphere);
+		
 	}
 	else if (p_meshName == cubeString)
 	{
 		SetBodyShape(JoltBodyShape::Cube);
 		// add body
+		app.AddPhysicsBody(JoltBodyShape::Cube);
 	}
 	else
 	{
