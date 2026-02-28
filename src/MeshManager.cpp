@@ -192,20 +192,8 @@ void MeshManager::_processMessage(Message& msg)
 			Instance* instance_p = new Instance(instanceName, texture_p, mesh_p);
 			if (instance_p)
 			{
-				JPH::BodyID bodyId;
-				switch (instanceInfo.bodyShape)
-				{
-				case JoltBodyShape::Cube:
-					bodyId = app.AddPhysicsBody(JoltBodyShape::Cube);
-					break;
-				case JoltBodyShape::Sphere:
-					bodyId = app.AddPhysicsBody(JoltBodyShape::Sphere);
-					break;
-				default: break;
-				}
 
 				instance_p->SetBodyShape(instanceInfo.bodyShape);
-				instance_p->SetBodyId(bodyId);
 
 				instance_p->SetPosition(instanceInfo.position[0], instanceInfo.position[1], instanceInfo.position[2]);
 				// rotation is in radians already

@@ -26,6 +26,8 @@ public:
 
 	XMVECTOR GetRotation() const;
 
+	XMVECTOR GetRotQuaternion() const;
+
 	XMVECTOR GetScale() const;
 
 	XMMATRIX GetModelMatrix() const;

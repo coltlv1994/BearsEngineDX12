@@ -8,6 +8,7 @@
 #include <CommandQueue.h>
 
 #include <string>
+#include <fstream>
 
 #include <JoltHelper.h>
 
@@ -449,6 +450,8 @@ void Application::RenderBearWindow(std::shared_ptr<BearWindow> window)
 {
 	if (window->IsPhysicsEnabled())
 	{
+		static BodyInterface& bodyInterface = m_physicsSystem.GetBodyInterface();
+
 		// update physics
 		JPH::Vec3 raycastStart;
 		JPH::Vec3 raycastDirection;
@@ -467,12 +470,17 @@ void Application::RenderBearWindow(std::shared_ptr<BearWindow> window)
 			{
 				// Hit detected
 				JPH::Vec3 hitPosition = ray.GetPointOnRay(hit.mFraction);
+				bodyInterface.RemoveBody(hit.mBodyID);
+				bodyInterface.DestroyBody(hit.mBodyID);
+				m_physicsBodiesSet.erase(hit.mBodyID);
 				UIManager::Get().SetHitResult(hitPosition.mF32);
 			}
 		}
 	}
 
 	m_renderer_p->Render(*window);
+	//static float constantDeltaTime = 1.0f / 60.0f;
+	//m_physicsSystem.Update(constantDeltaTime, 1, m_tempAllocator_p, m_jobSystem_p);
 }
 
 void Application::SwitchToDemoWindow()
@@ -492,17 +500,18 @@ bool Application::PendingWindowSwitchCheck()
 		m_pendingSwitchToMainWindow = false;
 		gs_activeWindow = m_mainWindow;
 		int returnValue = ShowCursor(true);
-		
+
 		// main window should always exist
 		if (m_demoWindow)
 		{
 			m_demoWindow->Hide();
 		}
+		DestroyPhysicsBodies();
 		ResetTimer();
 		m_mainWindow->ResetCamera();
 		m_mainWindow->Show();
 		ClipCursor(nullptr);
-		
+
 		return false;
 	}
 	else if (m_pendingSwitchToDemoWindow)
@@ -521,6 +530,7 @@ bool Application::PendingWindowSwitchCheck()
 		}
 
 		gs_activeWindow = m_demoWindow;
+		AddPhysicsBodies();
 		m_mainWindow->Hide();
 		ResetTimer();
 		m_mainWindow->ResetCamera();
@@ -570,7 +580,7 @@ void Application::InitializeJoltPhysics()
 
 	m_physicsSystem.OptimizeBroadPhase();
 #if defined(_DEBUG)
-	initializePhysicsBody_DEBUG();
+	//initializePhysicsBody_DEBUG();
 #endif
 }
 
@@ -596,48 +606,103 @@ bool Application::Tick(float& out_frameTime)
 	return false;
 }
 
-void Application::initializePhysicsBody_DEBUG()
+void Application::AddPhysicsBodies()
 {
-	BodyInterface& bodyInterface = m_physicsSystem.GetBodyInterface();
-	//BodyCreationSettings sphere = BodyCreationSettings(new SphereShape(1.0f), RVec3(3.0_r, 3.0_r, 3.0_r), Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING);
-	//BodyID sphere_id = bodyInterface.CreateAndAddBody(sphere, EActivation::Activate);
-	//bodyInterface.SetPosition(sphere_id, RVec3(3.0_r, 3.0_r, 3.0_r), EActivation::Activate);
+	// Get entity list
+	const std::vector<Instance*>& instanceList = MeshManager::Get().GetInstanceList();
 
-	BodyCreationSettings cube = BodyCreationSettings(new BoxShape(Vec3(1.0f, 1.0f, 1.0f)), RVec3(0.0_r, 0.0_r, 0.0_r), Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING);
-	BodyID cube_id = bodyInterface.CreateAndAddBody(cube, EActivation::Activate);
+	static BodyInterface& bodyInterface = m_physicsSystem.GetBodyInterface();
 
+	XMFLOAT4 position;
+	XMFLOAT4 rotQuaternion;
+	XMFLOAT4 scale;
+
+	for (auto in_p : instanceList)
+	{
+		Instance& instance = *in_p;
+
+		JoltBodyShape bodyShape = instance.GetBodyShape();
+		XMStoreFloat4(&position, instance.GetPosition());
+		XMStoreFloat4(&rotQuaternion, instance.GetRotQuaternion());
+		XMStoreFloat4(&scale, instance.GetScale());
+		BodyCreationSettings bodySettings;
+
+		switch (bodyShape)
+		{
+		case JoltBodyShape::Sphere:
+			bodySettings =
+				BodyCreationSettings(
+					new SphereShape(scale.x), // radius
+					RVec3(position.x, position.y, position.z), // position
+					Quat(rotQuaternion.x, rotQuaternion.y, rotQuaternion.z, rotQuaternion.w), // rotation
+					EMotionType::Static,
+					Layers::NON_MOVING);
+			m_physicsBodiesSet.insert(bodyInterface.CreateAndAddBody(bodySettings, EActivation::Activate));
+			break;
+		case JoltBodyShape::Cube:
+			bodySettings =
+				BodyCreationSettings(
+					new BoxShape(Vec3(scale.x, scale.y, scale.z)), // half extents
+					RVec3(position.x, position.y, position.z), // position
+					Quat(rotQuaternion.x, rotQuaternion.y, rotQuaternion.z, rotQuaternion.w), // rotation
+					EMotionType::Static,
+					Layers::NON_MOVING);
+			m_physicsBodiesSet.insert(bodyInterface.CreateAndAddBody(bodySettings, EActivation::Activate));
+			break;
+		default:
+			break;
+		}
+	}
 }
 
-JPH::BodyID Application::AddPhysicsBody(JoltBodyShape p_bodyShape)
+void Application::DestroyPhysicsBodies()
 {
 	static BodyInterface& bodyInterface = m_physicsSystem.GetBodyInterface();
-	static BodyCreationSettings sphere = 
-		BodyCreationSettings(
-			new SphereShape(1.0f), // radius
-			RVec3(0.0f, 0.0f, 0.0f), // position
-			Quat::sIdentity(), // rotation
-			EMotionType::Static,
-			Layers::NON_MOVING);
 
-	static BodyCreationSettings cube =
-		BodyCreationSettings(
-			new BoxShape(RVec3(1.0f, 1.0f, 1.0f)), // half extents
-			RVec3(0.0f, 0.0f, 0.0f), // position
-			Quat::sIdentity(), // rotation
-			EMotionType::Static,
-			Layers::NON_MOVING);
-
-	switch (p_bodyShape)
+	for (BodyID body : m_physicsBodiesSet)
 	{
-		case JoltBodyShape::Sphere:
-		{
-			return bodyInterface.CreateAndAddBody(sphere, EActivation::Activate);
-		}
-		case JoltBodyShape::Cube:
-		{
-			return bodyInterface.CreateAndAddBody(cube, EActivation::Activate);
-		}
-	default:
-		return BodyID(BodyID::cInvalidBodyID);
+		bodyInterface.RemoveBody(body);
+		bodyInterface.DestroyBody(body);
 	}
+
+	m_physicsBodiesSet.clear();
+}
+
+void Application::LoadBezierCurve()
+{
+	// the file path is fixed
+	static const std::string filePath = "saved_maps\\bezier_control_points.txt";
+
+	std::ifstream inFile(filePath);
+	if (!inFile)
+	{
+		OutputDebugStringA("Failed to open bezier control points file.\n");
+		return;
+	}
+
+	while (!inFile.eof())
+	{
+		std::string line;
+		std::getline(inFile, line);
+		if (line.empty())
+		{
+			continue;
+		}
+		std::istringstream iss(line);
+		float x, y;
+		if (!(iss >> x >> y))
+		{
+			continue;
+		}
+		m_bezierCurvePoints.push_back(XMVectorSet(x, y, 0.0f, 0.0f));
+	}
+
+	inFile.close();
+
+	if (m_bezierCurvePoints.size() < 2 || m_bezierCurvePoints.size() % 2 != 0)
+	{
+		m_bezierCurvePoints.clear();
+	}
+
+	m_numOfCurveSections = m_bezierCurvePoints.size() / 2;
 }

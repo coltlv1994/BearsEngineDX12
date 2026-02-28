@@ -226,12 +226,10 @@ void UIManager::CreateImGuiWindowContent()
 			_saveMap();
 		}
 
-		if (ImGui::Button("Rebuild shaders"))
+		if (ImGui::Button("Load Bezier Controls"))
 		{
-			// send message to mesh manager
-			Message* msg = new Message();
-			msg->type = MSG_TYPE_REBUILD_SHADERS;
-			MeshManager::Get().ReceiveMessage(msg);
+			// Application will load bezier controls
+			Application::Get().LoadBezierCurve();
 		}
 
 		if (ImGui::Button("Switch to demo window"))
@@ -1138,12 +1136,15 @@ void UIManager::CleanD3D11DeviceContextForResize()
 int UIManager::GenerateOverlayDebugInfo()
 {
 	// return value is write size
-	wchar_t formattedString[] = L"Camera front (normalized): %.2f, %.2f, %.2f\nHit result: %.2f, %.2f, %.2f";
+	wchar_t formattedString[] = L"Hit point on z=-1: %.2f, %.2f\nHit result: %.2f, %.2f, %.2f";
 	XMVECTOR front = m_mainCamRef->GetFrontDirection();
 	XMVECTOR rot = m_mainCamRef->GetRotation() / PI_DIV_180; // to degrees
-	const float* const front_f = front.m128_f32;
-	const float* const rot_f = rot.m128_f32;
-	return swprintf_s(m_debugInfoBuffer, MAX_DEBUG_INFO_LENGTH, formattedString, front_f[0], front_f[1], front_f[2], m_hitResult[0], m_hitResult[1], m_hitResult[2]);
+	float* front_f = front.m128_f32;
+	float nine_divide_z = 9.0f / front_f[2];
+	front_f[0] *= nine_divide_z;
+	front_f[1] *= nine_divide_z;
+	float*rot_f = rot.m128_f32;
+	return swprintf_s(m_debugInfoBuffer, MAX_DEBUG_INFO_LENGTH, formattedString, front_f[0], front_f[1], m_hitResult[0], m_hitResult[1], m_hitResult[2]);
 }
 
 void UIManager::SetHitResult(float* p_result)
