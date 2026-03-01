@@ -139,7 +139,7 @@ void D3D12Renderer::Render(BearWindow& window)
 		// DO NOT TRANSIT RESOURCE TO PRESENT STATE, D2D needs it to be in render target state
 		m_fenceValues[currentBackBufferIndex] = commandQueue->ExecuteCommandList(commandList);
 
-		UIManager::Get().DrawD2DContent(currentRR);
+		UIManager::Get().DrawD2DContent(currentRR, gameState);
 	}
 
 	currentBackBufferIndex = window.Present(); // it has moved to next buffer

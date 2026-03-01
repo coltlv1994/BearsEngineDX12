@@ -192,7 +192,6 @@ void MeshManager::_processMessage(Message& msg)
 			Instance* instance_p = new Instance(instanceName, texture_p, mesh_p);
 			if (instance_p)
 			{
-
 				instance_p->SetBodyShape(instanceInfo.bodyShape);
 
 				instance_p->SetPosition(instanceInfo.position[0], instanceInfo.position[1], instanceInfo.position[2]);

@@ -177,7 +177,7 @@ public:
 
 class MyBodyFilter : public BodyFilter
 {
-	public:
+public:
 	virtual bool ShouldCollide(const BodyID& inBodyID) const override
 	{
 		return true;

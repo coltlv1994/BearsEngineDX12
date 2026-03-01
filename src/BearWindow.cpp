@@ -424,31 +424,69 @@ LRESULT BearWindow::WindowMessageHandler(HWND hwnd, UINT message, WPARAM wParam,
 {
 	// return value decides if the message processing should pass on
 	// assume this function is called first
+	const GameState currentState = Application::Get().GetGameState();
+
 	if (m_isPhysicsEnabled == false)
 	{
 		ImGui_ImplWin32_WndProcHandler(hwnd, message, wParam, lParam);
 	}
 	else
 	{
-		switch (message)
-		{
-		case WM_KEYDOWN:
+		if (message == WM_KEYDOWN)
 		{
 			switch (wParam)
 			{
 			case VK_ESCAPE:
-				Application::Get().SwitchToMainWindow();
-				break;
+
+				if (currentState == GameState::DemoStart ||
+					currentState == GameState::DemoWin ||
+					currentState == GameState::DemoLose)
+				{
+					// exit to editor scene
+					Application::Get().SwitchToMainWindow();
+					Application::Get().SetGameState(GameState::EditorScene);
+					break;
+				}
+				else if (currentState == GameState::DemoRunning)
+				{
+					// enter pause state
+					Application::Get().SetGameState(GameState::DemoPause);
+					break;
+				}
+				else if (currentState == GameState::DemoPause)
+				{
+					// enter pause state
+					Application::Get().SetGameState(GameState::DemoRunning);
+					break;
+				}
+				else
+				{
+					break;
+				}
+
 			case 'R':
-				// reset system;
-				Application::Get().ResetTimer();
-				ResetCamera();
+				// reset cam and timer
+				if (currentState == GameState::DemoRunning)
+				{
+					Application::Get().ResetTimer();
+					ResetCamera();
+				}
+				break;
+
+			case VK_SPACE:
+				// start demo if in the start screen
+				if (currentState == GameState::DemoStart)
+				{
+					Application::Get().SetGameState(GameState::DemoRunning);
+				}
+				break;
+
+			default:
 				break;
 			}
-			break;
 		}
 
-		case WM_MOUSEMOVE:
+		if (message == WM_MOUSEMOVE)
 		{
 			int x = ((int)(short)LOWORD(lParam));
 			int y = ((int)(short)HIWORD(lParam));
@@ -459,23 +497,17 @@ LRESULT BearWindow::WindowMessageHandler(HWND hwnd, UINT message, WPARAM wParam,
 
 			// center mouse cursor
 			SetCursorPos(centerPoint.x, centerPoint.y);
-
-			break;
 		}
 
-		case WM_LBUTTONDOWN:
+		if (message == WM_LBUTTONDOWN)
 		{
-			// start raycast
 			if (m_isRaycastRequested == false)
 			{
 				m_isRaycastRequested = true;
-				
+
 				memcpy_s(m_raycastDirection, sizeof(float) * 4, m_camera.GetFrontDirection().m128_f32, sizeof(float) * 4);
 				memcpy_s(m_raycastStart, sizeof(float) * 4, m_camera.GetPosition().m128_f32, sizeof(float) * 4);
 			}
-			break;
-		}
-
 		}
 	}
 

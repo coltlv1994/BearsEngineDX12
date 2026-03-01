@@ -170,7 +170,6 @@ void Instance::SetMeshByName(const std::string& p_meshName)
 	if (p_meshName == sphereString)
 	{
 		SetBodyShape(JoltBodyShape::Sphere);
-		
 	}
 	else if (p_meshName == cubeString)
 	{

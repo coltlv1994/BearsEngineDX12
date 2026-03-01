@@ -162,6 +162,7 @@ void UIManager::InitializeD3D11On12(ComPtr<ID3D12Device> p_d3d12device, ComPtr<I
 			L"en-us",
 			&m_textFormat
 		));
+		// default
 		ThrowIfFailed(m_textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING));
 		ThrowIfFailed(m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_FAR));
 	}
@@ -936,7 +937,7 @@ bool UIManager::_loadMap()
 	// always default white texture at first
 	listOfMeshes.push_back("null_object");
 	listOfTextures.push_back("default_white");
-	 
+
 	Message* message = new Message();
 	message->type = MSG_TYPE_CLEAN_MESHES;
 	MeshManager::Get().ReceiveMessage(message);
@@ -1080,17 +1081,46 @@ void UIManager::DrawD2DContent(RenderResource& currentRR, GameState p_gameState)
 	m_d2dDeviceContext->SetTarget(currentRR.d2dRenderTarget);
 	m_d2dDeviceContext->BeginDraw();
 	m_d2dDeviceContext->SetTransform(D2D1::Matrix3x2F::Identity());
+	
 	// a crosshair rectangle
 	float dpiScale = std::max<float>(1.0f, Application::Get().GetDPIScale());
+	float crosshairRadius = 10.0f * dpiScale;
+	float crosshairThickness = 2.0f * dpiScale;
+
+	// Text shown
+	static const wchar_t MenuText[] = L"BearsEngine DEMO session.\n\n\nPress SPACE to start, ESC to return";
+	static const wchar_t winText[] = L"You win!\n\nPress R to restart.";
+	static const wchar_t loseText[] = L"You lose!\n\nPress R to restart.";
+	static const wchar_t pauseText[] = L"Game paused.\n\nPress ESC to resume.";
+
+#if defined(_DEBUG)
+	int writeSize = GenerateOverlayDebugInfo();
+	ThrowIfFailed(m_textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING));
+	ThrowIfFailed(m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_FAR));
+	m_d2dDeviceContext->DrawText(
+		m_debugInfoBuffer,
+		writeSize - 1,
+		m_textFormat.Get(),
+		&textRect,
+		m_whiteBrush.Get()
+	);
+#endif
 
 	switch (p_gameState)
 	{
 	case GameState::DemoStart:
-		// display main menu
+		// display main menu？
+		ThrowIfFailed(m_textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER));
+		ThrowIfFailed(m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER));
+		m_d2dDeviceContext->DrawText(
+			MenuText,
+			ARRAYSIZE(MenuText) - 1,
+			m_textFormat.Get(),
+			&textRect,
+			m_whiteBrush.Get()
+		);
 		break;
 	case GameState::DemoRunning:
-		float crosshairRadius = 10.0f * dpiScale;
-		float crosshairThickness = 2.0f * dpiScale;
 		// horizontal line
 		m_d2dDeviceContext->DrawLine(
 			D2D1::Point2F(rtSize.width / 2 - crosshairRadius, rtSize.height / 2),
@@ -1106,21 +1136,8 @@ void UIManager::DrawD2DContent(RenderResource& currentRR, GameState p_gameState)
 			crosshairThickness
 		);
 		// TODO: draw timing and score info at the top left corner
-#if defined(_DEBUG)
-		int writeSize = GenerateOverlayDebugInfo();
-		ThrowIfFailed(m_textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING));
-		ThrowIfFailed(m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_FAR));
-		m_d2dDeviceContext->DrawText(
-			m_debugInfoBuffer,
-			writeSize - 1,
-			m_textFormat.Get(),
-			&textRect,
-			m_whiteBrush.Get()
-		);
-#endif
 		break;
 	case GameState::DemoWin:
-		static const wchar_t winText[] = L"You win! Press R to restart.";
 		ThrowIfFailed(m_textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER));
 		ThrowIfFailed(m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER));
 		m_d2dDeviceContext->DrawText(
@@ -1132,12 +1149,22 @@ void UIManager::DrawD2DContent(RenderResource& currentRR, GameState p_gameState)
 		);
 		break;
 	case GameState::DemoLose:
-		static const wchar_t loseText[] = L"You lose! Press R to restart.";
 		ThrowIfFailed(m_textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER));
 		ThrowIfFailed(m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER));
 		m_d2dDeviceContext->DrawText(
 			loseText,
 			ARRAYSIZE(loseText) - 1,
+			m_textFormat.Get(),
+			&textRect,
+			m_whiteBrush.Get()
+		);
+		break;
+	case GameState::DemoPause:
+		ThrowIfFailed(m_textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER));
+		ThrowIfFailed(m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER));
+		m_d2dDeviceContext->DrawText(
+			pauseText,
+			ARRAYSIZE(pauseText) - 1,
 			m_textFormat.Get(),
 			&textRect,
 			m_whiteBrush.Get()
@@ -1177,7 +1204,7 @@ int UIManager::GenerateOverlayDebugInfo()
 	float nine_divide_z = 9.0f / front_f[2];
 	front_f[0] *= nine_divide_z;
 	front_f[1] *= nine_divide_z;
-	float*rot_f = rot.m128_f32;
+	float* rot_f = rot.m128_f32;
 	return swprintf_s(m_debugInfoBuffer, MAX_DEBUG_INFO_LENGTH, formattedString, front_f[0], front_f[1], m_hitResult[0], m_hitResult[1], m_hitResult[2]);
 }
 

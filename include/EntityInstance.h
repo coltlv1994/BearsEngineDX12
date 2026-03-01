@@ -76,4 +76,3 @@ private:
 
 	void _updateModelMatrix();
 };
-
