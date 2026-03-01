@@ -12,9 +12,11 @@ This project uses DirectX 12 as graphical interface, which is targeted for Windo
 
 ## How to build/run
 
-Open BearsEngineDX12.slnx with VS 2022/2026, and build with either DEBUG or RELEASE, it will run.
+Download this whole repo, Open BearsEngineDX12.slnx with VS 2022/2026, and build with either DEBUG or RELEASE, it will run.
 
-Or, find the release package. It is statically linked so no additional libs are required.
+(It will rely on files underneath the directory.)
+
+Or, find the release package. 
 
 
 
