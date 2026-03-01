@@ -145,6 +145,16 @@ public:
 		return m_physicsSystem.GetBodyInterface();
 	}
 
+	GameState GetGameState() const
+	{
+		return m_gameState;
+	}
+
+	void SetGameState(GameState newState)
+	{
+		m_gameState = newState;
+	}
+
 	void AddPhysicsBodies();
 
 	void DestroyPhysicsBodies();
@@ -222,4 +232,7 @@ private:
 	std::set<JPH::BodyID> m_physicsBodiesSet; // for quick lookup when removing bodies
 	std::vector<XMVECTOR> m_bezierCurvePoints; // points on the bezier curve to render
 	unsigned int m_numOfCurveSections = 0;
+
+	// Game state control
+	GameState m_gameState = GameState::EditorScene;
 };

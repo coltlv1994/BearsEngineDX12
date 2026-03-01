@@ -1068,11 +1068,10 @@ static inline bool _checkNumOfLights(LightConstants& p_lightConstant)
 	return (p_lightConstant.NumOfDirectionalLights + p_lightConstant.NumOfPointLights + p_lightConstant.NumOfSpotLights) < MAX_LIGHTS;
 }
 
-void UIManager::DrawD2DContent(RenderResource& currentRR)
+void UIManager::DrawD2DContent(RenderResource& currentRR, GameState p_gameState)
 {
 	D2D1_SIZE_F rtSize = currentRR.d2dRenderTarget->GetSize();
 	D2D1_RECT_F textRect = D2D1::RectF(0, 0, rtSize.width, rtSize.height);
-	//static const WCHAR text[] = L"11On12";
 
 	// Acquire our wrapped render target resource for the current back buffer.
 	m_d3d11On12Device->AcquireWrappedResources(&currentRR.d3d11wrappedBackBuffer, 1);
@@ -1081,40 +1080,75 @@ void UIManager::DrawD2DContent(RenderResource& currentRR)
 	m_d2dDeviceContext->SetTarget(currentRR.d2dRenderTarget);
 	m_d2dDeviceContext->BeginDraw();
 	m_d2dDeviceContext->SetTransform(D2D1::Matrix3x2F::Identity());
-
 	// a crosshair rectangle
 	float dpiScale = std::max<float>(1.0f, Application::Get().GetDPIScale());
-	float crosshairRadius = 10.0f * dpiScale;
-	float crosshairThickness = 2.0f * dpiScale;
-	// horizontal line
-	m_d2dDeviceContext->DrawLine(
-		D2D1::Point2F(rtSize.width / 2 - crosshairRadius, rtSize.height / 2),
-		D2D1::Point2F(rtSize.width / 2 + crosshairRadius, rtSize.height / 2),
-		m_whiteBrush.Get(),
-		crosshairThickness
-	);
-	// vertical line
-	m_d2dDeviceContext->DrawLine(
-		D2D1::Point2F(rtSize.width / 2, rtSize.height / 2 - crosshairRadius),
-		D2D1::Point2F(rtSize.width / 2, rtSize.height / 2 + crosshairRadius),
-		m_whiteBrush.Get(),
-		crosshairThickness
-	);
 
+	switch (p_gameState)
+	{
+	case GameState::DemoStart:
+		// display main menu
+		break;
+	case GameState::DemoRunning:
+		float crosshairRadius = 10.0f * dpiScale;
+		float crosshairThickness = 2.0f * dpiScale;
+		// horizontal line
+		m_d2dDeviceContext->DrawLine(
+			D2D1::Point2F(rtSize.width / 2 - crosshairRadius, rtSize.height / 2),
+			D2D1::Point2F(rtSize.width / 2 + crosshairRadius, rtSize.height / 2),
+			m_whiteBrush.Get(),
+			crosshairThickness
+		);
+		// vertical line
+		m_d2dDeviceContext->DrawLine(
+			D2D1::Point2F(rtSize.width / 2, rtSize.height / 2 - crosshairRadius),
+			D2D1::Point2F(rtSize.width / 2, rtSize.height / 2 + crosshairRadius),
+			m_whiteBrush.Get(),
+			crosshairThickness
+		);
+		// TODO: draw timing and score info at the top left corner
 #if defined(_DEBUG)
-	int writeSize = GenerateOverlayDebugInfo();
-	m_d2dDeviceContext->DrawText(
-		m_debugInfoBuffer,
-		writeSize - 1,
-		m_textFormat.Get(),
-		&textRect,
-		m_whiteBrush.Get()
-	);
+		int writeSize = GenerateOverlayDebugInfo();
+		ThrowIfFailed(m_textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING));
+		ThrowIfFailed(m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_FAR));
+		m_d2dDeviceContext->DrawText(
+			m_debugInfoBuffer,
+			writeSize - 1,
+			m_textFormat.Get(),
+			&textRect,
+			m_whiteBrush.Get()
+		);
 #endif
+		break;
+	case GameState::DemoWin:
+		static const wchar_t winText[] = L"You win! Press R to restart.";
+		ThrowIfFailed(m_textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER));
+		ThrowIfFailed(m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER));
+		m_d2dDeviceContext->DrawText(
+			winText,
+			ARRAYSIZE(winText) - 1,
+			m_textFormat.Get(),
+			&textRect,
+			m_whiteBrush.Get()
+		);
+		break;
+	case GameState::DemoLose:
+		static const wchar_t loseText[] = L"You lose! Press R to restart.";
+		ThrowIfFailed(m_textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER));
+		ThrowIfFailed(m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER));
+		m_d2dDeviceContext->DrawText(
+			loseText,
+			ARRAYSIZE(loseText) - 1,
+			m_textFormat.Get(),
+			&textRect,
+			m_whiteBrush.Get()
+		);
+		break;
+	default:
+		break;
+	}
 
 	// ignore d2d warning; it is implementation fault, nothing we can do about MS.
 	ThrowIfFailed(m_d2dDeviceContext->EndDraw());
-	//m_d2dDeviceContext->EndDraw();
 
 	// Release our wrapped render target resource. Releasing
 	// transitions the back buffer resource to the state specified

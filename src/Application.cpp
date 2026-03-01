@@ -511,6 +511,7 @@ bool Application::PendingWindowSwitchCheck()
 		m_mainWindow->ResetCamera();
 		m_mainWindow->Show();
 		ClipCursor(nullptr);
+		m_gameState = GameState::EditorScene;
 
 		return false;
 	}
@@ -536,6 +537,7 @@ bool Application::PendingWindowSwitchCheck()
 		m_mainWindow->ResetCamera();
 		m_demoWindow->Show();
 		int returnValue = ShowCursor(false);
+		m_gameState = GameState::DemoStart;
 
 		return false;
 	}
@@ -554,7 +556,6 @@ void Application::InitializeJoltPhysics()
 
 	Factory::sInstance = new Factory();
 	// +		inFMT	0x00007ff77de1cf80 "Version mismatch, make sure you compile the client code with the same Jolt version and compiler definitions!"
-	// const char *
 	RegisterTypes();
 	m_tempAllocator_p = new TempAllocatorImpl(10 * 1024 * 1024);
 	m_jobSystem_p = new JobSystemThreadPool(cMaxPhysicsJobs, cMaxPhysicsBarriers, thread::hardware_concurrency() - 1);

@@ -194,3 +194,13 @@ enum JoltBodyShape : uint16_t
 	Sphere = 1,
 	Cube = 2
 };
+
+enum GameState : uint8_t
+{
+	EditorScene = 0,
+	DemoStart = 1,
+	DemoRunning = 2,
+	DemoPause = 3,
+	DemoWin = 4,
+	DemoLose = 5
+};

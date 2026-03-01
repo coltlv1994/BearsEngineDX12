@@ -84,7 +84,7 @@ public:
 
 	void Draw(ComPtr<ID3D12GraphicsCommandList2> commandList);
 
-	void DrawD2DContent(RenderResource& currentRR);
+	void DrawD2DContent(RenderResource& currentRR, GameState p_gameState);
 
 	void SetMainCamera(Camera* cam);
 

@@ -30,8 +30,15 @@ void D3D12Renderer::Render(BearWindow& window)
 	unsigned int currentBackBufferIndex = currentRR.currentBackBufferIndex;
 	static ID3D12DescriptorHeap* srvHeap = Application::Get().GetSRVHeap();
 
-	// Get entity list, read only
-	const std::vector<Instance*>& instanceList = MeshManager::Get().GetInstanceList();
+	const GameState gameState = Application::Get().GetGameState();
+
+	// Get entity list, on copy
+	std::vector<Instance*> instanceList = MeshManager::Get().GetInstanceList();
+	if (gameState != GameState::EditorScene &&
+		gameState != GameState::DemoRunning)
+	{
+		instanceList.clear(); // only render instances in editor scene and demo running state
+	}
 
 	// first pass: render to G-buffer
 	auto commandQueue = Application::Get().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
