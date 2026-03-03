@@ -20,6 +20,12 @@ public:
 	// Reset the clock.
 	void Reset();
 
+	// pause and resume.
+	// these two operations should be trasparent for clocks that requires
+	// no pause/resume
+	void Pause();
+	void Resume();
+
 	double GetDeltaNanoseconds() const;
 	double GetDeltaMicroseconds() const;
 	double GetDeltaMilliseconds() const;
@@ -36,4 +42,6 @@ private:
 	// Time since last tick.
 	std::chrono::high_resolution_clock::duration m_DeltaTime;
 	std::chrono::high_resolution_clock::duration m_TotalTime;
+	// Pause duration
+	std::chrono::high_resolution_clock::duration m_PauseDuration;
 };

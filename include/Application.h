@@ -161,6 +161,11 @@ public:
 
 	void LoadBezierCurve();
 
+	void ResetGameClock()
+	{
+		m_gameClock.Reset();
+	}
+
 protected:
 
 	// Create an application instance.
@@ -233,6 +238,8 @@ private:
 	std::vector<XMVECTOR> m_bezierCurvePoints; // points on the bezier curve to render
 	unsigned int m_numOfCurveSections = 0;
 
-	// Game state control
+	// Game control
 	GameState m_gameState = GameState::EditorScene;
+	HighResolutionClock m_gameClock;
+	double m_sectionTimeInSeconds = 5.0;
 };

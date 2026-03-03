@@ -432,6 +432,7 @@ LRESULT BearWindow::WindowMessageHandler(HWND hwnd, UINT message, WPARAM wParam,
 	}
 	else
 	{
+		Application& app = Application::Get();
 		if (message == WM_KEYDOWN)
 		{
 			switch (wParam)
@@ -443,20 +444,21 @@ LRESULT BearWindow::WindowMessageHandler(HWND hwnd, UINT message, WPARAM wParam,
 					currentState == GameState::DemoLose)
 				{
 					// exit to editor scene
-					Application::Get().SwitchToMainWindow();
-					Application::Get().SetGameState(GameState::EditorScene);
+					app.SwitchToMainWindow();
+					app.SetGameState(GameState::EditorScene);
 					break;
 				}
 				else if (currentState == GameState::DemoRunning)
 				{
 					// enter pause state
-					Application::Get().SetGameState(GameState::DemoPause);
+					app.SetGameState(GameState::DemoPause);
+					
 					break;
 				}
 				else if (currentState == GameState::DemoPause)
 				{
 					// enter pause state
-					Application::Get().SetGameState(GameState::DemoRunning);
+					app.SetGameState(GameState::DemoRunning);
 					break;
 				}
 				else
@@ -468,7 +470,7 @@ LRESULT BearWindow::WindowMessageHandler(HWND hwnd, UINT message, WPARAM wParam,
 				// reset cam and timer
 				if (currentState == GameState::DemoRunning)
 				{
-					Application::Get().ResetTimer();
+					app.ResetTimer();
 					ResetCamera();
 				}
 				break;
@@ -477,7 +479,9 @@ LRESULT BearWindow::WindowMessageHandler(HWND hwnd, UINT message, WPARAM wParam,
 				// start demo if in the start screen
 				if (currentState == GameState::DemoStart)
 				{
-					Application::Get().SetGameState(GameState::DemoRunning);
+					app.SetGameState(GameState::DemoRunning);
+					app.ResetGameClock();
+
 				}
 				break;
 

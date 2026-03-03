@@ -4,6 +4,7 @@
 HighResolutionClock::HighResolutionClock()
 	: m_DeltaTime(0)
 	, m_TotalTime(0)
+	, m_PauseDuration(0)
 {
 	m_T0 = std::chrono::high_resolution_clock::now();
 }
@@ -21,6 +22,17 @@ void HighResolutionClock::Reset()
 	m_T0 = std::chrono::high_resolution_clock::now();
 	m_DeltaTime = std::chrono::high_resolution_clock::duration();
 	m_TotalTime = std::chrono::high_resolution_clock::duration();
+	m_PauseDuration = std::chrono::high_resolution_clock::duration();
+}
+
+void HighResolutionClock::Pause()
+{
+	m_PauseDuration = m_TotalTime;
+}
+
+void HighResolutionClock::Resume()
+{
+	m_TotalTime = m_PauseDuration;
 }
 
 double HighResolutionClock::GetDeltaNanoseconds() const
