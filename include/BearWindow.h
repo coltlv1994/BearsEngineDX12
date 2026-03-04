@@ -78,6 +78,11 @@ public:
 		return m_hWnd;
 	}
 
+	void SetCameraLocation(const XMVECTOR& position)
+	{
+		m_camera.SetPosition(position);
+	}
+
 	void ResetCamera()
 	{
 		// and reset camera as well

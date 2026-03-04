@@ -450,6 +450,37 @@ void Application::RenderBearWindow(std::shared_ptr<BearWindow> window)
 {
 	if (window->IsPhysicsEnabled())
 	{
+		// new location of cam/player
+		m_gameClock.Tick();
+		double totalSeconds = m_gameClock.GetTotalSeconds();
+		double currentSection = std::floor(totalSeconds / m_sectionTimeInSeconds);
+		float currentT = static_cast<float>(totalSeconds / m_sectionTimeInSeconds - currentSection);
+		float oneMinusT = 1.0f - currentT;
+
+		if (currentSection > m_numOfCurveSections)
+		{
+			// game should end
+			SetGameState(GameState::DemoWin);
+			return;
+		}
+		else
+		{
+			const XMVECTOR& p1 = m_bezierCurvePoints[static_cast<size_t>(currentSection) * 2];
+			const XMVECTOR& p2 = m_bezierCurvePoints[static_cast<size_t>(currentSection) * 2 + 1];
+
+			static XMVECTOR sectionEnd = XMVectorSet(10.0f, 0.0f, 10.0f, 1.0f);
+
+			XMVECTOR newPosition = 
+				// starting point is always (0, 0, 0), so we can skip that part
+				3.0f * std::powf(oneMinusT, 2.0f) * currentT * p1 +
+				3.0f * oneMinusT * std::powf(currentT, 2.0f) * p2 +
+				std::powf(currentT, 3.0f) * sectionEnd +
+				sectionEnd * static_cast<float>(currentSection);
+
+			newPosition.m128_f32[3] = 1.0f; // make sure w is 1 for correct transformation
+			window->SetCameraLocation(newPosition);
+		}
+
 		static BodyInterface& bodyInterface = m_physicsSystem.GetBodyInterface();
 
 		// update physics
@@ -695,7 +726,9 @@ void Application::LoadBezierCurve()
 		{
 			continue;
 		}
-		m_bezierCurvePoints.push_back(XMVectorSet(x, y, 0.0f, 0.0f));
+
+		// in NDC, y is up and xOz is the plane
+		m_bezierCurvePoints.push_back(XMVectorSet(x, 0.0f, y, 0.0f));
 	}
 
 	inFile.close();

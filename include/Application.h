@@ -242,4 +242,5 @@ private:
 	GameState m_gameState = GameState::EditorScene;
 	HighResolutionClock m_gameClock;
 	double m_sectionTimeInSeconds = 5.0;
+	double m_sectionGridSize = 10.0;
 };
