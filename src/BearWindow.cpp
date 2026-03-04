@@ -452,7 +452,6 @@ LRESULT BearWindow::WindowMessageHandler(HWND hwnd, UINT message, WPARAM wParam,
 				{
 					// enter pause state
 					app.SetGameState(GameState::DemoPause);
-					
 					break;
 				}
 				else if (currentState == GameState::DemoPause)
@@ -480,6 +479,8 @@ LRESULT BearWindow::WindowMessageHandler(HWND hwnd, UINT message, WPARAM wParam,
 				if (currentState == GameState::DemoStart)
 				{
 					app.SetGameState(GameState::DemoRunning);
+					app.ResetGameClock();
+					ResetCamera();
 					app.ResetGameClock();
 
 				}
