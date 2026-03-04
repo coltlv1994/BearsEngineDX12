@@ -1088,10 +1088,10 @@ void UIManager::DrawD2DContent(RenderResource& currentRR, GameState p_gameState)
 	float crosshairThickness = 2.0f * dpiScale;
 
 	// Text shown
-	static const wchar_t MenuText[] = L"BearsEngine DEMO session.\n\n\nPress SPACE to start, ESC to return";
+	static const wchar_t MenuText[] = L"BearsEngine DEMO session.\n\n\nPress SPACE to start, ESC to exit.";
 	static const wchar_t winText[] = L"You win!\n\nPress R to restart.";
 	static const wchar_t loseText[] = L"You lose!\n\nPress R to restart.";
-	static const wchar_t pauseText[] = L"Game paused.\n\nPress ESC to resume.";
+	static const wchar_t pauseText[] = L"Game paused.\n\nPress PAUSE again to resume, ESC to exit.";
 
 #if defined(_DEBUG)
 	int writeSize = GenerateOverlayDebugInfo();
