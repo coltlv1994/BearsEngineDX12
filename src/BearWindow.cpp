@@ -441,29 +441,27 @@ LRESULT BearWindow::WindowMessageHandler(HWND hwnd, UINT message, WPARAM wParam,
 
 				if (currentState == GameState::DemoStart ||
 					currentState == GameState::DemoWin ||
-					currentState == GameState::DemoLose)
+					currentState == GameState::DemoLose ||
+					currentState == GameState::DemoPause)
 				{
 					// exit to editor scene
 					app.SwitchToMainWindow();
 					app.SetGameState(GameState::EditorScene);
-					break;
 				}
-				else if (currentState == GameState::DemoRunning)
+				break;
+
+			case VK_PAUSE:
+				if (currentState == GameState::DemoRunning)
 				{
 					// enter pause state
 					app.SetGameState(GameState::DemoPause);
-					break;
 				}
 				else if (currentState == GameState::DemoPause)
 				{
 					// enter pause state
 					app.SetGameState(GameState::DemoRunning);
-					break;
 				}
-				else
-				{
-					break;
-				}
+				break;
 
 			case 'R':
 				// reset cam and timer
