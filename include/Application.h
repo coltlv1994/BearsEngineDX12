@@ -166,6 +166,16 @@ public:
 		m_gameClock.Reset();
 	}
 
+	std::vector<XMVECTOR>& GetBezierCurvePoints()
+	{
+		return m_bezierCurvePoints;
+	}
+
+	void SetNumOfCurveSections(unsigned int num)
+	{
+		m_numOfCurveSections = num;
+	}
+
 protected:
 
 	// Create an application instance.

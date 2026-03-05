@@ -838,6 +838,15 @@ void UIManager::_saveMap()
 	// write light info
 	mapFile.write(reinterpret_cast<char*>(&m_lightConstants), sizeof(LightConstants));
 
+	// write bezier control points
+	std::vector<XMVECTOR>& controlPoints = Application::Get().GetBezierCurvePoints();
+	uint32_t numOfControlPoints = controlPoints.size();
+	// number of control points
+	mapFile.write(reinterpret_cast<char*>(&numOfControlPoints), sizeof(uint32_t));
+	// control point data
+	mapFile.write(reinterpret_cast<char*>(controlPoints.data()), sizeof(XMVECTOR) * numOfControlPoints);
+
+	// write instance info, grouped by mesh
 	std::map<std::string, std::vector<Instance*>> instancesByMesh;
 
 	for (const auto meshName : listOfMeshes)
@@ -1008,6 +1017,36 @@ bool UIManager::_loadMap()
 		MeshManager::Get().ReceiveMessage(msg);
 
 		offset += sizeof(LightConstants);
+	}
+
+	// read bezier control points
+	if (offset + sizeof(uint32_t) > size)
+	{
+		std::cerr << "Map file too small to contain bezier control point count." << std::endl;
+		delete[] mapData;
+		return false;
+	}
+	else
+	{
+		uint32_t numOfControlPoints = *(uint32_t*)(mapData + offset);
+		size_t controlPointDataSize = sizeof(XMVECTOR) * numOfControlPoints;
+		if (offset + controlPointDataSize > size)
+		{
+			std::cerr << "Map file too small to contain bezier control points." << std::endl;
+			delete[] mapData;
+			return false;
+		}
+		else
+		{
+			offset += sizeof(uint32_t);
+
+			std::vector<XMVECTOR>& controlPoints = Application::Get().GetBezierCurvePoints();
+			controlPoints.clear();
+			controlPoints.resize(numOfControlPoints);
+			memcpy_s(controlPoints.data(), controlPointDataSize, mapData + offset, controlPointDataSize);
+			offset += controlPointDataSize;
+			Application::Get().SetNumOfCurveSections(numOfControlPoints / 2); // update curve section count
+		}
 	}
 
 	while (offset < size)
