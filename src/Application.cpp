@@ -448,7 +448,7 @@ int Application::RunWithBearWindow(const std::wstring& p_windowName, int p_width
 
 void Application::RenderBearWindow(std::shared_ptr<BearWindow> window)
 {
-	if (window->IsPhysicsEnabled())
+	if (m_gameState == GameState::DemoRunning)
 	{
 		// new location of cam/player
 		m_gameClock.Tick();
