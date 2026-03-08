@@ -71,10 +71,11 @@ void D3D12Renderer::Render(BearWindow& window)
 
 	// treat the texture coord:
 	// (screen space) x = 2u - 1, y = 1 - 2v
-	XMFLOAT4X4 matScreen = XMFLOAT4X4(2.0, 0, 0, 0,
-		0, -2.0, 0, 0,
-		0, 0, 1, 0,
-		-1, 1, 0, 1);
+	XMFLOAT4X4 matScreen = XMFLOAT4X4(
+		2.0, 0,   0, 0,
+		0,  -2.0, 0, 0,
+		0,  0,    1, 0,
+		-1, 1,    0, 1);
 	XMMATRIX matS = XMLoadFloat4x4(&matScreen);
 
 	XMMATRIX invScreenPVMatrix = XMMatrixMultiply(matS, invPVMatrix);
