@@ -14,6 +14,7 @@
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>
+#include <Jolt/Physics/Collision/BroadPhase/BroadPhaseQuery.h>
 
 // STL includes
 #include <iostream>
@@ -226,4 +227,61 @@ public:
 	{
 		std::cout << "A body went to sleep" << std::endl;
 	}
+};
+
+class MyCollector : public CollideShapeBodyCollector
+{
+public:
+	MyCollector(RVec3Arg inPoint, CollidePointCollector& ioCollector, const BodyLockInterface& inBodyLockInterface, const BodyFilter& inBodyFilter, const ShapeFilter& inShapeFilter) :
+		CollideShapeBodyCollector(ioCollector),
+		mPoint(inPoint),
+		mCollector(ioCollector),
+		mBodyLockInterface(inBodyLockInterface),
+		mBodyFilter(inBodyFilter),
+		mShapeFilter(inShapeFilter)
+	{
+	}
+
+	virtual void		AddHit(const ResultType& inResult) override
+	{
+		// Only test shape if it passes the body filter
+		if (mBodyFilter.ShouldCollide(inResult))
+		{
+			// Lock the body
+			BodyLockRead lock(mBodyLockInterface, inResult);
+			if (lock.SucceededAndIsInBroadPhase()) // Race condition: body could have been removed since it has been found in the broadphase, ensures body is in the broadphase while we call the callbacks
+			{
+				const Body& body = lock.GetBody();
+
+				// Check body filter again now that we've locked the body
+				if (mBodyFilter.ShouldCollideLocked(body))
+				{
+					// Collect the transformed shape
+					TransformedShape ts = body.GetTransformedShape();
+
+					// Notify collector of new body
+					mCollector.OnBody(body);
+
+					// Release the lock now, we have all the info we need in the transformed shape
+					lock.ReleaseLock();
+
+					// Do narrow phase collision check
+					ts.CollidePoint(mPoint, mCollector, mShapeFilter);
+
+					// Notify collector of the end of this body
+					// We do this before updating the early out fraction so that the collector can still modify it
+					mCollector.OnBodyEnd();
+
+					// Update early out fraction based on narrow phase collector
+					UpdateEarlyOutFraction(mCollector.GetEarlyOutFraction());
+				}
+			}
+		}
+	}
+
+	RVec3							mPoint;
+	CollidePointCollector& mCollector;
+	const BodyLockInterface& mBodyLockInterface;
+	const BodyFilter& mBodyFilter;
+	const ShapeFilter& mShapeFilter;
 };

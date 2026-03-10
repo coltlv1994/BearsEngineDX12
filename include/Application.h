@@ -239,12 +239,13 @@ private:
 	ObjectLayerPairFilterImpl m_objectVsObjectLayerFilter;
 	MyBodyActivationListener m_bodyActivationListener;
 	MyContactListener m_contactListener;
-	//MyBroadPhaseLayerFilter m_broadPhaseLayerFilter;
-	//MyDefaultObjectLayerFilter m_defaultObjectLayerFilter;
+	MyBroadPhaseLayerFilter m_broadPhaseLayerFilter;
+	MyDefaultObjectLayerFilter m_defaultObjectLayerFilter;
 	//MyBodyFilter m_bodyFilter;
 
 	//std::vector<JPH::BodyID> m_physicsBodies;
 	std::set<JPH::BodyID> m_physicsBodiesSet; // for quick lookup when removing bodies
+	JPH::BodyID m_camPlayerBodyId;
 	std::vector<XMVECTOR> m_bezierCurvePoints; // points on the bezier curve to render
 	unsigned int m_numOfCurveSections = 0;
 

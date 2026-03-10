@@ -457,6 +457,8 @@ void Application::RenderBearWindow(std::shared_ptr<BearWindow> window)
 		float currentT = static_cast<float>(totalSeconds / m_sectionTimeInSeconds - currentSection);
 		float oneMinusT = 1.0f - currentT;
 
+		XMVECTOR newPosition = XMVectorZero();
+
 		if (currentSection > m_numOfCurveSections)
 		{
 			// game should end
@@ -470,7 +472,7 @@ void Application::RenderBearWindow(std::shared_ptr<BearWindow> window)
 
 			static XMVECTOR sectionEnd = XMVectorSet(10.0f, 0.0f, 10.0f, 1.0f);
 
-			XMVECTOR newPosition = 
+			newPosition = 
 				// starting point is always (0, 0, 0), so we can skip that part
 				3.0f * std::powf(oneMinusT, 2.0f) * currentT * p1 +
 				3.0f * oneMinusT * std::powf(currentT, 2.0f) * p2 +
@@ -482,6 +484,19 @@ void Application::RenderBearWindow(std::shared_ptr<BearWindow> window)
 		}
 
 		static BodyInterface& bodyInterface = m_physicsSystem.GetBodyInterface();
+
+		// TODO: update camera/player location and handle collision
+		//static float constantDeltaTime = 1.0f / 60.0f;
+	    //m_physicsSystem.Update(constantDeltaTime, 1, m_tempAllocator_p, m_jobSystem_p);
+
+		//bodyInterface.SetPosition(m_camPlayerBodyId, JPH::Vec3(newPosition.m128_f32[0], 0.0f, newPosition.m128_f32[2]), EActivation::Activate);
+		const JPH::BroadPhaseQuery& broadPhaseQuery = m_physicsSystem.GetBroadPhaseQuery();
+		broadPhaseQuery.CollideSphere(
+			JPH::Vec3(newPosition.m128_f32[0], newPosition.m128_f32[1], newPosition.m128_f32[2]),
+			0.5f,
+			m_sphereCollisionCollector,
+			m_broadPhaseLayerFilter,
+			m_defaultObjectLayerFilter);
 
 		// update physics
 		JPH::Vec3 raycastStart;
@@ -510,8 +525,6 @@ void Application::RenderBearWindow(std::shared_ptr<BearWindow> window)
 	}
 
 	m_renderer_p->Render(*window);
-	//static float constantDeltaTime = 1.0f / 60.0f;
-	//m_physicsSystem.Update(constantDeltaTime, 1, m_tempAllocator_p, m_jobSystem_p);
 }
 
 void Application::SwitchToDemoWindow()
@@ -649,6 +662,8 @@ void Application::AddPhysicsBodies()
 	XMFLOAT4 rotQuaternion;
 	XMFLOAT4 scale;
 
+	BodyCreationSettings bodySettings;
+
 	for (auto in_p : instanceList)
 	{
 		Instance& instance = *in_p;
@@ -657,7 +672,6 @@ void Application::AddPhysicsBodies()
 		XMStoreFloat4(&position, instance.GetPosition());
 		XMStoreFloat4(&rotQuaternion, instance.GetRotQuaternion());
 		XMStoreFloat4(&scale, instance.GetScale());
-		BodyCreationSettings bodySettings;
 
 		switch (bodyShape)
 		{
@@ -685,6 +699,16 @@ void Application::AddPhysicsBodies()
 			break;
 		}
 	}
+
+	// need a separate one for camera/player
+	bodySettings =
+		BodyCreationSettings(
+			new SphereShape(1.0f), // radius
+			RVec3(0.0f, 0.0f, 0.0f), // position, starting position of camera/player is (0, 0, 0)
+			Quat(0.0f, 0.0f, 0.0f, 1.0f), // rotation, theta is 0 -> cos(theta/2) = 1, sin(theta/2) = 0
+			EMotionType::Dynamic,
+			Layers::MOVING);
+	m_camPlayerBodyId = bodyInterface.CreateAndAddBody(bodySettings, EActivation::Activate);
 }
 
 void Application::DestroyPhysicsBodies()
@@ -696,6 +720,9 @@ void Application::DestroyPhysicsBodies()
 		bodyInterface.RemoveBody(body);
 		bodyInterface.DestroyBody(body);
 	}
+
+	bodyInterface.RemoveBody(m_camPlayerBodyId);
+	bodyInterface.DestroyBody(m_camPlayerBodyId);
 
 	m_physicsBodiesSet.clear();
 }
