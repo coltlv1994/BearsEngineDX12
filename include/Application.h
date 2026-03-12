@@ -241,6 +241,7 @@ private:
 	MyContactListener m_contactListener;
 	MyBroadPhaseLayerFilter m_broadPhaseLayerFilter;
 	MyDefaultObjectLayerFilter m_defaultObjectLayerFilter;
+	MyCollector my_sphereCollisionCollector; // for collision testing with the camera/player sphere
 	//MyBodyFilter m_bodyFilter;
 
 	//std::vector<JPH::BodyID> m_physicsBodies;

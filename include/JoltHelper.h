@@ -161,6 +161,11 @@ public:
 class MyBroadPhaseLayerFilter : public DefaultBroadPhaseLayerFilter
 {
 public:
+	MyBroadPhaseLayerFilter()
+		: DefaultBroadPhaseLayerFilter(ObjectVsBroadPhaseLayerFilterImpl(), Layers::MOVING)
+	{
+	}
+
 	virtual bool ShouldCollide(BroadPhaseLayer inLayer) const override
 	{
 		return true;

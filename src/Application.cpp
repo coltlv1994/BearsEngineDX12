@@ -494,7 +494,7 @@ void Application::RenderBearWindow(std::shared_ptr<BearWindow> window)
 		broadPhaseQuery.CollideSphere(
 			JPH::Vec3(newPosition.m128_f32[0], newPosition.m128_f32[1], newPosition.m128_f32[2]),
 			0.5f,
-			m_sphereCollisionCollector,
+			my_sphereCollisionCollector,
 			m_broadPhaseLayerFilter,
 			m_defaultObjectLayerFilter);
 
