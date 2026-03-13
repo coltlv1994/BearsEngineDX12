@@ -175,6 +175,11 @@ public:
 class MyDefaultObjectLayerFilter : public DefaultObjectLayerFilter
 {
 public:
+	MyDefaultObjectLayerFilter()
+		: DefaultObjectLayerFilter(ObjectLayerPairFilterImpl(), Layers::MOVING)
+	{
+
+	}
 	virtual bool ShouldCollide(ObjectLayer inLayer) const override
 	{
 		return true;
@@ -237,14 +242,10 @@ public:
 class MyCollector : public CollideShapeBodyCollector
 {
 public:
-	MyCollector(RVec3Arg inPoint, CollidePointCollector& ioCollector, const BodyLockInterface& inBodyLockInterface, const BodyFilter& inBodyFilter, const ShapeFilter& inShapeFilter) :
-		CollideShapeBodyCollector(ioCollector),
-		mPoint(inPoint),
-		mCollector(ioCollector),
-		mBodyLockInterface(inBodyLockInterface),
-		mBodyFilter(inBodyFilter),
-		mShapeFilter(inShapeFilter)
+	MyCollector()
+		: CollideShapeBodyCollector()
 	{
+
 	}
 
 	virtual void		AddHit(const ResultType& inResult) override
@@ -284,7 +285,7 @@ public:
 		}
 	}
 
-	RVec3							mPoint;
+	RVec3 mPoint;
 	CollidePointCollector& mCollector;
 	const BodyLockInterface& mBodyLockInterface;
 	const BodyFilter& mBodyFilter;
