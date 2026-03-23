@@ -366,3 +366,6 @@ FodyWeavers.xsd
 
 # shader output is removed
 *.cso
+
+# bin file removed
+*.bin

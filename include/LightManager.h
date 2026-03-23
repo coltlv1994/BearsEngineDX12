@@ -18,8 +18,7 @@ public:
 
 	void UpdateCameraPosition(XMFLOAT4& p_cameraPosition)
 	{
-		m_lightConstants.CameraPosition = p_cameraPosition;
-		CopyData(&m_lightConstants);
+		reinterpret_cast<LightConstants*>(m_mappedData)->CameraPosition = p_cameraPosition;
 	}
 
 	D3D12_GPU_VIRTUAL_ADDRESS GetLightCBVGPUAddress()

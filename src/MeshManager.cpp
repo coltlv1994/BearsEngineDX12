@@ -98,7 +98,7 @@ void MeshManager::RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandLi
 	// this is for first pass
 	ComPtr<ID3D12RootSignature> rootSignature;
 	ComPtr<ID3D12PipelineState> pipelineState;
-	m_defaultShader_p->GetRSAndPSO_1stPass(rootSignature, pipelineState);
+	m_deferredRenderer_p->GetRSAndPSO_1stPass(rootSignature, pipelineState);
 
 	p_commandList->SetPipelineState(pipelineState.Get());
 	p_commandList->SetGraphicsRootSignature(rootSignature.Get());
@@ -124,7 +124,7 @@ void  MeshManager::RenderAllMeshes2ndPass(ComPtr<ID3D12GraphicsCommandList2> p_c
 	// this is for 2nd pass
 	ComPtr<ID3D12RootSignature> rootSignature;
 	ComPtr<ID3D12PipelineState> pipelineState;
-	m_defaultShader_p->GetRSAndPSO_2ndPass(rootSignature, pipelineState);
+	m_deferredRenderer_p->GetRSAndPSO_2ndPass(rootSignature, pipelineState);
 
 	p_commandList->SetPipelineState(pipelineState.Get());
 	// sharing the same root signature for both passes
@@ -189,7 +189,7 @@ void MeshManager::_processMessage(Message& msg)
 
 		// TODO: use different shader and texture if specified in message
 		// texturePath is now fixed in Mesh constructor
-		if (AddMesh(meshName, m_defaultShader_p))
+		if (AddMesh(meshName, m_deferredRenderer_p))
 		{
 			// Successfully added mesh
 			// Send back load success message
@@ -230,7 +230,7 @@ void MeshManager::_processMessage(Message& msg)
 			mesh_p = GetMeshByName(meshName);
 			if (!mesh_p)
 			{
-				if (!AddMesh(meshName, m_defaultShader_p))
+				if (!AddMesh(meshName, m_deferredRenderer_p))
 				{
 					// Failed to add mesh, send error message
 					_sendMeshLoadFailedMessage(meshName);
@@ -351,7 +351,7 @@ void MeshManager::_processMessage(Message& msg)
 	}
 	case MSG_TYPE_REBUILD_SHADERS:
 	{
-		m_defaultShader_p->RebuildShaders();
+		m_deferredRenderer_p->RebuildShaders();
 		break;
 	}
 	default:

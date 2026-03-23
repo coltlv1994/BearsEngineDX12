@@ -813,6 +813,10 @@ void UIManager::_saveMap()
 	mapFile.write(textureData, textureNameDataSize);
 	delete[] textureData;
 
+	// save light info
+	mapFile.write(reinterpret_cast<char*>(&m_lightConstants), sizeof(LightConstants));
+
+	// write instance info
 	std::map<std::string, std::vector<Instance*>> instancesByMesh;
 
 	for (const auto meshName : listOfMeshes)
@@ -893,7 +897,9 @@ bool UIManager::_loadMap()
 	// close anyway since copy is complete
 	mapFile.close();
 
-	if (size < sizeof(Camera) || m_mainCamRef == nullptr)
+	size_t cameraDataSize = sizeof(Camera);
+
+	if (size < cameraDataSize || m_mainCamRef == nullptr)
 	{
 		std::cerr << "Map file too small to contain camera data." << std::endl;
 		delete[] mapData;
@@ -918,14 +924,13 @@ bool UIManager::_loadMap()
 	// Camera class has fixed size
 	size_t offset = 0;
 	Camera tempCam;
-	memcpy_s(&tempCam, sizeof(Camera), mapData + offset, sizeof(Camera));
+	memcpy_s(&tempCam, cameraDataSize, mapData + offset, cameraDataSize);
 	*m_mainCamRef = tempCam;
 	XMVECTOR mainCamRot = m_mainCamRef->GetRotation() / PI_DIV_180; // to degrees
 	XMStoreFloat3((XMFLOAT3*)camParam[0], m_mainCamRef->GetPosition());
 	XMStoreFloat3((XMFLOAT3*)camParam[1], mainCamRot);
 
-	// to read others
-	offset += sizeof(Camera); // "mesh," take 5 bytes
+	offset += cameraDataSize;
 
 	// read texture names
 	if (offset + sizeof(uint32_t) > size)
@@ -960,6 +965,28 @@ bool UIManager::_loadMap()
 			}
 			offset += textureNameDataSize;
 		}
+	}
+
+	// read light info
+	size_t lightInfoSize = sizeof(LightConstants);
+	if (offset + lightInfoSize > size)
+	{
+		std::cerr << "Map file too small to contain light info." << std::endl;
+		delete[] mapData;
+		return false;
+
+	}
+	else
+	{
+		memcpy_s(&m_lightConstants, lightInfoSize, mapData + offset, lightInfoSize);
+
+		// send message to mesh manager for light modification
+		Message* msg = new Message();
+		msg->type = MSG_TYPE_MODIFY_LIGHT;
+		msg->SetData((unsigned char*)&m_lightConstants, lightInfoSize);
+		MeshManager::Get().ReceiveMessage(msg);
+
+		offset += lightInfoSize;
 	}
 
 	while (offset < size)
