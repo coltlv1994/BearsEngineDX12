@@ -27,27 +27,24 @@ static UINT secondPassInputLayoutCount = sizeof(secondPassInputLayout) / sizeof(
 
 Shader::Shader(const wchar_t* p_1stVsPath, const wchar_t* p_1stPsPath, const wchar_t* p_2ndVsPath, const wchar_t* p_2ndPsPath)
 {
-	m_1stVsPath = p_1stVsPath;
-	m_1stPsPath = p_1stPsPath;
-	m_2ndVsPath = p_2ndVsPath;
-	m_2ndPsPath = p_2ndPsPath;
+    m_1stVsPath = p_1stVsPath;
+    m_1stPsPath = p_1stPsPath;
+    ThrowIfFailed(D3DReadFileToBlob((L"shaders\\" + m_1stVsPath + L".cso").c_str(), &m_1stPassVertexShaderBlob));
+    ThrowIfFailed(D3DReadFileToBlob((L"shaders\\" + m_1stPsPath + L".cso").c_str(), &m_1stPassPixelShaderBlob));
+    _create1st();
 
-    _createRSAndPSO();
+    if (p_2ndVsPath != nullptr && p_2ndPsPath != nullptr)
+    {
+        m_2ndVsPath = p_2ndVsPath;
+        m_2ndPsPath = p_2ndPsPath;
+        ThrowIfFailed(D3DReadFileToBlob((L"shaders\\" + m_2ndVsPath + L".cso").c_str(), &m_2ndPassVertexShaderBlob));
+        ThrowIfFailed(D3DReadFileToBlob((L"shaders\\" + m_2ndPsPath + L".cso").c_str(), &m_2ndPassPixelShaderBlob));
+        _create2nd();
+    }
 }
 
 Shader::~Shader()
 {
-}
-
-void Shader::_createRSAndPSO()
-{
-    ThrowIfFailed(D3DReadFileToBlob((L"shaders\\" + m_1stVsPath + L".cso").c_str(), &m_1stPassVertexShaderBlob));
-    ThrowIfFailed(D3DReadFileToBlob((L"shaders\\" + m_1stPsPath + L".cso").c_str(), &m_1stPassPixelShaderBlob));
-    ThrowIfFailed(D3DReadFileToBlob((L"shaders\\" + m_2ndVsPath + L".cso").c_str(), &m_2ndPassVertexShaderBlob));
-    ThrowIfFailed(D3DReadFileToBlob((L"shaders\\" + m_2ndPsPath + L".cso").c_str(), &m_2ndPassPixelShaderBlob));
-
-	_create1st();
-	_create2nd();
 }
 
 void Shader::RebuildShaders()
@@ -221,4 +218,76 @@ void Shader::_create2nd()
     graphicsPipelineState.SampleDesc.Count = 1;
     graphicsPipelineState.SampleDesc.Quality = 0;
     ThrowIfFailed(device->CreateGraphicsPipelineState(&graphicsPipelineState, IID_PPV_ARGS(&m_2ndPassPipelineState)));
+}
+
+void Shader::_createForward()
+{
+    auto device = Application::Get().GetDevice();
+
+    // Create a root signature.
+    D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
+    featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
+    if ((((HRESULT)(device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData)))) < 0))
+    {
+        featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
+    }
+
+    // Allow input layout and deny unnecessary access to certain pipeline stages.
+    D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
+        D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+        D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+        D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+        D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
+
+    // A single 32-bit constant root parameter that is used by the vertex shader.
+    // first pass don't handle lights, only textures is enough
+    CD3DX12_ROOT_PARAMETER1 rootParameters[3];
+
+    CD3DX12_DESCRIPTOR_RANGE1 descriptorRange[2];
+    descriptorRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 0);
+    descriptorRange[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
+
+    rootParameters[0].InitAsDescriptorTable(1, &descriptorRange[0], D3D12_SHADER_VISIBILITY_PIXEL); // texture
+    rootParameters[1].InitAsConstants(sizeof(VertexShaderInput) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX); // MVP matrix
+    rootParameters[2].InitAsDescriptorTable(1, &descriptorRange[1], D3D12_SHADER_VISIBILITY_PIXEL); // samplers
+
+    CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
+    rootSignatureDescription.Init_1_1(3, rootParameters, 0, nullptr, rootSignatureFlags);
+
+    // Serialize the root signature.
+    ComPtr<ID3DBlob> rootSignatureBlob;
+    ComPtr<ID3DBlob> errorBlob;
+    ThrowIfFailed(D3DX12SerializeVersionedRootSignature(&rootSignatureDescription,
+        featureData.HighestVersion, &rootSignatureBlob, &errorBlob));
+    // Create the root signature.
+    ThrowIfFailed(device->CreateRootSignature(0, rootSignatureBlob->GetBufferPointer(),
+        rootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&m_1stPassRootSignature)));
+
+    D3D12_RT_FORMAT_ARRAY rtvFormats = {};
+    rtvFormats.NumRenderTargets = 1;
+    rtvFormats.RTFormats[0] = DXGI_FORMAT_R32G32B32A32_FLOAT; // color
+
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineState;
+    memset(&graphicsPipelineState, 0, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+    graphicsPipelineState.InputLayout = { firstPassInputLayout, static_cast<UINT>(firstPassInputLayoutCount) };
+    graphicsPipelineState.pRootSignature = m_1stPassRootSignature.Get();
+    graphicsPipelineState.VS = CD3DX12_SHADER_BYTECODE(m_1stPassVertexShaderBlob.Get());
+    graphicsPipelineState.PS = CD3DX12_SHADER_BYTECODE(m_1stPassPixelShaderBlob.Get());
+    graphicsPipelineState.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+    // note: below commented-out lines will change default RasterizerState
+    // which means, default values are opposite to them.
+    //graphicsPipelineState.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+    //graphicsPipelineState.RasterizerState.FrontCounterClockwise = TRUE;
+    //graphicsPipelineState.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
+    graphicsPipelineState.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+    graphicsPipelineState.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+    graphicsPipelineState.SampleMask = UINT_MAX;
+    graphicsPipelineState.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    graphicsPipelineState.NumRenderTargets = rtvFormats.NumRenderTargets;
+    graphicsPipelineState.RTVFormats[0] = rtvFormats.RTFormats[0];
+    graphicsPipelineState.SampleDesc.Count = 1;
+    graphicsPipelineState.SampleDesc.Quality = 0;
+    graphicsPipelineState.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+    ThrowIfFailed(device->CreateGraphicsPipelineState(&graphicsPipelineState, IID_PPV_ARGS(&m_1stPassPipelineState)));
+
 }

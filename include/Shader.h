@@ -17,7 +17,7 @@ using namespace Microsoft::WRL;
 class Shader
 {
 public:
-	Shader(const wchar_t* p_1stVsPath, const wchar_t* p_1sPsPath, const wchar_t* p_2ndVsPath, const wchar_t* p_2ndPsPath);
+	Shader(const wchar_t* p_1stVsPath, const wchar_t* p_1sPsPath, const wchar_t* p_2ndVsPath = nullptr, const wchar_t* p_2ndPsPath = nullptr);
 	~Shader();
 
 	void GetRSAndPSO_1stPass(ComPtr<ID3D12RootSignature>& rootSignature, ComPtr<ID3D12PipelineState>& pipelineState)
@@ -52,7 +52,7 @@ private:
 	std::wstring m_2ndVsPath;
 	std::wstring m_2ndPsPath;
 
-	void _createRSAndPSO();
 	void _create1st();
 	void _create2nd();
+	void _createForward();
 };

@@ -47,7 +47,6 @@ struct SpotLight
     float SpotPower;
     
     float2 Falloff; // start, end
-    
     float2 Padding;
 };
 

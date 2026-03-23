@@ -38,9 +38,14 @@ public:
 	// Receive message from other systems
 	void ReceiveMessage(Message* msg);
 
-	void SetDefaultShader(Shader* shader_p)
+	void SetDeferredRenderer(Shader* shader_p)
 	{
-		m_defaultShader_p = shader_p;
+		m_deferredRenderer_p = shader_p;
+	}
+
+	void SetForwardRenderer(Shader* shader_p)
+	{
+		m_forwardRenderer_p = shader_p;
 	}
 
 	void SetSRVHeap(Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> srvHeap, Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> samplerHeap)

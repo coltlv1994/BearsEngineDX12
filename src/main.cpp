@@ -39,7 +39,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
         Shader demoShader(L"FirstPassVertexShader", L"FirstPassPixelShader",
             L"SecondPassVertexShader", L"SecondPassPixelShader");
 
-		MeshManager::Get().SetDefaultShader(&demoShader);
+		MeshManager::Get().SetDeferredRenderer(&demoShader);
 
         retCode = Application::Get().Run(editor);
     }
