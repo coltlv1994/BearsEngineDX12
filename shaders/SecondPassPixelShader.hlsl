@@ -1,4 +1,4 @@
-#define MAX_LIGHTS 16
+#define MAX_LIGHTS 128
 
 struct FPPS_IN
 {

@@ -70,12 +70,32 @@ public:
 
 	void SetSamplerIndex(unsigned int p_samplerIndex);
 
+	bool IsDeferredRenderingUsed() const
+	{
+		return m_isDeferredRenderingUsed;
+	}
+
+	void FlipRenderingMode()
+	{
+		m_isRendererChangePending = true;
+	}
+
+	void ChangeRenderingMode()
+	{
+		if (m_isRendererChangePending)
+		{
+			m_isDeferredRenderingUsed = !m_isDeferredRenderingUsed;
+			m_isRendererChangePending = false;
+		}
+	}
+
 private:
 	std::unordered_map<std::string, Mesh*> m_meshes; // map of mesh name to Mesh pointer
 	MessageQueue m_messageQueue;
 	Shader* m_deferredRenderer_p = nullptr;
 	Shader* m_forwardRenderer_p = nullptr;
 	bool m_isDeferredRenderingUsed = true;
+	bool m_isRendererChangePending = false;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_SRVHeap; // passed from Editor class, holds textures
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_samplerHeap; // passed from Editor class, holds samplers
 	std::vector<Instance*> m_instanceList; // list of all created instances

@@ -53,7 +53,7 @@ inline void ThrowIfFailed(HRESULT hr)
 #define WSTR1(x) L##x
 #define WSTR(x) WSTR1(x)
 #define NAME_D3D12_OBJECT(x) x->SetName( WSTR(__FILE__ "(" STR(__LINE__) "): " L#x) )
-#define MAX_LIGHTS 16
+#define MAX_LIGHTS 128
 
 static UINT CalcConstantBufferByteSize(UINT byteSize)
 {

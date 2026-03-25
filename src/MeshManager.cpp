@@ -95,18 +95,28 @@ void MeshManager::RenderAllMeshes(ComPtr<ID3D12GraphicsCommandList2> p_commandLi
 	if (m_instanceList.size() == 0)
 		return;
 
-	// this is for first pass
 	ComPtr<ID3D12RootSignature> rootSignature;
 	ComPtr<ID3D12PipelineState> pipelineState;
-	m_deferredRenderer_p->GetRSAndPSO_1stPass(rootSignature, pipelineState);
 
-	p_commandList->SetPipelineState(pipelineState.Get());
-	p_commandList->SetGraphicsRootSignature(rootSignature.Get());
+	if (!m_isDeferredRenderingUsed)
+	{
+		m_forwardRenderer_p->GetRSAndPSO_1stPass(rootSignature, pipelineState);
+		p_commandList->SetPipelineState(pipelineState.Get());
+		p_commandList->SetGraphicsRootSignature(rootSignature.Get());
+		// set light info here;
+		p_commandList->SetGraphicsRootConstantBufferView(3, m_lightManager_p->GetLightCBVGPUAddress());
+	}
+	else
+	{
+		// this is for first pass
+		m_deferredRenderer_p->GetRSAndPSO_1stPass(rootSignature, pipelineState);
+		p_commandList->SetPipelineState(pipelineState.Get());
+		p_commandList->SetGraphicsRootSignature(rootSignature.Get());
+	}
 
 	// set sampler
 	static UINT samplerSize = Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 	static D3D12_GPU_DESCRIPTOR_HANDLE samplerBaseHandle = m_samplerHeap->GetGPUDescriptorHandleForHeapStart();
-
 	p_commandList->SetGraphicsRootDescriptorTable(2, CD3DX12_GPU_DESCRIPTOR_HANDLE(samplerBaseHandle, m_selectedSampler, samplerSize));
 
 	for (Instance* instance_p : m_instanceList)

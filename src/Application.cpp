@@ -481,6 +481,13 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 			}
 		}
 		break;
+		case WM_KEYDOWN:
+		{
+			if (wParam == 'V')
+			{
+				pWindow->ToggleVSync();
+			}
+		}
 		default:
 			return DefWindowProcW(hwnd, message, wParam, lParam);
 		}

@@ -183,12 +183,13 @@ void UIManager::CreateImGuiWindowContent()
 			_saveMap();
 		}
 
-		if (ImGui::Button("Rebuild shaders"))
+		if (ImGui::Button("Change rendering mode"))
 		{
 			// send message to mesh manager
-			Message* msg = new Message();
-			msg->type = MSG_TYPE_REBUILD_SHADERS;
-			MeshManager::Get().ReceiveMessage(msg);
+			//Message* msg = new Message();
+			//msg->type = MSG_TYPE_REBUILD_SHADERS;
+			//MeshManager::Get().ReceiveMessage(msg);
+			MeshManager::Get().FlipRenderingMode();
 		}
 		ImGui::EndTabItem();
 	}

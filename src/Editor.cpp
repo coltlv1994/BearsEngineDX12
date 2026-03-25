@@ -21,6 +21,8 @@ using namespace Microsoft::WRL;
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx12.h"
 
+#include "pix3.h"
+
 #include <algorithm> // For std::min and std::max.
 #if defined(min)
 #undef min
@@ -245,81 +247,104 @@ void Editor::OnRender(RenderEventArgs& e)
 {
 	super::OnRender(e);
 
+	MeshManager::Get().ChangeRenderingMode();
+	bool isDeferredRendering = MeshManager::Get().IsDeferredRenderingUsed();
+
 	auto commandQueue = Application::Get().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 	auto commandList = commandQueue->GetCommandList();
 
-	UINT currentBackBufferIndex = m_pWindow->GetCurrentBackBufferIndex();
-	auto backBuffer = m_pWindow->GetCurrentBackBuffer();
-	static UINT descriptorSize = Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-	auto firstPassRtv = m_pWindow->GetFirstPassRenderTargetView();
-
-	CD3DX12_CPU_DESCRIPTOR_HANDLE firstPassRtvHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(firstPassRtv);
-	CD3DX12_CPU_DESCRIPTOR_HANDLE firstPassRtvHandleForReset = CD3DX12_CPU_DESCRIPTOR_HANDLE(firstPassRtv);
+	PIXBeginEvent(commandList.Get(), 0, L"Render");
 
 	auto dsv = m_DSVHeap->GetCPUDescriptorHandleForHeapStart();
+	UINT currentBackBufferIndex = m_pWindow->GetCurrentBackBufferIndex();
+	auto backBuffer = m_pWindow->GetCurrentBackBuffer();
+	auto backbufferRtv = m_pWindow->GetCurrentRenderTargetView();
+	static UINT descriptorSize = Application::Get().GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	XMMATRIX vpMatrix = m_mainCamera.GetViewProjectionMatrix();
+	ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap.Get(), m_samplersHeap.Get() };
+	FLOAT clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 	commandList->RSSetViewports(1, &m_Viewport);
 	commandList->RSSetScissorRects(1, &m_ScissorRect);
-	FLOAT clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-	// first pass, clear rtv
-	for (UINT i = 0; i < Window::FirstPassRTVCount; i++)
-	{
-		commandList->ClearRenderTargetView(firstPassRtvHandleForReset, clearColor, 0, nullptr);
-		firstPassRtvHandleForReset.Offset(1, descriptorSize);
-	}
-	// clear dsv
 	ClearDepth(commandList, dsv);
-	ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap.Get(), m_samplersHeap.Get()};
 	commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-
-	// bind render targets
-	commandList->OMSetRenderTargets(Window::FirstPassRTVCount, &firstPassRtv, TRUE, &dsv);
-	XMMATRIX vpMatrix = m_mainCamera.GetViewProjectionMatrix();
-	XMMATRIX invPVMatrix = m_mainCamera.GetInvPVMatrix();
-
-	// treat the texture coord:
-	// (screen space) x = 2u - 1, y = 1 - 2v
-	XMFLOAT4X4 matScreen = XMFLOAT4X4(2.0, 0, 0, 0,
-		                                    0, -2.0, 0, 0,
-		                                    0, 0, 1, 0,
-		                                    -1, 1, 0, 1);
-	XMMATRIX matS = XMLoadFloat4x4(&matScreen);
-
-	XMMATRIX invScreenPVMatrix = XMMatrixMultiply(matS, invPVMatrix);
-
-	UIManager::Get().CreateImGuiWindowContent();
-
-	// first pass
-	MeshManager::Get().RenderAllMeshes(commandList, vpMatrix);
-
-	// move  to second pass
-	// back buffer transition barrier
-	auto secondPassRtv = m_pWindow->GetCurrentRenderTargetView();
-
-	ComPtr<ID3D12Resource>* firstPassRtvResources = m_pWindow->GetFirstPassRtvResource();
-
-	for (UINT i = 0; i < Window::FirstPassRTVCount; i++)
-	{
-		TransitionResource(commandList,
-			firstPassRtvResources[currentBackBufferIndex * Window::FirstPassRTVCount + i],
-			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
-	}
-
-	TransitionResource(commandList,
-		m_DepthBuffer,
-		D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ);
-
 	TransitionResource(commandList, backBuffer,
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	ClearRTV(commandList, backbufferRtv, clearColor);
 
-	// clear RTV
-	ClearRTV(commandList, secondPassRtv, clearColor);
-	commandList->OMSetRenderTargets(1, &secondPassRtv, FALSE, nullptr);
+	if (!isDeferredRendering)
+	{
+		commandList->OMSetRenderTargets(1, &backbufferRtv, TRUE, &dsv);
 
-	// Render function for second pass
-	MeshManager::Get().RenderAllMeshes2ndPass(commandList, currentBackBufferIndex, invScreenPVMatrix);
+		UIManager::Get().CreateImGuiWindowContent();
+
+		MeshManager::Get().RenderAllMeshes(commandList, vpMatrix);
+	}
+	else
+	{
+		auto firstPassRtv = m_pWindow->GetFirstPassRenderTargetView();
+
+		CD3DX12_CPU_DESCRIPTOR_HANDLE firstPassRtvHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(firstPassRtv);
+		CD3DX12_CPU_DESCRIPTOR_HANDLE firstPassRtvHandleForReset = CD3DX12_CPU_DESCRIPTOR_HANDLE(firstPassRtv);
+
+		// first pass, clear rtv
+		for (UINT i = 0; i < Window::FirstPassRTVCount; i++)
+		{
+			commandList->ClearRenderTargetView(firstPassRtvHandleForReset, clearColor, 0, nullptr);
+			firstPassRtvHandleForReset.Offset(1, descriptorSize);
+		}
+
+		// bind render targets
+		commandList->OMSetRenderTargets(Window::FirstPassRTVCount, &firstPassRtv, TRUE, &dsv);
+		XMMATRIX invPVMatrix = m_mainCamera.GetInvPVMatrix();
+
+		// treat the texture coord:
+		// (screen space) x = 2u - 1, y = 1 - 2v
+		XMFLOAT4X4 matScreen = XMFLOAT4X4(2.0, 0, 0, 0,
+			0, -2.0, 0, 0,
+			0, 0, 1, 0,
+			-1, 1, 0, 1);
+		XMMATRIX matS = XMLoadFloat4x4(&matScreen);
+
+		XMMATRIX invScreenPVMatrix = XMMatrixMultiply(matS, invPVMatrix);
+
+		UIManager::Get().CreateImGuiWindowContent();
+
+		// first pass
+		MeshManager::Get().RenderAllMeshes(commandList, vpMatrix);
+
+		// move  to second pass
+		ComPtr<ID3D12Resource>* firstPassRtvResources = m_pWindow->GetFirstPassRtvResource();
+
+		for (UINT i = 0; i < Window::FirstPassRTVCount; i++)
+		{
+			TransitionResource(commandList,
+				firstPassRtvResources[currentBackBufferIndex * Window::FirstPassRTVCount + i],
+				D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
+		}
+
+		TransitionResource(commandList,
+			m_DepthBuffer,
+			D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ);
+
+		// write to screen buffer
+		commandList->OMSetRenderTargets(1, &backbufferRtv, FALSE, nullptr);
+
+		// Render function for second pass
+		MeshManager::Get().RenderAllMeshes2ndPass(commandList, currentBackBufferIndex, invScreenPVMatrix);
+
+		for (UINT i = 0; i < Window::FirstPassRTVCount; i++)
+		{
+			TransitionResource(commandList,
+				firstPassRtvResources[currentBackBufferIndex * Window::FirstPassRTVCount + i],
+				D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		}
+
+		// reset depth buffer state
+		TransitionResource(commandList,
+			m_DepthBuffer,
+			D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	}
 
 	UIManager::Get().Draw(commandList);
 
@@ -327,16 +352,7 @@ void Editor::OnRender(RenderEventArgs& e)
 	TransitionResource(commandList, backBuffer,
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
-	for (UINT i = 0; i < Window::FirstPassRTVCount; i++)
-	{
-		TransitionResource(commandList,
-			firstPassRtvResources[currentBackBufferIndex * Window::FirstPassRTVCount + i],
-			D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	}
-
-	TransitionResource(commandList,
-		m_DepthBuffer,
-		D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	PIXEndEvent(commandList.Get());
 
 	m_FenceValues[currentBackBufferIndex] = commandQueue->ExecuteCommandList(commandList);
 

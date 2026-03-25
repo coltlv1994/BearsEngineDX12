@@ -31,15 +31,19 @@ Shader::Shader(const wchar_t* p_1stVsPath, const wchar_t* p_1stPsPath, const wch
     m_1stPsPath = p_1stPsPath;
     ThrowIfFailed(D3DReadFileToBlob((L"shaders\\" + m_1stVsPath + L".cso").c_str(), &m_1stPassVertexShaderBlob));
     ThrowIfFailed(D3DReadFileToBlob((L"shaders\\" + m_1stPsPath + L".cso").c_str(), &m_1stPassPixelShaderBlob));
-    _create1st();
-
+    
     if (p_2ndVsPath != nullptr && p_2ndPsPath != nullptr)
     {
+        _create1st();
         m_2ndVsPath = p_2ndVsPath;
         m_2ndPsPath = p_2ndPsPath;
         ThrowIfFailed(D3DReadFileToBlob((L"shaders\\" + m_2ndVsPath + L".cso").c_str(), &m_2ndPassVertexShaderBlob));
         ThrowIfFailed(D3DReadFileToBlob((L"shaders\\" + m_2ndPsPath + L".cso").c_str(), &m_2ndPassPixelShaderBlob));
         _create2nd();
+    }
+    else
+    {
+        _createForward();
     }
 }
 
@@ -241,7 +245,7 @@ void Shader::_createForward()
 
     // A single 32-bit constant root parameter that is used by the vertex shader.
     // first pass don't handle lights, only textures is enough
-    CD3DX12_ROOT_PARAMETER1 rootParameters[3];
+    CD3DX12_ROOT_PARAMETER1 rootParameters[4];
 
     CD3DX12_DESCRIPTOR_RANGE1 descriptorRange[2];
     descriptorRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 0);
@@ -250,9 +254,10 @@ void Shader::_createForward()
     rootParameters[0].InitAsDescriptorTable(1, &descriptorRange[0], D3D12_SHADER_VISIBILITY_PIXEL); // texture
     rootParameters[1].InitAsConstants(sizeof(VertexShaderInput) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX); // MVP matrix
     rootParameters[2].InitAsDescriptorTable(1, &descriptorRange[1], D3D12_SHADER_VISIBILITY_PIXEL); // samplers
+    rootParameters[3].InitAsConstantBufferView(1); // Light CB
 
     CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
-    rootSignatureDescription.Init_1_1(3, rootParameters, 0, nullptr, rootSignatureFlags);
+    rootSignatureDescription.Init_1_1(4, rootParameters, 0, nullptr, rootSignatureFlags);
 
     // Serialize the root signature.
     ComPtr<ID3DBlob> rootSignatureBlob;
@@ -265,10 +270,11 @@ void Shader::_createForward()
 
     D3D12_RT_FORMAT_ARRAY rtvFormats = {};
     rtvFormats.NumRenderTargets = 1;
-    rtvFormats.RTFormats[0] = DXGI_FORMAT_R32G32B32A32_FLOAT; // color
+    rtvFormats.RTFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM; // color
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineState;
     memset(&graphicsPipelineState, 0, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+    // reuse first pass input for forward rendering
     graphicsPipelineState.InputLayout = { firstPassInputLayout, static_cast<UINT>(firstPassInputLayoutCount) };
     graphicsPipelineState.pRootSignature = m_1stPassRootSignature.Get();
     graphicsPipelineState.VS = CD3DX12_SHADER_BYTECODE(m_1stPassVertexShaderBlob.Get());

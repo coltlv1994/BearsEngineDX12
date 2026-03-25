@@ -20,16 +20,16 @@ void ReportLiveObjects()
 
 int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nCmdShow)
 {
-    int retCode = 0;
+#if defined(_DEBUG)
+    // Load the WinPixGpuCapturer.dll for GPU capture in PIX. Adjust the path as needed.
+    // ONLY WORKS IN DEBUG MODE.
+    if (GetModuleHandle(L"WinPixGpuCapturer.dll") == 0)
+    {
+        LoadLibrary(L"C:\\Program Files\\Microsoft PIX\\2602.25\\WinPixGpuCapturer.dll");
+    }
+#endif
 
-    // Set the working directory to the path of the executable.
-    //WCHAR path[MAX_PATH];
-    //HMODULE hModule = GetModuleHandleW(NULL);
-    //if (GetModuleFileNameW(hModule, path, MAX_PATH) > 0)
-    //{
-    //    PathRemoveFileSpecW(path);
-    //    SetCurrentDirectoryW(path);
-    //}
+    int retCode = 0;
 
     Application::Create(hInstance);
 
@@ -39,7 +39,10 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
         Shader demoShader(L"FirstPassVertexShader", L"FirstPassPixelShader",
             L"SecondPassVertexShader", L"SecondPassPixelShader");
 
+		Shader forwardShader(L"VertexShader", L"PixelShader");
+
 		MeshManager::Get().SetDeferredRenderer(&demoShader);
+        MeshManager::Get().SetForwardRenderer(&forwardShader);
 
         retCode = Application::Get().Run(editor);
     }
