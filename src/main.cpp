@@ -24,7 +24,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 	// ONLY WORKS IN DEBUG MODE.
 	if (GetModuleHandle(L"WinPixGpuCapturer.dll") == 0)
 	{
-		LoadLibrary(L"C:\\Program Files\\Microsoft PIX\\2601.15\\WinPixGpuCapturer.dll");
+		LoadLibrary(L"C:\\Program Files\\Microsoft PIX\\2602.15\\WinPixGpuCapturer.dll");
 	}
 #endif
 
