@@ -253,8 +253,6 @@ void Editor::OnRender(RenderEventArgs& e)
 	auto commandQueue = Application::Get().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 	auto commandList = commandQueue->GetCommandList();
 
-	PIXBeginEvent(commandList.Get(), 0, L"Render");
-
 	auto dsv = m_DSVHeap->GetCPUDescriptorHandleForHeapStart();
 	UINT currentBackBufferIndex = m_pWindow->GetCurrentBackBufferIndex();
 	auto backBuffer = m_pWindow->GetCurrentBackBuffer();
@@ -263,6 +261,15 @@ void Editor::OnRender(RenderEventArgs& e)
 	XMMATRIX vpMatrix = m_mainCamera.GetViewProjectionMatrix();
 	ID3D12DescriptorHeap* ppHeaps[] = { m_SRVHeap.Get(), m_samplersHeap.Get() };
 	FLOAT clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	XMMATRIX invPVMatrix = m_mainCamera.GetInvPVMatrix();
+	// treat the texture coord:
+    // (screen space) x = 2u - 1, y = 1 - 2v
+	XMFLOAT4X4 matScreen = XMFLOAT4X4(2.0, 0, 0, 0,
+		0, -2.0, 0, 0,
+		0, 0, 1, 0,
+		-1, 1, 0, 1);
+	XMMATRIX matS = XMLoadFloat4x4(&matScreen);
+	XMMATRIX invScreenPVMatrix = XMMatrixMultiply(matS, invPVMatrix);
 
 	commandList->RSSetViewports(1, &m_Viewport);
 	commandList->RSSetScissorRects(1, &m_ScissorRect);
@@ -272,13 +279,18 @@ void Editor::OnRender(RenderEventArgs& e)
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	ClearRTV(commandList, backbufferRtv, clearColor);
 
+	UIManager::Get().CreateImGuiWindowContent();
+
+	PIXBeginEvent(commandList.Get(), 0, L"Render");
+
 	if (!isDeferredRendering)
 	{
+
 		commandList->OMSetRenderTargets(1, &backbufferRtv, TRUE, &dsv);
 
-		UIManager::Get().CreateImGuiWindowContent();
 
 		MeshManager::Get().RenderAllMeshes(commandList, vpMatrix);
+
 	}
 	else
 	{
@@ -296,19 +308,6 @@ void Editor::OnRender(RenderEventArgs& e)
 
 		// bind render targets
 		commandList->OMSetRenderTargets(Window::FirstPassRTVCount, &firstPassRtv, TRUE, &dsv);
-		XMMATRIX invPVMatrix = m_mainCamera.GetInvPVMatrix();
-
-		// treat the texture coord:
-		// (screen space) x = 2u - 1, y = 1 - 2v
-		XMFLOAT4X4 matScreen = XMFLOAT4X4(2.0, 0, 0, 0,
-			0, -2.0, 0, 0,
-			0, 0, 1, 0,
-			-1, 1, 0, 1);
-		XMMATRIX matS = XMLoadFloat4x4(&matScreen);
-
-		XMMATRIX invScreenPVMatrix = XMMatrixMultiply(matS, invPVMatrix);
-
-		UIManager::Get().CreateImGuiWindowContent();
 
 		// first pass
 		MeshManager::Get().RenderAllMeshes(commandList, vpMatrix);
@@ -346,13 +345,13 @@ void Editor::OnRender(RenderEventArgs& e)
 			D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 	}
 
+	PIXEndEvent(commandList.Get());
+
 	UIManager::Get().Draw(commandList);
 
 	// Present
 	TransitionResource(commandList, backBuffer,
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-
-	PIXEndEvent(commandList.Get());
 
 	m_FenceValues[currentBackBufferIndex] = commandQueue->ExecuteCommandList(commandList);
 
