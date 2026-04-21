@@ -54,9 +54,16 @@ public:
 
 	void SetSamplerIndex(unsigned int p_samplerIndex);
 
+	void RemoveInstance(Instance* instance_p);
+
 	std::vector<Instance*>& GetInstanceList()
 	{
 		return m_instanceList;
+	}
+
+	int GetInstanceNumber_DEBUG()
+	{
+		return static_cast<int>(m_instanceList.size());
 	}
 
 	D3D12_GPU_VIRTUAL_ADDRESS GetLightCBVGPUAddress()

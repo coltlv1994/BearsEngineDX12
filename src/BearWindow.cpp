@@ -482,6 +482,16 @@ LRESULT BearWindow::WindowMessageHandler(HWND hwnd, UINT message, WPARAM wParam,
 					app.ResetGameClock();
 
 				}
+
+				if (currentState == GameState::DemoRunning)
+				{
+					// player/camera will jump
+					if (m_isJumped == false)
+					{
+						m_isJumped = true;
+						m_verticalVelocity = 10.0f; // initial jump velocity
+					}
+				}
 				break;
 
 			default:
@@ -566,4 +576,22 @@ void BearWindow::_createD3D11on12Resources()
 		m_renderResources[i].d3d11wrappedBackBuffer = m_wrappedBackBuffers[i].Get();
 		m_renderResources[i].d2dRenderTarget = m_d2dRenderTargets[i].Get();
 	}
+}
+
+float BearWindow::HandleYPosition(float p_deltaSecond)
+{
+	if (m_isJumped)
+	{
+		m_verticalVelocity += m_gravity * p_deltaSecond; // apply gravity (negative)
+		float yPosition = m_camera.GetPosition().m128_f32[1] + m_verticalVelocity * p_deltaSecond;
+		if (yPosition <= 0.0f) // assuming ground level is at Y=0
+		{
+			yPosition = 0.0f; // reset to ground level
+			m_isJumped = false; // reset jump state
+			m_verticalVelocity = 0.0f; // reset vertical velocity
+		}
+		return yPosition;
+	}
+
+	return 0.0f;
 }

@@ -480,6 +480,13 @@ void Application::RenderBearWindow(std::shared_ptr<BearWindow> window)
 				sectionEnd * static_cast<float>(currentSection);
 
 			newPosition.m128_f32[3] = 1.0f; // make sure w is 1 for correct transformation
+			
+			// calculate Y posotion
+			float deltaSecond = (float)m_gameClock.GetDeltaSeconds();
+			//float yPosition
+			float yPos = window->HandleYPosition(deltaSecond);
+			newPosition.m128_f32[1] = yPos;
+
 			window->SetCameraLocation(newPosition);
 		}
 
@@ -518,6 +525,9 @@ void Application::RenderBearWindow(std::shared_ptr<BearWindow> window)
 				JPH::Vec3 hitPosition = ray.GetPointOnRay(hit.mFraction);
 				bodyInterface.RemoveBody(hit.mBodyID);
 				bodyInterface.DestroyBody(hit.mBodyID);
+
+				// Remove the body ID from the set of physics bodies
+				MeshManager::Get().RemoveInstance(m_physicsBodiesSet[hit.mBodyID]);
 				m_physicsBodiesSet.erase(hit.mBodyID);
 				UIManager::Get().SetHitResult(hitPosition.mF32);
 			}
@@ -579,6 +589,7 @@ bool Application::PendingWindowSwitchCheck()
 		m_mainWindow->Hide();
 		ResetTimer();
 		m_mainWindow->ResetCamera();
+		UIManager::Get().ReloadMap(m_lastLoadedScene);
 		m_demoWindow->Show();
 		int returnValue = ShowCursor(false);
 		m_gameState = GameState::DemoStart;
@@ -655,6 +666,7 @@ void Application::AddPhysicsBodies()
 {
 	// Get entity list
 	const std::vector<Instance*>& instanceList = MeshManager::Get().GetInstanceList();
+	OutputDebugStringW((L"Adding physics bodies. Number of instances: " + std::to_wstring(instanceList.size()) + L"\n").c_str());
 
 	static BodyInterface& bodyInterface = m_physicsSystem.GetBodyInterface();
 
@@ -683,7 +695,6 @@ void Application::AddPhysicsBodies()
 					Quat(rotQuaternion.x, rotQuaternion.y, rotQuaternion.z, rotQuaternion.w), // rotation
 					EMotionType::Static,
 					Layers::NON_MOVING);
-			m_physicsBodiesSet.insert(bodyInterface.CreateAndAddBody(bodySettings, EActivation::Activate));
 			break;
 		case JoltBodyShape::Cube:
 			bodySettings =
@@ -693,36 +704,39 @@ void Application::AddPhysicsBodies()
 					Quat(rotQuaternion.x, rotQuaternion.y, rotQuaternion.z, rotQuaternion.w), // rotation
 					EMotionType::Static,
 					Layers::NON_MOVING);
-			m_physicsBodiesSet.insert(bodyInterface.CreateAndAddBody(bodySettings, EActivation::Activate));
 			break;
 		default:
-			break;
+			continue;
 		}
+
+		JPH::BodyID bodyId = bodyInterface.CreateAndAddBody(bodySettings, EActivation::Activate);
+		m_physicsBodiesSet[bodyId] = in_p;
+
 	}
 
 	// need a separate one for camera/player
-	bodySettings =
-		BodyCreationSettings(
-			new SphereShape(1.0f), // radius
-			RVec3(0.0f, 0.0f, 0.0f), // position, starting position of camera/player is (0, 0, 0)
-			Quat(0.0f, 0.0f, 0.0f, 1.0f), // rotation, theta is 0 -> cos(theta/2) = 1, sin(theta/2) = 0
-			EMotionType::Dynamic,
-			Layers::MOVING);
-	m_camPlayerBodyId = bodyInterface.CreateAndAddBody(bodySettings, EActivation::Activate);
+	//bodySettings =
+	//	BodyCreationSettings(
+	//		new SphereShape(1.0f), // radius
+	//		RVec3(0.0f, 0.0f, 0.0f), // position, starting position of camera/player is (0, 0, 0)
+	//		Quat(0.0f, 0.0f, 0.0f, 1.0f), // rotation, theta is 0 -> cos(theta/2) = 1, sin(theta/2) = 0
+	//		EMotionType::Dynamic,
+	//		Layers::MOVING);
+	//m_camPlayerBodyId = bodyInterface.CreateAndAddBody(bodySettings, EActivation::Activate);
 }
 
 void Application::DestroyPhysicsBodies()
 {
 	static BodyInterface& bodyInterface = m_physicsSystem.GetBodyInterface();
 
-	for (BodyID body : m_physicsBodiesSet)
+	for (auto kvp : m_physicsBodiesSet)
 	{
-		bodyInterface.RemoveBody(body);
-		bodyInterface.DestroyBody(body);
+		bodyInterface.RemoveBody(kvp.first);
+		bodyInterface.DestroyBody(kvp.first);
 	}
 
-	bodyInterface.RemoveBody(m_camPlayerBodyId);
-	bodyInterface.DestroyBody(m_camPlayerBodyId);
+	//bodyInterface.RemoveBody(m_camPlayerBodyId);
+	//bodyInterface.DestroyBody(m_camPlayerBodyId);
 
 	m_physicsBodiesSet.clear();
 }

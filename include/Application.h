@@ -176,6 +176,11 @@ public:
 		m_numOfCurveSections = num;
 	}
 
+	void SetLastLoadedScene(const std::string& sceneName)
+	{
+		m_lastLoadedScene = sceneName;
+	}
+
 protected:
 
 	// Create an application instance.
@@ -245,10 +250,11 @@ private:
 	//MyBodyFilter m_bodyFilter;
 
 	//std::vector<JPH::BodyID> m_physicsBodies;
-	std::set<JPH::BodyID> m_physicsBodiesSet; // for quick lookup when removing bodies
+	std::map<JPH::BodyID, Instance*> m_physicsBodiesSet; // for debug rendering of body names
 	JPH::BodyID m_camPlayerBodyId;
 	std::vector<XMVECTOR> m_bezierCurvePoints; // points on the bezier curve to render
 	unsigned int m_numOfCurveSections = 0;
+	std::string m_lastLoadedScene = "";
 
 	// Game control
 	GameState m_gameState = GameState::EditorScene;

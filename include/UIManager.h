@@ -94,6 +94,10 @@ public:
 
 	void SetHitResult(float* p_result);
 
+	void ReloadMap(const std::string& mapName);
+
+	void RemoveInstance(Instance* in_p);
+
 	Microsoft::WRL::ComPtr<ID3D11On12Device> GetD3D11On12Device() const { return m_d3d11On12Device; }
 	Microsoft::WRL::ComPtr<ID2D1DeviceContext2> GetD2DDeviceContext() const { return m_d2dDeviceContext; }
 

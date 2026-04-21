@@ -78,6 +78,11 @@ public:
 		return m_hWnd;
 	}
 
+	XMVECTOR GetCameraPosition()
+	{
+		return m_camera.GetPosition();
+	}
+
 	void SetCameraLocation(const XMVECTOR& position)
 	{
 		m_camera.SetPosition(position);
@@ -115,6 +120,8 @@ public:
 	void GetCameraMatrices(XMMATRIX& out_viewProjMatrix, XMMATRIX& out_invPVMatrix) const;
 
 	LRESULT WindowMessageHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
+	float HandleYPosition(float deltaSecond);
 
 	// public accessible variables
 	static const unsigned int BufferCount = 3;
@@ -173,4 +180,7 @@ private:
 	float m_raycastStart[4] = { 0.0f, 0.0f , 0.0f ,0.0f };
 	float m_raycastDirection[4] = { 0.0f, 0.0f , 0.0f ,0.0f };
 	bool m_isRaycastRequested = false;
+	bool m_isJumped = false;
+	float m_verticalVelocity = 0.0f; // positive means upward
+	float m_gravity = -9.8f; // gravity acceleration, in unit of m/s^2
 };
