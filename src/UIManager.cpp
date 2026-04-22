@@ -1261,6 +1261,5 @@ void UIManager::RemoveInstance(Instance* in_p)
 	{
 		OutputDebugStringW(L"Remove instance from UI Manager.\n");
 		listOfInstances.erase(it);
-		delete in_p;
 	}
 }

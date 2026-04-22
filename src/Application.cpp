@@ -531,9 +531,12 @@ void Application::RenderBearWindow(std::shared_ptr<BearWindow> window)
 
 				// Remove the body ID from the set of physics bodies
 				meshManager.RemoveInstance(m_physicsBodiesSet[hit.mBodyID]);
-				
-				m_physicsBodiesSet.erase(hit.mBodyID);
 				uiManager.RemoveInstance(m_physicsBodiesSet[hit.mBodyID]);
+				delete m_physicsBodiesSet[hit.mBodyID];
+
+				auto it = m_physicsBodiesSet.find(hit.mBodyID);
+				m_physicsBodiesSet.erase(it);
+
 				uiManager.SetHitResult(hitPosition.mF32);
 			}
 		}

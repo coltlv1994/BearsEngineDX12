@@ -439,6 +439,5 @@ void MeshManager::RemoveInstance(Instance* instance_p)
 	{
 		OutputDebugStringW(L"Hit detected! Removing body and corresponding instance.\n");
 		m_instanceList.erase(it);
-		delete instance_p;
 	}
 }
