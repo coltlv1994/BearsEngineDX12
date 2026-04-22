@@ -448,6 +448,9 @@ int Application::RunWithBearWindow(const std::wstring& p_windowName, int p_width
 
 void Application::RenderBearWindow(std::shared_ptr<BearWindow> window)
 {
+	static UIManager& uiManager = UIManager::Get();
+	static MeshManager& meshManager = MeshManager::Get();
+
 	if (m_gameState == GameState::DemoRunning)
 	{
 		// new location of cam/player
@@ -527,9 +530,11 @@ void Application::RenderBearWindow(std::shared_ptr<BearWindow> window)
 				bodyInterface.DestroyBody(hit.mBodyID);
 
 				// Remove the body ID from the set of physics bodies
-				MeshManager::Get().RemoveInstance(m_physicsBodiesSet[hit.mBodyID]);
+				meshManager.RemoveInstance(m_physicsBodiesSet[hit.mBodyID]);
+				
 				m_physicsBodiesSet.erase(hit.mBodyID);
-				UIManager::Get().SetHitResult(hitPosition.mF32);
+				uiManager.RemoveInstance(m_physicsBodiesSet[hit.mBodyID]);
+				uiManager.SetHitResult(hitPosition.mF32);
 			}
 		}
 	}
