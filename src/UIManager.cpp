@@ -1253,14 +1253,3 @@ void UIManager::ReloadMap(const std::string& mapName)
 	strcpy_s(mapNameToLoad, 128, mapName.c_str());
 	_loadMap();
 }
-
-void UIManager::RemoveInstance(Instance* in_p)
-{
-	auto it = std::find(listOfInstances.begin(), listOfInstances.end(), in_p);
-	if (it != listOfInstances.end())
-	{
-		OutputDebugStringW(L"Remove instance from UI Manager.\n");
-		listOfInstances.erase(it);
-		delete in_p;
-	}
-}

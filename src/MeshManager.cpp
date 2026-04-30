@@ -437,8 +437,6 @@ void MeshManager::RemoveInstance(Instance* instance_p)
 	auto it = std::find(m_instanceList.begin(), m_instanceList.end(), instance_p);
 	if (it != m_instanceList.end())
 	{
-		OutputDebugStringW(L"Hit detected! Removing body and corresponding instance.\n");
-		m_instanceList.erase(it);
-		delete instance_p;
+		(*it)->isRenderable = false; // Mark instance as non-renderable to avoid rendering it in the current frame
 	}
 }

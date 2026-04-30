@@ -190,7 +190,10 @@ void D3D12Renderer::_renderFirstPass(ComPtr<ID3D12GraphicsCommandList2> commandL
 	for (Instance* instance_p : instanceList)
 	{
 		// call mesh class to render it
-		instance_p->Render(commandList, vpMatrix);
+		if (instance_p->isRenderable)
+		{
+			instance_p->Render(commandList, vpMatrix);
+		}
 	}
 }
 

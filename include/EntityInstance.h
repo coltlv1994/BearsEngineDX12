@@ -62,6 +62,8 @@ public:
 
 	void Render(ComPtr<ID3D12GraphicsCommandList2> p_commandList, const XMMATRIX& p_vpMatrix);
 
+	bool isRenderable = true;
+
 private:
 	std::string m_name;
 	XMVECTOR m_position = XMVectorZero();

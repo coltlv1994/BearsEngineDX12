@@ -589,7 +589,7 @@ bool Application::PendingWindowSwitchCheck()
 		m_mainWindow->Hide();
 		ResetTimer();
 		m_mainWindow->ResetCamera();
-		UIManager::Get().ReloadMap(m_lastLoadedScene);
+		//UIManager::Get().ReloadMap(m_lastLoadedScene);
 		m_demoWindow->Show();
 		int returnValue = ShowCursor(false);
 		m_gameState = GameState::DemoStart;
@@ -739,6 +739,14 @@ void Application::DestroyPhysicsBodies()
 	//bodyInterface.DestroyBody(m_camPlayerBodyId);
 
 	m_physicsBodiesSet.clear();
+
+	const std::vector<Instance*>& instanceList = MeshManager::Get().GetInstanceList();
+
+	for (auto in_p : instanceList)
+	{
+		Instance& instance = *in_p;
+		instance.isRenderable = true;
+	}
 }
 
 void Application::LoadBezierCurve()
